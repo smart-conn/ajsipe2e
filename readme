@@ -1,0 +1,9 @@
+gateway_sw contains four sub projects:
+
+1. CloudCommEngine
+
+2. IMSTransport
+
+3. ProximalCommEngine
+
+4. ConnectorEngine

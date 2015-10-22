@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CloudCommEngine", "CloudCommEngine\CloudCommEngine.vcxproj", "{5D54D42B-53E5-494A-BF30-0C536F9089FB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{7B4E5FA7-A47F-4EAE-8088-97AC841B26E8} = {7B4E5FA7-A47F-4EAE-8088-97AC841B26E8}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IMSTransport", "IMSTransport\IMSTransport.vcxproj", "{7B4E5FA7-A47F-4EAE-8088-97AC841B26E8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5D54D42B-53E5-494A-BF30-0C536F9089FB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{5D54D42B-53E5-494A-BF30-0C536F9089FB}.Debug|Win32.Build.0 = Debug|Win32
+		{5D54D42B-53E5-494A-BF30-0C536F9089FB}.Release|Win32.ActiveCfg = Release|Win32
+		{5D54D42B-53E5-494A-BF30-0C536F9089FB}.Release|Win32.Build.0 = Release|Win32
+		{7B4E5FA7-A47F-4EAE-8088-97AC841B26E8}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7B4E5FA7-A47F-4EAE-8088-97AC841B26E8}.Debug|Win32.Build.0 = Debug|Win32
+		{7B4E5FA7-A47F-4EAE-8088-97AC841B26E8}.Release|Win32.ActiveCfg = Release|Win32
+		{7B4E5FA7-A47F-4EAE-8088-97AC841B26E8}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

@@ -20,9 +20,9 @@
 
 #include <qcc/StringSource.h>
 
-#include "iotcloud/gateway/CommonUtils.h"
-#include "iotcloud/gateway/CloudServiceAgentBusObject.h"
-#include "iotcloud/gateway/ProximalCommEngineBusObject.h"
+#include "Common/CommonUtils.h"
+#include "ProximalCommEngine/CloudServiceAgentBusObject.h"
+#include "ProximalCommEngine/ProximalCommEngineBusObject.h"
 
 #include <alljoyn/AllJoynStd.h>
 #include <alljoyn/DBusStd.h>
@@ -30,7 +30,7 @@
 #include <BusUtil.h>
 
 
-#define QCC_MODULE "IOTCLOUD"
+#define QCC_MODULE "SIPE2E"
 
 
 using namespace ajn;
@@ -38,7 +38,7 @@ using namespace qcc;
 using namespace std;
 
 
-namespace iotcloud {
+namespace sipe2e {
 
 namespace gateway {
 
@@ -135,8 +135,8 @@ void CloudServiceAgentBusObject::CommonMethodHandler(const InterfaceDescription:
 	  * in the asynchronous MessageReceiver::ReplyHandler.
 	  */
 	AsyncReplyContext* replyContext = new AsyncReplyContext(msg, member);
-	status = cloudEngineProxyBusObject->MethodCallAsync(gwConsts::IOTCLOUD_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
-		gwConsts::IOTCLOUD_CLOUDCOMMENGINE_ALLJOYNENGINE_CLOUDMETHODCALL.c_str(), 
+	status = cloudEngineProxyBusObject->MethodCallAsync(gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
+		gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_CLOUDMETHODCALL.c_str(), 
 		const_cast<MessageReceiver*>(static_cast<const MessageReceiver* const>(this)), 
 		static_cast<MessageReceiver::ReplyHandler>(&CloudServiceAgentBusObject::CloudMethodCallReplyHandler),
 		cloudCallArgs, 3, (void*)replyContext);
@@ -291,7 +291,7 @@ QStatus CloudServiceAgentBusObject::ParseInterface(const XmlElement* root)
      * Security on an interface can be "true", "inherit", or "off"
      * Security is implicitly off on the standard DBus interfaces.
      */
-	String sec = iotcloud::gateway::GetSecureAnnotation(root);
+	String sec = sipe2e::gateway::GetSecureAnnotation(root);
 	if (sec == "true") {
 		secPolicy = AJ_IFC_SECURITY_REQUIRED;
 	} else if ((sec == "off") || (ifName.find(org::freedesktop::DBus::InterfaceName) == 0)) {
@@ -358,7 +358,7 @@ QStatus CloudServiceAgentBusObject::ParseInterface(const XmlElement* root)
 							argNames += nameAtt;
 
 							String description;
-							if (iotcloud::gateway::GetDescription(argElem, description)) {
+							if (sipe2e::gateway::GetDescription(argElem, description)) {
 								argDescriptions.insert(pair<String, String>(nameAtt, description));
 							}
 						}
@@ -437,7 +437,7 @@ QStatus CloudServiceAgentBusObject::ParseInterface(const XmlElement* root)
 				}
 
 				String description;
-				if (iotcloud::gateway::GetDescription(ifChildElem, description)) {
+				if (sipe2e::gateway::GetDescription(ifChildElem, description)) {
 					intf->SetPropertyDescription(memberName.c_str(), description.c_str());
 				}
 			}

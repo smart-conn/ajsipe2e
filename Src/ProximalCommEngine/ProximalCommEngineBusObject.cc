@@ -44,12 +44,11 @@
 // #include <SignatureUtils.h>
 // #include <BusUtil.h>
 
-#include "iotcloud/gateway/GatewayConstants.h"
-#include "iotcloud/gateway/MarshalUtils.h"
-#include "iotcloud/gateway/ProximalCommEngineBusObject.h"
-#include "iotcloud/gateway/CommonUtils.h"
+#include "Common/GatewayConstants.h"
+#include "ProximalCommEngine/ProximalCommEngineBusObject.h"
+#include "Common/CommonUtils.h"
 
-#define QCC_MODULE "IOTCLOUD"
+#define QCC_MODULE "SIPE2E"
 
 
 using namespace ajn;
@@ -57,7 +56,7 @@ using namespace qcc;
 using namespace std;
 
 
-namespace iotcloud {
+namespace sipe2e {
 namespace gateway {
 using namespace gwConsts;
 
@@ -199,8 +198,8 @@ void ProximalCommEngineBusObject::LocalServiceAnnounceHandler::AnnounceHandlerTa
 #endif // DEBUG
 
 	MsgArg cloudCallArg("s", introspectionXml.c_str());
-	status = ownerBusObject->cloudEngineProxyBusObject->MethodCall(IOTCLOUD_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
-		IOTCLOUD_CLOUDCOMMENGINE_ALLJOYNENGINE_PUBLISH.c_str(),
+	status = ownerBusObject->cloudEngineProxyBusObject->MethodCall(SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
+		SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_PUBLISH.c_str(),
 		&cloudCallArg, 1);
 	CHECK_STATUS_AND_LOG("Error publishing local service to cloud");
 
@@ -236,8 +235,8 @@ void ProximalCommEngineBusObject::LocalServiceAnnounceHandler::Announce(uint16_t
 	  * Here we may receive the announcements from self (ProximalCommEngine), so we have to
 	  * filter out and ignore the announcements from self
 	  */
-	if (port == gwConsts::IOTCLOUD_PROXIMALCOMMENGINE_SESSION_PORT
-		|| port == gwConsts::IOTCLOUD_CLOUDCOMMENGINE_SESSION_PORT)
+	if (port == gwConsts::SIPE2E_PROXIMALCOMMENGINE_SESSION_PORT
+		|| port == gwConsts::SIPE2E_CLOUDCOMMENGINE_SESSION_PORT)
 		return;
 	Ptr<AnnounceHandlerTask> task(new AnnounceHandlerTask(ownerBusObject));
 	task->SetAnnounceContent(version, port, busName, objectDescs, aboutData);
@@ -292,25 +291,25 @@ QStatus ProximalCommEngineBusObject::Init(BusAttachment& proximalCommBus)
 
 	/* Prepare interfaces to register in the bus */
 	InterfaceDescription* intf = NULL;
-	status = proximalCommBus.CreateInterface(IOTCLOUD_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(), intf, false);
+	status = proximalCommBus.CreateInterface(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(), intf, false);
 	if (ER_OK != status || !intf) {
 		Cleanup();
 		return status;
 	}
-	intf->AddMethod(IOTCLOUD_PROXIMALCOMMENGINE_ALLJOYNENGINE_LOCALMETHODCALL.c_str(),
+	intf->AddMethod(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_LOCALMETHODCALL.c_str(),
 		"savs", "avx", "addr,para,cloudSessionID,reply,localSessionID");
-	intf->AddMethod(IOTCLOUD_PROXIMALCOMMENGINE_ALLJOYNENGINE_SUBSCRIBE.c_str(),
+	intf->AddMethod(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_SUBSCRIBE.c_str(),
 		"ss", NULL, "serviceAddr,introspectionXML");
-	intf->AddMethod(IOTCLOUD_PROXIMALCOMMENGINE_ALLJOYNENGINE_UNSUBSCRIBE.c_str(),
+	intf->AddMethod(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_UNSUBSCRIBE.c_str(),
 		"ss", NULL, "serviceAddr,introspectionXML");
 	intf->Activate();
 	this->AddInterface(*intf, BusObject::ANNOUNCED);
 	const MethodEntry methodEntries[] = {
-		{ intf->GetMember(IOTCLOUD_PROXIMALCOMMENGINE_ALLJOYNENGINE_LOCALMETHODCALL.c_str()), 
+		{ intf->GetMember(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_LOCALMETHODCALL.c_str()), 
 		static_cast<MessageReceiver::MethodHandler>(&ProximalCommEngineBusObject::AJLocalMethodCall) },
-		{ intf->GetMember(IOTCLOUD_PROXIMALCOMMENGINE_ALLJOYNENGINE_SUBSCRIBE.c_str()), 
+		{ intf->GetMember(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_SUBSCRIBE.c_str()), 
 		static_cast<MessageReceiver::MethodHandler>(&ProximalCommEngineBusObject::AJSubscribeCloudServiceToLocal) },
-		{ intf->GetMember(IOTCLOUD_PROXIMALCOMMENGINE_ALLJOYNENGINE_UNSUBSCRIBE.c_str()), 
+		{ intf->GetMember(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_UNSUBSCRIBE.c_str()), 
 		static_cast<MessageReceiver::MethodHandler>(&ProximalCommEngineBusObject::AJUnsubscribeCloudServiceFromLocal) }
 	};
 	status = this->AddMethodHandlers(methodEntries, sizeof(methodEntries) / sizeof(methodEntries[0]));
@@ -327,8 +326,8 @@ QStatus ProximalCommEngineBusObject::Init(BusAttachment& proximalCommBus)
 
 	/* Prepare the About announcement object descriptions */
 	vector<String> intfNames;
-	intfNames.push_back(IOTCLOUD_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE);
-	status = services::AboutServiceApi::getInstance()->AddObjectDescription(IOTCLOUD_PROXIMALCOMMENGINE_OBJECTPATH, intfNames);
+	intfNames.push_back(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE);
+	status = services::AboutServiceApi::getInstance()->AddObjectDescription(SIPE2E_PROXIMALCOMMENGINE_OBJECTPATH, intfNames);
 
 	return status;
 }
@@ -406,8 +405,8 @@ QStatus ProximalCommEngineBusObject::Cleanup()
 
 	/* Delete object descriptions from AboutService */
 	vector<String> intfNames;
-	intfNames.push_back(IOTCLOUD_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE);
-	status = services::AboutServiceApi::getInstance()->RemoveObjectDescription(IOTCLOUD_PROXIMALCOMMENGINE_OBJECTPATH, intfNames);
+	intfNames.push_back(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE);
+	status = services::AboutServiceApi::getInstance()->RemoveObjectDescription(SIPE2E_PROXIMALCOMMENGINE_OBJECTPATH, intfNames);
 
 	return status;
 }
@@ -735,4 +734,4 @@ void ProximalCommEngineBusObject::LocalMethodCallReplyHandler(ajn::Message& msg,
 
 
 } //namespace gateway
-} //namespace iotcloud
+} //namespace sipe2e

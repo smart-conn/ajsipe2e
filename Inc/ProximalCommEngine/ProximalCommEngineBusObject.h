@@ -33,14 +33,14 @@
 #include <alljoyn/InterfaceDescription.h>
 
 
-#include "iotcloud/gateway/GatewayConstants.h"
-#include "iotcloud/gateway/CommonBusListener.h"
-#include "iotcloud/gateway/GatewayStd.h"
+#include "Common/GatewayConstants.h"
+#include "Common/CommonBusListener.h"
+#include "Common/GatewayStd.h"
 
-#include "iotcloud/gateway/CloudServiceAgentBusObject.h"
+#include "ProximalCommEngine/CloudServiceAgentBusObject.h"
 
 
-namespace iotcloud {
+namespace sipe2e {
 namespace gateway {
 
 class CloudServiceAgentBusObject;
@@ -224,6 +224,6 @@ protected:
 };
 
 } /* namespace gateway */
-} /* namespace iotcloud */
+} /* namespace sipe2e */
 
 #endif /* ALLJOYNENGINEBUSOBJECT_H_ */

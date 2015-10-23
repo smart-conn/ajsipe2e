@@ -22,22 +22,22 @@
 #include <alljoyn/about/AboutPropertyStoreImpl.h>
 #include <alljoyn/about/AnnouncementRegistrar.h>
 
-#include <alljoyn/services_common/GuidUtil.h>
+#include "Common/GuidUtil.h"
 
 #include <signal.h>
 
-#include "iotcloud/gateway/GatewayConstants.h"
-#include "iotcloud/gateway/GatewayStd.h"
-#include "iotcloud/gateway/ProximalCommEngineBusObject.h"
-#include "iotcloud/CommonBusListener.h"
+#include "Common/GatewayConstants.h"
+#include "Common/GatewayStd.h"
+#include "ProximalCommEngine/ProximalCommEngineBusObject.h"
+#include "Common/CommonBusListener.h"
 
-#define QCC_MODULE "IOTCLOUD"
+#define QCC_MODULE "SIPE2E"
 
 using namespace std;
 using namespace qcc;
 using namespace ajn;
 
-using namespace iotcloud;
+using namespace sipe2e;
 using namespace gateway;
 
 /** Top level message bus object. */
@@ -82,13 +82,13 @@ public:
 		const AboutData& aboutData)
 	{
 		/* Only receive the announcement from CloudCommEngine module */
-		if (gwConsts::IOTCLOUD_CLOUDCOMMENGINE_SESSION_PORT == port) {
+		if (gwConsts::SIPE2E_CLOUDCOMMENGINE_SESSION_PORT == port) {
 			for (services::AnnounceHandler::ObjectDescriptions::const_iterator itObjDesc = objectDescs.begin();
 				itObjDesc != objectDescs.end(); ++itObjDesc) {
 					String objPath = itObjDesc->first;
 					size_t pos = objPath.find_last_of('/');
 					if (String::npos != pos) {
-						if (objPath.substr(pos + 1, objPath.length() - pos - 1) == gwConsts::IOTCLOUD_CLOUDCOMMENGINE_NAME) {
+						if (objPath.substr(pos + 1, objPath.length() - pos - 1) == gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME) {
 							s_bus->EnableConcurrentCallbacks();
 							SessionOpts opts(SessionOpts::TRAFFIC_MESSAGES, true, SessionOpts::PROXIMITY_ANY, TRANSPORT_ANY);
 							SessionId sessionId;
@@ -177,7 +177,7 @@ QStatus fillPropertyStore(services::AboutPropertyStoreImpl* propertyStore, Strin
 	CHECK_RETURN(propertyStore->setSupportedLangs(languages))
 	CHECK_RETURN(propertyStore->setDefaultLang(defaultLanguage))
 
-	CHECK_RETURN(propertyStore->setModelNumber("iotcloud001"))
+	CHECK_RETURN(propertyStore->setModelNumber("sipe2e001"))
 	CHECK_RETURN(propertyStore->setDateOfManufacture("1/1/2015"))
 	CHECK_RETURN(propertyStore->setSoftwareVersion("1.0.0 build 1"))
 	CHECK_RETURN(propertyStore->setAjSoftwareVersion(ajn::GetVersion()))
@@ -187,7 +187,7 @@ QStatus fillPropertyStore(services::AboutPropertyStoreImpl* propertyStore, Strin
 	if (iter != deviceNames.end()) {
 		CHECK_RETURN(propertyStore->setDeviceName(iter->second.c_str(), languages[0]));
 	} else {
-		CHECK_RETURN(propertyStore->setDeviceName(gwConsts::IOTCLOUD_PROXIMALCOMMENGINE_NAME.c_str(), "en"));
+		CHECK_RETURN(propertyStore->setDeviceName(gwConsts::SIPE2E_PROXIMALCOMMENGINE_NAME.c_str(), "en"));
 	}
 
 	iter = deviceNames.find(languages[1]);
@@ -283,7 +283,7 @@ int main(int argc, char** argv, char** envArg)
 
 	start:
 	/* Prepare bus attachment */
-	s_bus = new BusAttachment(gwConsts::IOTCLOUD_PROXIMALCOMMENGINE_NAME.c_str(), true, 8);
+	s_bus = new BusAttachment(gwConsts::SIPE2E_PROXIMALCOMMENGINE_NAME.c_str(), true, 8);
 	if (!s_bus) {
 		status = ER_OUT_OF_MEMORY;
 		return status;
@@ -306,7 +306,7 @@ int main(int argc, char** argv, char** envArg)
 
 	/* Prepare About */
 	qcc::String device_id, app_id;
-	qcc::String app_name = gwConsts::IOTCLOUD_PROXIMALCOMMENGINE_NAME;
+	qcc::String app_name = gwConsts::SIPE2E_PROXIMALCOMMENGINE_NAME;
 	map<String, String> deviceNames;
 	deviceNames.insert(pair<String, String>("en", "ProximalCommEngine"));
 	deviceNames.insert(pair<String, String>("zh", "近场通讯引擎"));
@@ -320,13 +320,13 @@ int main(int argc, char** argv, char** envArg)
 		cleanup();
 		return status;
 	}
-	status = prepareAboutService(s_bus, s_propertyStoreImpl, s_busListener, gwConsts::IOTCLOUD_PROXIMALCOMMENGINE_SESSION_PORT);
+	status = prepareAboutService(s_bus, s_propertyStoreImpl, s_busListener, gwConsts::SIPE2E_PROXIMALCOMMENGINE_SESSION_PORT);
 	if (ER_OK != status) {
 		QCC_LogError(status, ("Error while preparing the about service"));
 		cleanup();
 		return status;
 	}
-	s_pceBusObject = new ProximalCommEngineBusObject(gwConsts::IOTCLOUD_PROXIMALCOMMENGINE_OBJECTPATH);
+	s_pceBusObject = new ProximalCommEngineBusObject(gwConsts::SIPE2E_PROXIMALCOMMENGINE_OBJECTPATH);
 	status = s_pceBusObject->Init(*s_bus);
 	if (ER_OK != status) {
 		QCC_LogError(status, ("Error while preparing proxy context for ProximalCommEngine"));
@@ -336,7 +336,7 @@ int main(int argc, char** argv, char** envArg)
 
 	/* Register AnnounceHandler */
 	s_announceHandler = new ProximalCommEngineAnnounceHandler();
-	const char* cceIntf = gwConsts::IOTCLOUD_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str();
+	const char* cceIntf = gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str();
 	status = services::AnnouncementRegistrar::RegisterAnnounceHandler(*s_bus, *s_announceHandler, &cceIntf, 1);
 	if (ER_OK != status) {
 		QCC_LogError(status, ("Error while registering AnnounceHandler"));

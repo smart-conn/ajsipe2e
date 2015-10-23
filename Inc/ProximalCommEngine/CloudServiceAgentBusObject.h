@@ -27,10 +27,10 @@
 #include <alljoyn/InterfaceDescription.h>
 #include <alljoyn/ProxyBusObject.h>
 
-#include "iotcloud/gateway/GatewayConstants.h"
-#include "iotcloud/gateway/GatewayStd.h"
+#include "Common/GatewayConstants.h"
+#include "Common/GatewayStd.h"
 
-namespace iotcloud {
+namespace sipe2e {
 
 namespace gateway {
 
@@ -133,7 +133,7 @@ protected:
 
 } // namespace gateway
 
-} // namespace iotcloud
+} // namespace sipe2e
 
 #endif // CLOUDSERVICEAGENTBUSOBJECT_H_
 

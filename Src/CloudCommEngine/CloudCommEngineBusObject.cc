@@ -506,6 +506,32 @@ void CloudCommEngineBusObject::AJSubscribe(const ajn::InterfaceDescription::Memb
 	}
 }
 
+void CloudCommEngineBusObject::AJUnsubscribe(const ajn::InterfaceDescription::Member* member, ajn::Message& msg)
+{
+    QStatus status = ER_OK;
+    size_t numArgs = 0;
+    const MsgArg* args = NULL;
+    msg->GetArgs(numArgs, args);
+    if (1 != numArgs || !args) {
+        status = ER_BAD_ARG_COUNT;
+        CHECK_STATUS_AND_REPLY("Error arg number");
+    }
+
+    // The first and the only argument is the remote account address, e.g. lyh@nane.cn
+    String remoteAccount = args[0].v_string.str;
+
+    int iStatus = ITUnsubscribe(remoteAccount.c_str());
+    if (iStatus == 0) {
+        status = MethodReply(msg, ER_OK);
+        if (ER_OK != status) {
+            QCC_LogError(status, ("Method Reply did not complete successfully"));
+        }
+    } else {
+        status = ER_FAIL;
+        CHECK_STATUS_AND_REPLY("Error while unsubscribing to remote account");
+    }
+}
+
 qcc::String CloudCommEngineBusObject::ArgToXml(const ajn::MsgArg* args, size_t indent)
 {
     qcc::String str;

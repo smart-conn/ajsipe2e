@@ -111,12 +111,18 @@ public:
 	 */
 	void AJDeleteLocalServiceFromCloud(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
 
-		/**
+	/**
 	 * Callback when deleting some local service from cloud
 	 * @param member - the member (method) of the interface that was executed
 	 * @param msg - the Message of the method
 	 */
 	void AJSubscribe(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
+    /**
+     * 
+     * @param member - the member (method) of the interface that was executed
+     * @param msg - the Message of the method
+     */
+    void AJUnsubscribe(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
 
 private:
     // Delete dependency on Axis2, 20151019, LYH

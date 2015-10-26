@@ -37,6 +37,9 @@ extern "C"
 	SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
 		ITSubscribe(const char* remoteAccount);
 
+    SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
+        ITUnsubscribe(const char* remoteAccount);
+
 	SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
 		ITPublishService(const char* introspectionXml);
 

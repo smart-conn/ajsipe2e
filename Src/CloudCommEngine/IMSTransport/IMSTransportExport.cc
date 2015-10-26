@@ -37,6 +37,11 @@ int SIPE2E_GATEWAY_CALL ITSubscribe(const char* remoteAccount)
 	return IMSTransport::GetInstance()->Subscribe(remoteAccount);
 }
 
+int SIPE2E_GATEWAY_CALL ITUnsubscribe(const char* remoteAccount)
+{
+    return IMSTransport::GetInstance()->Unsubscribe(remoteAccount);
+}
+
 int SIPE2E_GATEWAY_CALL ITPublishService(const char* introspectionXml)
 {
 	return IMSTransport::GetInstance()->PublishService(introspectionXml);

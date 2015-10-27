@@ -54,6 +54,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;QCC_OS_GROUP_WINDOWS;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ALLJOYN_SDK_HOME)\inc;$(ALLJOYN_SDK_HOME)\inc\alljoyn;$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SRC_HOME)\core\alljoyn\common\inc;$(BOOST_HOME);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/vmm /vmg %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -72,6 +73,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;QCC_OS_GROUP_WINDOWS;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ALLJOYN_SDK_HOME)\inc;$(ALLJOYN_SDK_HOME)\inc\alljoyn;$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SRC_HOME)\core\alljoyn\common\inc;$(BOOST_HOME);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/vmm /vmg %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -92,6 +94,8 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\..\Inc\CloudCommEngine\CloudCommEngineBusObject.h" />
     <ClInclude Include="..\..\..\..\Inc\CloudCommEngine\IMSTransport\ContentType.h" />
+    <ClInclude Include="..\..\..\..\Inc\CloudCommEngine\IMSTransport\IMSTransportConstants.h" />
+    <ClInclude Include="..\..\..\..\Inc\CloudCommEngine\IMSTransport\IMSTransportExport.h" />
     <ClInclude Include="..\..\..\..\Inc\Common\CommonBusListener.h" />
     <ClInclude Include="..\..\..\..\Inc\Common\CommonUtils.h" />
     <ClInclude Include="..\..\..\..\Inc\Common\GatewayConstants.h" />

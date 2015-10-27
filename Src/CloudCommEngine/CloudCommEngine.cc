@@ -158,6 +158,7 @@ private:
 ThreadReturn STDCALL NotificationReceiverThreadFunc(void* arg)
 {
 	while (boost::shared_array<char> notification = IMSTransport::GetInstance()->ReadServiceNotification()) {
+        QStatus status = ER_OK;
 		char* notificationBuffer = notification.get();
 		char* tmp = strchr(notificationBuffer, '^');
 		if (!tmp) {
@@ -214,6 +215,11 @@ ThreadReturn STDCALL NotificationReceiverThreadFunc(void* arg)
 
         StringSource source(notificationContent);
         XmlParseContext pc(source);
+        status = XmlElement::Parse(pc);
+        if (ER_OK != status) {
+            QCC_LogError(status, ("Error parsing the notification xml content: %s", notificationContent));
+            continue;
+        }
         const XmlElement* rootNode = pc.GetRoot();
         if (rootNode == NULL) {
             QCC_LogError(ER_XML_MALFORMED, ("Can not get the root node of the notification xml content: %s", notificationContent));
@@ -250,7 +256,7 @@ ThreadReturn STDCALL NotificationReceiverThreadFunc(void* arg)
 				if (nSubState && _status.GetBasicStatus() == ims::basic::open) {
 					// if the status is open, then subscribe it
 					MsgArg proximalCallArg("ss", peer, serviceIntrospectionXml.c_str());
-					QStatus status = s_pceProxyBusObject->MethodCall(gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
+					status = s_pceProxyBusObject->MethodCall(gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
 						gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_SUBSCRIBE.c_str(),
 						&proximalCallArg, 2);
 					if (ER_OK != status) {
@@ -259,7 +265,7 @@ ThreadReturn STDCALL NotificationReceiverThreadFunc(void* arg)
 				} else {
 					// if the status is closed, then unsubscribe it
 					MsgArg proximalCallArg("ss", peer, serviceIntrospectionXml.c_str());
-					QStatus status = s_pceProxyBusObject->MethodCall(gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
+					status = s_pceProxyBusObject->MethodCall(gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
 						gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_UNSUBSCRIBE.c_str(),
 						&proximalCallArg, 2);
 					if (ER_OK != status) {
@@ -354,6 +360,8 @@ QStatus cleanupAxisSystem()
 		s_axis2Env = NULL;
 	}
 	axiom_xml_reader_cleanup();
+
+    ITShutdown();
 	return ER_OK;
 }
 */
@@ -608,6 +616,11 @@ int main(int argc, char** argv, char** envArg)
 	Thread axis2ServerThread("Axis2ServerThread", Axis2ServerThreadFunc);
 	axis2ServerThread.Start();
 */
+    // Initialize the IMSTransport
+    if (0 != ITInitialize())
+    {
+        return ER_FAIL;
+    }
 
 
 	while (s_interrupt == false) {
@@ -621,6 +634,9 @@ int main(int argc, char** argv, char** envArg)
 
 		qcc::Sleep(100);
 	}
+
+    ITShutdown();
+
 	cleanup();
     // Delete dependency on Axis2, 20151019, LYH
 /*

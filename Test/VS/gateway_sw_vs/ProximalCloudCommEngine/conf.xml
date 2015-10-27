@@ -1,0 +1,12 @@
+<CloudCommEngine>
+	<Transport>
+	  <IMS>
+		  <Realm>nane.cn</Realm>
+		  <IMPI>luoyongheng@nane.cn</IMPI>
+		  <IMPU>sip:luoyongheng@nane.cn</IMPU>
+		  <Password>luoyongheng</Password>
+		  <pCSCF domain="pcscf.nane.cn" port="4060" transport="udp" ipversion="ipv4" />
+      <Expires>300</Expires>
+	  </IMS>
+	</Transport>
+</CloudCommEngine>

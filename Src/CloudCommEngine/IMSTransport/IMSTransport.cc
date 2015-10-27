@@ -157,6 +157,7 @@ IStatus IMSTransport::Init()
 	 *    </IMS>
 	 *  </Transport>
 	 */
+    QStatus status = ER_OK;
 	char confFile[MAX_PATH];
 	confFile[0] = '\0';
 	char* tmpRet = NULL;
@@ -270,6 +271,10 @@ IStatus IMSTransport::Init()
     }
     StringSource source(confFileContent);
     XmlParseContext pc(source);
+    status = XmlElement::Parse(pc);
+    if (ER_OK != status) {
+        return IC_CONF_XML_PARSING;
+    }
     const XmlElement* rootNode = pc.GetRoot();
     if (rootNode == NULL) {
         return IC_CONF_XML_PARSING;
@@ -459,6 +464,9 @@ IStatus IMSTransport::PublishService(const char* introspectionXml)
     */
     StringSource source(introspectionXml);
     XmlParseContext pc(source);
+    if (ER_OK != XmlElement::Parse(pc)) {
+        return IC_INTROSPECTION_XML_PARSING;
+    }
     const XmlElement* rootNode = pc.GetRoot();
     if (rootNode == NULL) {
         return IC_INTROSPECTION_XML_PARSING;
@@ -554,6 +562,9 @@ IStatus IMSTransport::DeleteService(const char* introspectionXml)
 */
     StringSource source(introspectionXml);
     XmlParseContext pc(source);
+    if (ER_OK != XmlElement::Parse(pc)) {
+        return IC_INTROSPECTION_XML_PARSING;
+    }
     const XmlElement* rootNode = pc.GetRoot();
     if (rootNode == NULL) {
         return IC_INTROSPECTION_XML_PARSING;

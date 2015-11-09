@@ -409,26 +409,32 @@ IStatus IMSTransport::Unsubscribe(const char* remoteAccount)
 		return IC_BAD_ARG_1;
 	}
 
+    SubscriptionSession* subSession = NULL;
 	std::map<std::string, SubscriptionSession*>::iterator itrSubsession = subSessions.find((std::string)remoteAccount);
 	if (itrSubsession != subSessions.end()) {
 		SubscriptionSession* subSession = itrSubsession->second;
-		if (subSession) {
-			if (subSession->unSubscribe()) {
-				boost::unique_lock<boost::mutex> lock(imsIns->mtxUnsubscribe);
-				if (condUnsubscribe.timed_wait(lock, boost::posix_time::milliseconds(gwConsts::SUBSCRIPTION_DEFAULT_TIMEOUT))) {
-					delete subSession;
-					subSessions.erase(itrSubsession);
-				} else {
-					return IC_TRANSPORT_IMS_SUB_FAILED;
-				}
-			} else {
-				// Unsubscribe is not finished correctly
-				return IC_TRANSPORT_IMS_SUB_FAILED;
-			}
-		} else {
-			return IC_TRANSPORT_IMS_SUB_FAILED;
-		}
-	}
+	} else {
+        // If a subsession is not present, should construct a new subsession
+        subSession = new SubscriptionSession(stack);
+        subSession->setToUri(remoteAccount);
+        subSessions.insert(std::pair<std::string, SubscriptionSession*>((std::string)remoteAccount, subSession));
+    }
+    if (subSession) {
+        if (subSession->unSubscribe()) {
+            boost::unique_lock<boost::mutex> lock(imsIns->mtxUnsubscribe);
+            if (condUnsubscribe.timed_wait(lock, boost::posix_time::milliseconds(gwConsts::SUBSCRIPTION_DEFAULT_TIMEOUT))) {
+                delete subSession;
+                subSessions.erase(itrSubsession);
+            } else {
+                return IC_TRANSPORT_IMS_SUB_FAILED;
+            }
+        } else {
+            // Unsubscribe is not finished correctly
+            return IC_TRANSPORT_IMS_SUB_FAILED;
+        }
+    } else {
+        return IC_TRANSPORT_IMS_SUB_FAILED;
+    }
 	return IC_OK;
 }
 

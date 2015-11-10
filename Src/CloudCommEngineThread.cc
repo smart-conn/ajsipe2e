@@ -67,12 +67,12 @@ static volatile sig_atomic_t s_cceRestart = false;
 
 static void SigIntHandler(int sig)
 {
-	s_cceInterrupt = true;
+    s_cceInterrupt = true;
 }
 
 static void daemonDisconnectCB()
 {
-	s_cceRestart = true;
+    s_cceRestart = true;
 }
 
 typedef void (*AnnounceHandlerCallback)(qcc::String const& busName, unsigned short port);
@@ -81,111 +81,111 @@ class CloudCommEngineAnnounceHandler : public ajn::services::AnnounceHandler {
 
 public:
 
-	CloudCommEngineAnnounceHandler(AnnounceHandlerCallback callback = 0)
-		: AnnounceHandler(), m_Callback(callback)
-	{
-	}
+    CloudCommEngineAnnounceHandler(AnnounceHandlerCallback callback = 0)
+        : AnnounceHandler(), m_Callback(callback)
+    {
+    }
 
-	~CloudCommEngineAnnounceHandler()
-	{
-	}
+    ~CloudCommEngineAnnounceHandler()
+    {
+    }
 
 
-	virtual void Announce(unsigned short version, unsigned short port, const char* busName, const ObjectDescriptions& objectDescs,
-		const AboutData& aboutData)
-	{
-		/* Only receive the announcement from ProximalCommEngine module */
-		if (gwConsts::SIPE2E_PROXIMALCOMMENGINE_SESSION_PORT == port) {
-			for (services::AnnounceHandler::ObjectDescriptions::const_iterator itObjDesc = objectDescs.begin();
-				itObjDesc != objectDescs.end(); ++itObjDesc) {
-					String objPath = itObjDesc->first;
-					size_t pos = objPath.find_last_of('/');
-					if (String::npos != pos) {
-						if (objPath.substr(pos + 1, objPath.length() - pos - 1) == gwConsts::SIPE2E_PROXIMALCOMMENGINE_NAME) {
-							s_cceBus->EnableConcurrentCallbacks();
-							SessionOpts opts(SessionOpts::TRAFFIC_MESSAGES, true, SessionOpts::PROXIMITY_ANY, TRANSPORT_ANY);
-							SessionId sessionId;
-							QStatus status = s_cceBus->JoinSession(busName, (SessionPort)port, s_cceBusListener, sessionId, opts);
-							if (ER_OK != status) {
-								QCC_LogError(status, ("Error while trying to join the session with remote ProximalCommEngine"));
-								continue;
-							}
-							const char* objPathStr = objPath.c_str();
-							bool isSec = false;
-							ManagedObj<ProxyBusObject> tmp(*s_cceBus, busName, objPathStr, sessionId, isSec);
-							status = tmp->IntrospectRemoteObject();
-							if (ER_OK != status) {
-								QCC_LogError(status, ("Error while IntrospectRemoteObject the ProximalCommEngineBusObject"));
-								continue;
-							}
-							s_cceBusObject->ResetProximalEngineProxyBusObject(tmp);
-							s_pceProxyBusObject = tmp;
-						}
-					}
-			}
-		}
-	}
+    virtual void Announce(unsigned short version, unsigned short port, const char* busName, const ObjectDescriptions& objectDescs,
+        const AboutData& aboutData)
+    {
+        /* Only receive the announcement from ProximalCommEngine module */
+        if (gwConsts::SIPE2E_PROXIMALCOMMENGINE_SESSION_PORT == port) {
+            for (services::AnnounceHandler::ObjectDescriptions::const_iterator itObjDesc = objectDescs.begin();
+                itObjDesc != objectDescs.end(); ++itObjDesc) {
+                    String objPath = itObjDesc->first;
+                    size_t pos = objPath.find_last_of('/');
+                    if (String::npos != pos) {
+                        if (objPath.substr(pos + 1, objPath.length() - pos - 1) == gwConsts::SIPE2E_PROXIMALCOMMENGINE_NAME) {
+                            s_cceBus->EnableConcurrentCallbacks();
+                            SessionOpts opts(SessionOpts::TRAFFIC_MESSAGES, true, SessionOpts::PROXIMITY_ANY, TRANSPORT_ANY);
+                            SessionId sessionId;
+                            QStatus status = s_cceBus->JoinSession(busName, (SessionPort)port, s_cceBusListener, sessionId, opts);
+                            if (ER_OK != status) {
+                                QCC_LogError(status, ("Error while trying to join the session with remote ProximalCommEngine"));
+                                continue;
+                            }
+                            const char* objPathStr = objPath.c_str();
+                            bool isSec = false;
+                            ManagedObj<ProxyBusObject> tmp(*s_cceBus, busName, objPathStr, sessionId, isSec);
+                            status = tmp->IntrospectRemoteObject();
+                            if (ER_OK != status) {
+                                QCC_LogError(status, ("Error while IntrospectRemoteObject the ProximalCommEngineBusObject"));
+                                continue;
+                            }
+                            s_cceBusObject->ResetProximalEngineProxyBusObject(tmp);
+                            s_pceProxyBusObject = tmp;
+                        }
+                    }
+            }
+        }
+    }
 private:
 
-	AnnounceHandlerCallback m_Callback;
+    AnnounceHandlerCallback m_Callback;
 };
 
 ThreadReturn STDCALL NotificationReceiverThreadFunc(void* arg)
 {
-	while (boost::shared_array<char> notification = IMSTransport::GetInstance()->ReadServiceNotification()) {
+    while (boost::shared_array<char> notification = IMSTransport::GetInstance()->ReadServiceNotification()) {
         QStatus status = ER_OK;
-		char* notificationBuffer = notification.get();
-		char* tmp = strchr(notificationBuffer, '^');
-		if (!tmp) {
-			// the format is not correct
-			QCC_LogError(ER_FAIL, ("The notification message format is not correct"));
-			continue;
-		}
-		*tmp = '\0';
-		char* peer = notificationBuffer;
-		char* subState = tmp + 1;
-		int nSubState = atoi(subState);
-		tmp = strchr(subState, '^');
-		if (!tmp) {
-			// the format is not correct
-			QCC_LogError(ER_FAIL, ("The notification message format is not correct"));
-			continue;
-		}
-		*tmp = '\0';
-		char* notificationContent = tmp + 1;
+        char* notificationBuffer = notification.get();
+        char* tmp = strchr(notificationBuffer, '^');
+        if (!tmp) {
+            // the format is not correct
+            QCC_LogError(ER_FAIL, ("The notification message format is not correct"));
+            continue;
+        }
+        *tmp = '\0';
+        char* peer = notificationBuffer;
+        char* subState = tmp + 1;
+        int nSubState = atoi(subState);
+        tmp = strchr(subState, '^');
+        if (!tmp) {
+            // the format is not correct
+            QCC_LogError(ER_FAIL, ("The notification message format is not correct"));
+            continue;
+        }
+        *tmp = '\0';
+        char* notificationContent = tmp + 1;
 
 /*
-		// 
-		xmlDocPtr doc = xmlParseMemory(notificationContent, strlen(notificationContent));
-		if (doc == NULL) {
-			QCC_LogError(ER_XML_MALFORMED, ("Can not parse the notification xml content: %s", notificationContent));
-			continue;
-		}
-		xmlNodePtr rootNode = xmlDocGetRootElement(doc);
-		if (rootNode == NULL) {
-			QCC_LogError(ER_XML_MALFORMED, ("Can not get the root node of the notification xml content: %s", notificationContent));
-			continue;
-		}
-		if (!xmlStrcmp(rootNode->name, (const xmlChar*)"presence")) {
-			// check if the entity property of the node is equal to peer
-			xmlChar* entity = xmlGetProp(rootNode, (const xmlChar*)"entity");
-			if (entity) {
-				char* tmp = strchr((char*)entity, ':');
-				char* entityAddr = (char*)entity;
-				if (tmp) {
-					entityAddr = tmp + 1;
-				} else {
-					// if the entity address does not contains ':', just ignore it
-				}
-				if (strcmp(entityAddr, peer)) { // Here only for 
-					// if the entity address is not the peer address, then the notification
-					// is not from the correct peer address, just skip this notification
-					QCC_LogError(ER_FAIL, ("The entity address (%s) is not equal to the peer address (%s)", entityAddr, peer));
-					continue;
-				}
-			} else {
-				// if the entity property is not present, just ignore it
-			}
+        // 
+        xmlDocPtr doc = xmlParseMemory(notificationContent, strlen(notificationContent));
+        if (doc == NULL) {
+            QCC_LogError(ER_XML_MALFORMED, ("Can not parse the notification xml content: %s", notificationContent));
+            continue;
+        }
+        xmlNodePtr rootNode = xmlDocGetRootElement(doc);
+        if (rootNode == NULL) {
+            QCC_LogError(ER_XML_MALFORMED, ("Can not get the root node of the notification xml content: %s", notificationContent));
+            continue;
+        }
+        if (!xmlStrcmp(rootNode->name, (const xmlChar*)"presence")) {
+            // check if the entity property of the node is equal to peer
+            xmlChar* entity = xmlGetProp(rootNode, (const xmlChar*)"entity");
+            if (entity) {
+                char* tmp = strchr((char*)entity, ':');
+                char* entityAddr = (char*)entity;
+                if (tmp) {
+                    entityAddr = tmp + 1;
+                } else {
+                    // if the entity address does not contains ':', just ignore it
+                }
+                if (strcmp(entityAddr, peer)) { // Here only for 
+                    // if the entity address is not the peer address, then the notification
+                    // is not from the correct peer address, just skip this notification
+                    QCC_LogError(ER_FAIL, ("The entity address (%s) is not equal to the peer address (%s)", entityAddr, peer));
+                    continue;
+                }
+            } else {
+                // if the entity property is not present, just ignore it
+            }
 */
 
         StringSource source(notificationContent);
@@ -216,187 +216,187 @@ ThreadReturn STDCALL NotificationReceiverThreadFunc(void* arg)
                 continue;
             }
 
-			ims::presence pidfPresence;
-			pidfPresence.Deserialize(rootNode);
+            ims::presence pidfPresence;
+            pidfPresence.Deserialize(rootNode);
 
-			// Note that the presence server will probably send all tuples to watchers,
-			// so we should iterate all tuples, and check if the basic status is open or closed
-			// to determine how to deal with it. If some service's (tuple's) status is closed,
-			// then unsubscribe the corresponding service from local environment
-			std::vector<ims::tuple>& tuples = pidfPresence.GetTuples();
-			for (size_t i = 0; i < tuples.size(); i++) {
-				ims::tuple& _tuple = tuples[i];
-				String& serviceIntrospectionXml = _tuple.GetService().GetIntrospectionXml();
-				ims::status& _status = _tuple.GetStatus();
-				if (nSubState && _status.GetBasicStatus() == ims::basic::open) {
-					// if the status is open, then subscribe it
-					MsgArg proximalCallArg("ss", peer, serviceIntrospectionXml.c_str());
-					status = s_pceProxyBusObject->MethodCall(gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
-						gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_SUBSCRIBE.c_str(),
-						&proximalCallArg, 2);
-					if (ER_OK != status) {
-						QCC_LogError(status, ("Error subscribing cloud service to local"));
-					}
-				} else {
-					// if the status is closed, then unsubscribe it
-					MsgArg proximalCallArg("ss", peer, serviceIntrospectionXml.c_str());
-					status = s_pceProxyBusObject->MethodCall(gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
-						gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_UNSUBSCRIBE.c_str(),
-						&proximalCallArg, 2);
-					if (ER_OK != status) {
-						QCC_LogError(status, ("Error unsubscribing cloud service from local"));
-					}
-				}
-			}
-		} else {
-			// the root node is not presence node, just ignore it
-			QCC_DbgPrintf(("The root node is not presence."));
-			continue;
-		}
+            // Note that the presence server will probably send all tuples to watchers,
+            // so we should iterate all tuples, and check if the basic status is open or closed
+            // to determine how to deal with it. If some service's (tuple's) status is closed,
+            // then unsubscribe the corresponding service from local environment
+            std::vector<ims::tuple>& tuples = pidfPresence.GetTuples();
+            for (size_t i = 0; i < tuples.size(); i++) {
+                ims::tuple& _tuple = tuples[i];
+                String& serviceIntrospectionXml = _tuple.GetService().GetIntrospectionXml();
+                ims::status& _status = _tuple.GetStatus();
+                if (nSubState && _status.GetBasicStatus() == ims::basic::open) {
+                    // if the status is open, then subscribe it
+                    MsgArg proximalCallArg("ss", peer, serviceIntrospectionXml.c_str());
+                    status = s_pceProxyBusObject->MethodCall(gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
+                        gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_SUBSCRIBE.c_str(),
+                        &proximalCallArg, 2);
+                    if (ER_OK != status) {
+                        QCC_LogError(status, ("Error subscribing cloud service to local"));
+                    }
+                } else {
+                    // if the status is closed, then unsubscribe it
+                    MsgArg proximalCallArg("ss", peer, serviceIntrospectionXml.c_str());
+                    status = s_pceProxyBusObject->MethodCall(gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
+                        gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_UNSUBSCRIBE.c_str(),
+                        &proximalCallArg, 2);
+                    if (ER_OK != status) {
+                        QCC_LogError(status, ("Error unsubscribing cloud service from local"));
+                    }
+                }
+            }
+        } else {
+            // the root node is not presence node, just ignore it
+            QCC_DbgPrintf(("The root node is not presence."));
+            continue;
+        }
 
-	}
-	return NULL;
+    }
+    return NULL;
 }
 
 
 void cleanup()
 {
-	if (s_cceBus && s_cceBusListener) {
-		s_cceBus->UnregisterBusListener(*s_cceBusListener);
-		s_cceBus->UnbindSessionPort(s_cceBusListener->getSessionPort());
-	}
+    if (s_cceBus && s_cceBusListener) {
+        s_cceBus->UnregisterBusListener(*s_cceBusListener);
+        s_cceBus->UnbindSessionPort(s_cceBusListener->getSessionPort());
+    }
 /*
-	if (s_pceProxyBusObject->IsValid()) {
-		ManagedObj<ProxyBusObject> tmp;
-		s_pceProxyBusObject = tmp;
-	}
+    if (s_pceProxyBusObject->IsValid()) {
+        ManagedObj<ProxyBusObject> tmp;
+        s_pceProxyBusObject = tmp;
+    }
 */
-	if (s_cceBusObject) {
-		if (s_cceBus) {
-			s_cceBus->UnregisterBusObject(*s_cceBusObject);
-		}
-		s_cceBusObject->Cleanup();
-		delete s_cceBusObject;
-		s_cceBusObject = NULL;
-	}
-	if (s_pceProxyBusObject->IsValid()) {
-		ManagedObj<ProxyBusObject> tmp;
-		s_pceProxyBusObject = tmp;
-	}
-	/* Destroying the AboutService must be after deletion of s_pceBusObject where AboutService will unregister the s_pceBusObject */
-	services::AboutServiceApi::DestroyInstance();
-	if (s_cceBusListener) {
-		delete s_cceBusListener;
-		s_cceBusListener = NULL;
-	}
-	if (s_ccePropertyStoreImpl) {
-		delete s_ccePropertyStoreImpl;
-		s_ccePropertyStoreImpl = NULL;
-	}
-	if (s_cceAnnounceHandler) {
-		if (s_cceBus) {
-			services::AnnouncementRegistrar::UnRegisterAllAnnounceHandlers(*s_cceBus);
-		}
-		delete s_cceAnnounceHandler;
-		s_cceAnnounceHandler = NULL;
-	}
-	if (s_cceBus) {
-		delete s_cceBus;
-		s_cceBus = NULL;
-	}
+    if (s_cceBusObject) {
+        if (s_cceBus) {
+            s_cceBus->UnregisterBusObject(*s_cceBusObject);
+        }
+        s_cceBusObject->Cleanup();
+        delete s_cceBusObject;
+        s_cceBusObject = NULL;
+    }
+    if (s_pceProxyBusObject->IsValid()) {
+        ManagedObj<ProxyBusObject> tmp;
+        s_pceProxyBusObject = tmp;
+    }
+    /* Destroying the AboutService must be after deletion of s_pceBusObject where AboutService will unregister the s_pceBusObject */
+    services::AboutServiceApi::DestroyInstance();
+    if (s_cceBusListener) {
+        delete s_cceBusListener;
+        s_cceBusListener = NULL;
+    }
+    if (s_ccePropertyStoreImpl) {
+        delete s_ccePropertyStoreImpl;
+        s_ccePropertyStoreImpl = NULL;
+    }
+    if (s_cceAnnounceHandler) {
+        if (s_cceBus) {
+            services::AnnouncementRegistrar::UnRegisterAllAnnounceHandlers(*s_cceBus);
+        }
+        delete s_cceAnnounceHandler;
+        s_cceAnnounceHandler = NULL;
+    }
+    if (s_cceBus) {
+        delete s_cceBus;
+        s_cceBus = NULL;
+    }
 
 }
 
 
 QStatus fillPropertyStore(services::AboutPropertyStoreImpl* propertyStore, String const& appIdHex,
-											String const& appName, String const& deviceId, map<String, String> const& deviceNames,
-											String const& defaultLanguage)
+                                            String const& appName, String const& deviceId, map<String, String> const& deviceNames,
+                                            String const& defaultLanguage)
 {
-	if (!propertyStore) {
-		return ER_BAD_ARG_1;
-	}
+    if (!propertyStore) {
+        return ER_BAD_ARG_1;
+    }
 
-	QStatus status = ER_OK;
+    QStatus status = ER_OK;
 
-	CHECK_RETURN(propertyStore->setDeviceId(deviceId))
-	CHECK_RETURN(propertyStore->setAppId(appIdHex))
-	CHECK_RETURN(propertyStore->setAppName(appName))
+    CHECK_RETURN(propertyStore->setDeviceId(deviceId))
+    CHECK_RETURN(propertyStore->setAppId(appIdHex))
+    CHECK_RETURN(propertyStore->setAppName(appName))
 
-	std::vector<qcc::String> languages(2);
-	languages[0] = "en";
-	languages[1] = "zh";
-	CHECK_RETURN(propertyStore->setSupportedLangs(languages))
-	CHECK_RETURN(propertyStore->setDefaultLang(defaultLanguage))
+    std::vector<qcc::String> languages(2);
+    languages[0] = "en";
+    languages[1] = "zh";
+    CHECK_RETURN(propertyStore->setSupportedLangs(languages))
+    CHECK_RETURN(propertyStore->setDefaultLang(defaultLanguage))
 
-	CHECK_RETURN(propertyStore->setModelNumber("sipe2e002"))
-	CHECK_RETURN(propertyStore->setDateOfManufacture("1/1/2015"))
-	CHECK_RETURN(propertyStore->setSoftwareVersion("1.0.0 build 1"))
-	CHECK_RETURN(propertyStore->setAjSoftwareVersion(ajn::GetVersion()))
-	CHECK_RETURN(propertyStore->setHardwareVersion("1.0.0"))
+    CHECK_RETURN(propertyStore->setModelNumber("sipe2e002"))
+    CHECK_RETURN(propertyStore->setDateOfManufacture("1/1/2015"))
+    CHECK_RETURN(propertyStore->setSoftwareVersion("1.0.0 build 1"))
+    CHECK_RETURN(propertyStore->setAjSoftwareVersion(ajn::GetVersion()))
+    CHECK_RETURN(propertyStore->setHardwareVersion("1.0.0"))
 
-	map<String, String>::const_iterator iter = deviceNames.find(languages[0]);
-	if (iter != deviceNames.end()) {
-		CHECK_RETURN(propertyStore->setDeviceName(iter->second.c_str(), languages[0]));
-	} else {
-		CHECK_RETURN(propertyStore->setDeviceName(gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME.c_str(), "en"));
-	}
+    map<String, String>::const_iterator iter = deviceNames.find(languages[0]);
+    if (iter != deviceNames.end()) {
+        CHECK_RETURN(propertyStore->setDeviceName(iter->second.c_str(), languages[0]));
+    } else {
+        CHECK_RETURN(propertyStore->setDeviceName(gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME.c_str(), "en"));
+    }
 
-	iter = deviceNames.find(languages[1]);
-	if (iter != deviceNames.end()) {
-		CHECK_RETURN(propertyStore->setDeviceName(iter->second.c_str(), languages[1]));
-	} else {
-		CHECK_RETURN(propertyStore->setDeviceName("云端通讯引擎", "zh"));
-	}
+    iter = deviceNames.find(languages[1]);
+    if (iter != deviceNames.end()) {
+        CHECK_RETURN(propertyStore->setDeviceName(iter->second.c_str(), languages[1]));
+    } else {
+        CHECK_RETURN(propertyStore->setDeviceName("云端通讯引擎", "zh"));
+    }
 
-	CHECK_RETURN(propertyStore->setDescription("Cloud Communication Engine", "en"))
-	CHECK_RETURN(propertyStore->setDescription("云端通讯引擎", "zh"))
+    CHECK_RETURN(propertyStore->setDescription("Cloud Communication Engine", "en"))
+    CHECK_RETURN(propertyStore->setDescription("云端通讯引擎", "zh"))
 
-	CHECK_RETURN(propertyStore->setManufacturer("Beijing HengShengDongYang Technology Ltd.", "en"))
-	CHECK_RETURN(propertyStore->setManufacturer("北京恒胜东阳科技有限公司", "zh"))
+    CHECK_RETURN(propertyStore->setManufacturer("Beijing HengShengDongYang Technology Ltd.", "en"))
+    CHECK_RETURN(propertyStore->setManufacturer("北京恒胜东阳科技有限公司", "zh"))
 
-	CHECK_RETURN(propertyStore->setSupportUrl("http://www.nane.cn"))
+    CHECK_RETURN(propertyStore->setSupportUrl("http://www.nane.cn"))
 
-	return status;
+    return status;
 }
 QStatus prepareAboutService(BusAttachment* bus, services::AboutPropertyStoreImpl* propertyStore,
-											  CommonBusListener* busListener, uint16_t port)
+                                              CommonBusListener* busListener, uint16_t port)
 {
-	if (!bus) {
-		return ER_BAD_ARG_1;
-	}
+    if (!bus) {
+        return ER_BAD_ARG_1;
+    }
 
-	if (!propertyStore) {
-		return ER_BAD_ARG_2;
-	}
+    if (!propertyStore) {
+        return ER_BAD_ARG_2;
+    }
 
-	if (!busListener) {
-		return ER_BAD_ARG_3;
-	}
+    if (!busListener) {
+        return ER_BAD_ARG_3;
+    }
 
-	services::AboutServiceApi::Init(*bus, *propertyStore);
-	services::AboutServiceApi* aboutService = services::AboutServiceApi::getInstance();
-	if (!aboutService) {
-		return ER_BUS_NOT_ALLOWED;
-	}
+    services::AboutServiceApi::Init(*bus, *propertyStore);
+    services::AboutServiceApi* aboutService = services::AboutServiceApi::getInstance();
+    if (!aboutService) {
+        return ER_BUS_NOT_ALLOWED;
+    }
 
-	busListener->setSessionPort(port);
-	bus->RegisterBusListener(*busListener);
+    busListener->setSessionPort(port);
+    bus->RegisterBusListener(*busListener);
 
-	TransportMask transportMask = TRANSPORT_ANY;
-	SessionPort sp = port;
-	SessionOpts opts(SessionOpts::TRAFFIC_MESSAGES, false, SessionOpts::PROXIMITY_ANY, transportMask);
+    TransportMask transportMask = TRANSPORT_ANY;
+    SessionPort sp = port;
+    SessionOpts opts(SessionOpts::TRAFFIC_MESSAGES, false, SessionOpts::PROXIMITY_ANY, transportMask);
 
-	QStatus status = bus->BindSessionPort(sp, opts, *busListener);
-	if (status != ER_OK) {
-		return status;
-	}
+    QStatus status = bus->BindSessionPort(sp, opts, *busListener);
+    if (status != ER_OK) {
+        return status;
+    }
 
-	status = aboutService->Register(port);
-	if (status != ER_OK) {
-		return status;
-	}
+    status = aboutService->Register(port);
+    if (status != ER_OK) {
+        return status;
+    }
 
-	return (bus->RegisterBusObject(*aboutService));
+    return (bus->RegisterBusObject(*aboutService));
 }
 
 
@@ -406,85 +406,85 @@ using namespace ccethread;
 
 ThreadReturn STDCALL CloudCommEngineThreadFunc(void* arg)
 {
-	/* Install SIGINT handler */
-	signal(SIGINT, SigIntHandler);
+    /* Install SIGINT handler */
+    signal(SIGINT, SigIntHandler);
 
-	QStatus status = ER_OK;
+    QStatus status = ER_OK;
 
-	start:
-	/* Prepare bus attachment */
-	s_cceBus = new BusAttachment(gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME.c_str(), true, 8);
-	if (!s_cceBus) {
-		status = ER_OUT_OF_MEMORY;
-		return (ThreadReturn)status;
-	}
-	status = s_cceBus->Start();
-	if (ER_OK != status) {
-		delete s_cceBus;
-		return (ThreadReturn)status;
-	}
+    start:
+    /* Prepare bus attachment */
+    s_cceBus = new BusAttachment(gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME.c_str(), true, 8);
+    if (!s_cceBus) {
+        status = ER_OUT_OF_MEMORY;
+        return (ThreadReturn)status;
+    }
+    status = s_cceBus->Start();
+    if (ER_OK != status) {
+        delete s_cceBus;
+        return (ThreadReturn)status;
+    }
 
-	/* Prepare the BusListener */
-	s_cceBusListener = new CommonBusListener(s_cceBus, daemonDisconnectCB);
-	s_cceBus->RegisterBusListener(*s_cceBusListener);
+    /* Prepare the BusListener */
+    s_cceBusListener = new CommonBusListener(s_cceBus, daemonDisconnectCB);
+    s_cceBus->RegisterBusListener(*s_cceBusListener);
 
-	status = s_cceBus->Connect();
-	if (ER_OK != status) {
-		delete s_cceBus;
-		return (ThreadReturn)status;
-	}
+    status = s_cceBus->Connect();
+    if (ER_OK != status) {
+        delete s_cceBus;
+        return (ThreadReturn)status;
+    }
 
-	/* Prepare About */
-	qcc::String device_id, app_id;
-	qcc::String app_name = gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME;
-	map<String, String> deviceNames;
-	deviceNames.insert(pair<String, String>("en", gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME.c_str()));
-	deviceNames.insert(pair<String, String>("zh", "云端通讯引擎"));
-	services::GuidUtil::GetInstance()->GetDeviceIdString(&device_id);
-	services::GuidUtil::GetInstance()->GenerateGUID(&app_id);
+    /* Prepare About */
+    qcc::String device_id, app_id;
+    qcc::String app_name = gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME;
+    map<String, String> deviceNames;
+    deviceNames.insert(pair<String, String>("en", gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME.c_str()));
+    deviceNames.insert(pair<String, String>("zh", "云端通讯引擎"));
+    services::GuidUtil::GetInstance()->GetDeviceIdString(&device_id);
+    services::GuidUtil::GetInstance()->GenerateGUID(&app_id);
 
-	s_ccePropertyStoreImpl = new services::AboutPropertyStoreImpl();
-	status = fillPropertyStore(s_ccePropertyStoreImpl, app_id, app_name, device_id, deviceNames, String("en"));
-	if (ER_OK != status) {
-		QCC_LogError(status, ("Error while filling the property store"));
-		cleanup();
-		return (ThreadReturn)status;
-	}
-	status = prepareAboutService(s_cceBus, s_ccePropertyStoreImpl, s_cceBusListener, gwConsts::SIPE2E_CLOUDCOMMENGINE_SESSION_PORT);
-	if (ER_OK != status) {
-		QCC_LogError(status, ("Error while preparing the about service"));
-		cleanup();
-		return (ThreadReturn)status;
-	}
-	s_cceBusObject = new CloudCommEngineBusObject(gwConsts::SIPE2E_CLOUDCOMMENGINE_OBJECTPATH, gwConsts::CLOUD_METHOD_CALL_THREAD_POOL_SIZE);
-	status = s_cceBusObject->Init(*s_cceBus);
-	if (ER_OK != status) {
-		QCC_LogError(status, ("Error while initializing ProximalCommEngine"));
-		cleanup();
-		return (ThreadReturn)status;
-	}
+    s_ccePropertyStoreImpl = new services::AboutPropertyStoreImpl();
+    status = fillPropertyStore(s_ccePropertyStoreImpl, app_id, app_name, device_id, deviceNames, String("en"));
+    if (ER_OK != status) {
+        QCC_LogError(status, ("Error while filling the property store"));
+        cleanup();
+        return (ThreadReturn)status;
+    }
+    status = prepareAboutService(s_cceBus, s_ccePropertyStoreImpl, s_cceBusListener, gwConsts::SIPE2E_CLOUDCOMMENGINE_SESSION_PORT);
+    if (ER_OK != status) {
+        QCC_LogError(status, ("Error while preparing the about service"));
+        cleanup();
+        return (ThreadReturn)status;
+    }
+    s_cceBusObject = new CloudCommEngineBusObject(gwConsts::SIPE2E_CLOUDCOMMENGINE_OBJECTPATH, gwConsts::CLOUD_METHOD_CALL_THREAD_POOL_SIZE);
+    status = s_cceBusObject->Init(*s_cceBus);
+    if (ER_OK != status) {
+        QCC_LogError(status, ("Error while initializing ProximalCommEngine"));
+        cleanup();
+        return (ThreadReturn)status;
+    }
 
-	/* Register AnnounceHandler */
-	s_cceAnnounceHandler = new CloudCommEngineAnnounceHandler();
-	const char* pceIntf = gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str();
-	status = services::AnnouncementRegistrar::RegisterAnnounceHandler(*s_cceBus, *s_cceAnnounceHandler, &pceIntf, 1);
-	if (ER_OK != status) {
-		QCC_LogError(status, ("Error while registering AnnounceHandler"));
-		cleanup();
-		return (ThreadReturn)status;
-	}
+    /* Register AnnounceHandler */
+    s_cceAnnounceHandler = new CloudCommEngineAnnounceHandler();
+    const char* pceIntf = gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str();
+    status = services::AnnouncementRegistrar::RegisterAnnounceHandler(*s_cceBus, *s_cceAnnounceHandler, &pceIntf, 1);
+    if (ER_OK != status) {
+        QCC_LogError(status, ("Error while registering AnnounceHandler"));
+        cleanup();
+        return (ThreadReturn)status;
+    }
 
 
-	status = services::AboutServiceApi::getInstance()->Announce();
-	if (ER_OK != status) {
-		QCC_LogError(status, ("Error while announcing"));
-		cleanup();
-		return (ThreadReturn)status;
-	}
+    status = services::AboutServiceApi::getInstance()->Announce();
+    if (ER_OK != status) {
+        QCC_LogError(status, ("Error while announcing"));
+        cleanup();
+        return (ThreadReturn)status;
+    }
 
-	// Start a new thread to handle incoming service notification (from previous offline subscription)
-	Thread notificationReceiverThread("NotificationReceiverThread", NotificationReceiverThreadFunc);
-	notificationReceiverThread.Start();
+    // Start a new thread to handle incoming service notification (from previous offline subscription)
+    Thread notificationReceiverThread("NotificationReceiverThread", NotificationReceiverThreadFunc);
+    notificationReceiverThread.Start();
 
     // Initialize the IMSTransport
     if (0 != ITInitialize())
@@ -492,15 +492,15 @@ ThreadReturn STDCALL CloudCommEngineThreadFunc(void* arg)
         return (ThreadReturn)ER_FAIL;
     }
 
-	while (s_cceInterrupt == false) {
-		qcc::Sleep(100);
-	}
+    while (s_cceInterrupt == false) {
+        qcc::Sleep(100);
+    }
 
     ITShutdown();
 
-	cleanup();
-	IMSTransport::GetInstance()->StopReadServiceNotification();
-	notificationReceiverThread.Join();
+    cleanup();
+    IMSTransport::GetInstance()->StopReadServiceNotification();
+    notificationReceiverThread.Join();
 
-	return 0;
+    return 0;
 }

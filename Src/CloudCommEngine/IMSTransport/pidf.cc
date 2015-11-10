@@ -34,24 +34,24 @@ namespace ims {
 
 
 service::service()
-	: introspectionXml("")
+    : introspectionXml("")
 {
 
 }
 
 service::~service()
 {
-	introspectionXml.clear();
+    introspectionXml.clear();
 }
 
 void service::SetIntrospectionXml(const String& _introspectionXml)
 {
-	introspectionXml = _introspectionXml;
+    introspectionXml = _introspectionXml;
 }
 
 String& service::GetIntrospectionXml()
 {
-	return introspectionXml;
+    return introspectionXml;
 }
 
 void service::Serialize(String& serviceXml)
@@ -80,36 +80,36 @@ void service::Serialize(String& serviceXml)
     }
 
 /*
-	xmlDocPtr doc = xmlParseMemory(introspectionXml.c_str(), introspectionXml.size());
-	if (doc == NULL) {
-		serviceXml.clear();
-		return;
-	}
-	xmlNodePtr rootNode = xmlDocGetRootElement(doc);
-	if (rootNode == NULL) {
-		serviceXml.clear();
-		return;
-	}
-	if (!xmlStrcmp(rootNode->name, (const xmlChar*)"service")) {
-		xmlNsPtr iotcloudNs = xmlNewNs(rootNode, (const xmlChar*)gwConsts::DEFAULT_NAMESPACE_URI, NULL/ *(const xmlChar*)gwConsts::DEFAULT_NAMESPACE_PREFIX* /);
-		if (iotcloudNs == NULL) {
-			serviceXml.clear();
-			return;
-		}
-		xmlSetNs(rootNode, iotcloudNs);
-		xmlBufferPtr buf = xmlBufferCreate();
-		xmlNodeDump(buf, doc, rootNode, 0, 0);
+    xmlDocPtr doc = xmlParseMemory(introspectionXml.c_str(), introspectionXml.size());
+    if (doc == NULL) {
+        serviceXml.clear();
+        return;
+    }
+    xmlNodePtr rootNode = xmlDocGetRootElement(doc);
+    if (rootNode == NULL) {
+        serviceXml.clear();
+        return;
+    }
+    if (!xmlStrcmp(rootNode->name, (const xmlChar*)"service")) {
+        xmlNsPtr iotcloudNs = xmlNewNs(rootNode, (const xmlChar*)gwConsts::DEFAULT_NAMESPACE_URI, NULL/ *(const xmlChar*)gwConsts::DEFAULT_NAMESPACE_PREFIX* /);
+        if (iotcloudNs == NULL) {
+            serviceXml.clear();
+            return;
+        }
+        xmlSetNs(rootNode, iotcloudNs);
+        xmlBufferPtr buf = xmlBufferCreate();
+        xmlNodeDump(buf, doc, rootNode, 0, 0);
 
-		serviceXml = (const char*)xmlBufferContent(buf);
-	} else {
-		serviceXml.clear();
-	}
+        serviceXml = (const char*)xmlBufferContent(buf);
+    } else {
+        serviceXml.clear();
+    }
 */
 }
 
 
 status::status()
-	: basicField(basic::closed)
+    : basicField(basic::closed)
 {
 
 }
@@ -121,26 +121,26 @@ status::~status()
 
 void status::SetBasicStatus(basic basicStatus)
 {
-	basicField = basicStatus;
+    basicField = basicStatus;
 }
 
 basic status::GetBasicStatus()
 {
-	return basicField;
+    return basicField;
 }
 
 void status::Serialize(String& statusXml)
 {
-	statusXml = "<status><basic>";
-	statusXml += (basicField == basic::open ? "open" : "closed");
-	statusXml += "</basic></status>";
+    statusXml = "<status><basic>";
+    statusXml += (basicField == basic::open ? "open" : "closed");
+    statusXml += "</basic></status>";
 }
 
 void status::Deserialize(const XmlElement* statusNode)
 {
-	if (statusNode == NULL) {
-		return;
-	}
+    if (statusNode == NULL) {
+        return;
+    }
     const std::vector<XmlElement*>& basicNode = statusNode->GetChildren();
 
     if (basicNode.size() > 0) {
@@ -152,24 +152,24 @@ void status::Deserialize(const XmlElement* statusNode)
         }
     }
 /*
-	xmlNodePtr basicNode = statusNode->children;
-	if (basicNode == NULL) {
-		return;
-	}
-	xmlChar* basicStatusText = xmlNodeGetContent(basicNode);
-	if (basicStatusText) {
-		if (!xmlStrcmp(basicStatusText, (const xmlChar*)"open")) {
-			basicField = basic::open;
-		} else {
-			basicField = basic::closed;
-		}
-	}
+    xmlNodePtr basicNode = statusNode->children;
+    if (basicNode == NULL) {
+        return;
+    }
+    xmlChar* basicStatusText = xmlNodeGetContent(basicNode);
+    if (basicStatusText) {
+        if (!xmlStrcmp(basicStatusText, (const xmlChar*)"open")) {
+            basicField = basic::open;
+        } else {
+            basicField = basic::closed;
+        }
+    }
 */
 }
 
 
 tuple::tuple()
-	: idField("")
+    : idField("")
 {
 
 }
@@ -181,55 +181,55 @@ tuple::~tuple()
 
 void tuple::SetId(const String& id)
 {
-	idField = id;
+    idField = id;
 }
 
 String& tuple::GetId()
 {
-	return idField;
+    return idField;
 }
 
 void tuple::SetStatus(const status& _status)
 {
-	statusField = _status;
+    statusField = _status;
 }
 
 status& tuple::GetStatus()
 {
-	return statusField;
+    return statusField;
 }
 
 void tuple::SetService(const service& _service)
 {
-	serviceField = _service;
+    serviceField = _service;
 }
 
 service& tuple::GetService()
 {
-	return serviceField;
+    return serviceField;
 }
 
 void tuple::Serialize(String& tupleXml)
 {
-	tupleXml = "<tuple id=\"";
-	tupleXml += idField;
-	tupleXml += "\">";
-	
-	String childXml;
-	statusField.Serialize(childXml);
-	tupleXml += childXml;
+    tupleXml = "<tuple id=\"";
+    tupleXml += idField;
+    tupleXml += "\">";
+    
+    String childXml;
+    statusField.Serialize(childXml);
+    tupleXml += childXml;
 
-	serviceField.Serialize(childXml);
-	tupleXml += childXml;
+    serviceField.Serialize(childXml);
+    tupleXml += childXml;
 
-	tupleXml += "</tuple>";
+    tupleXml += "</tuple>";
 }
 
 void tuple::Deserialize(const XmlElement* tupleNode)
 {
-	if (tupleNode == NULL) {
-		return;
-	}
+    if (tupleNode == NULL) {
+        return;
+    }
     idField = tupleNode->GetAttribute("id");
     const std::vector<XmlElement*>& tupleChildren = tupleNode->GetChildren();
     for (size_t i = 0; i < tupleChildren.size(); i++) {
@@ -242,66 +242,66 @@ void tuple::Deserialize(const XmlElement* tupleNode)
         }
     }
 /*
-	xmlChar* id = xmlGetProp(tupleNode, (const xmlChar*)"id");
-	if (id) {
-		idField = (const char*)id;
-	}
-	xmlNodePtr tupleChildNode = tupleNode->children;
-	while (tupleChildNode != NULL) {
-		if (!xmlStrcmp(tupleChildNode->name, (const xmlChar*)"status")) {
-			statusField.Deserialize(tupleChildNode);
-		} else if (!xmlStrcmp(tupleChildNode->name, (const xmlChar*)"service")) {
-			serviceField.SetIntrospectionXml((String)(const char*)tupleChildNode->content);
-		}
-		tupleChildNode = tupleChildNode->next;
-	}
+    xmlChar* id = xmlGetProp(tupleNode, (const xmlChar*)"id");
+    if (id) {
+        idField = (const char*)id;
+    }
+    xmlNodePtr tupleChildNode = tupleNode->children;
+    while (tupleChildNode != NULL) {
+        if (!xmlStrcmp(tupleChildNode->name, (const xmlChar*)"status")) {
+            statusField.Deserialize(tupleChildNode);
+        } else if (!xmlStrcmp(tupleChildNode->name, (const xmlChar*)"service")) {
+            serviceField.SetIntrospectionXml((String)(const char*)tupleChildNode->content);
+        }
+        tupleChildNode = tupleChildNode->next;
+    }
 */
 }
 
 
 presence::presence()
-	: entityField("")
+    : entityField("")
 {
 
 }
 
 presence::~presence()
 {
-	tupleField.clear();
+    tupleField.clear();
 }
 
 void presence::SetEntity(const String& entity)
 {
-	entityField = entity;
+    entityField = entity;
 }
 
 void presence::AddTuple(const tuple& _tuple)
 {
-	tupleField.push_back(_tuple);
+    tupleField.push_back(_tuple);
 }
 
 void presence::Serialize(String& presenceXml)
 {
-	presenceXml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
-	presenceXml += "<presence entity=\"";
-	presenceXml += entityField;
-	presenceXml += "\">";
+    presenceXml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
+    presenceXml += "<presence entity=\"";
+    presenceXml += entityField;
+    presenceXml += "\">";
 
-	for (size_t i = 0; i < tupleField.size(); i++) {
-		tuple& _tuple = tupleField[i];
-		String childTupleXml;
-		_tuple.Serialize(childTupleXml);
-		presenceXml += childTupleXml;
-	}
+    for (size_t i = 0; i < tupleField.size(); i++) {
+        tuple& _tuple = tupleField[i];
+        String childTupleXml;
+        _tuple.Serialize(childTupleXml);
+        presenceXml += childTupleXml;
+    }
 
-	presenceXml += "</presence>";
+    presenceXml += "</presence>";
 }
 
 void presence::Deserialize(const XmlElement* presenceNode) 
 {
-	if (presenceNode == NULL) {
-		return;
-	}
+    if (presenceNode == NULL) {
+        return;
+    }
     entityField = presenceNode->GetAttribute("entity");
     const std::vector<XmlElement*>& presenceChildren = presenceNode->GetChildren();
     for (size_t i = 0; i < presenceChildren.size(); i++) {
@@ -310,17 +310,17 @@ void presence::Deserialize(const XmlElement* presenceNode)
         tupleField.push_back(_tuple);
     }
 /*
-	xmlChar* entity = xmlGetProp(presenceNode, (const xmlChar*)"entity");
-	if (entity) {
-		entityField = (const char*)entity;
-	}
-	xmlNodePtr tupleNode = presenceNode->children;
-	while (tupleNode != NULL) {
-		tuple _tuple;
-		_tuple.Deserialize(tupleNode);
-		tupleField.push_back(_tuple);
-		tupleNode = tupleNode->next;
-	}
+    xmlChar* entity = xmlGetProp(presenceNode, (const xmlChar*)"entity");
+    if (entity) {
+        entityField = (const char*)entity;
+    }
+    xmlNodePtr tupleNode = presenceNode->children;
+    while (tupleNode != NULL) {
+        tuple _tuple;
+        _tuple.Deserialize(tupleNode);
+        tupleField.push_back(_tuple);
+        tupleNode = tupleNode->next;
+    }
 */
 }
 
@@ -336,18 +336,18 @@ void presence::Deserialize(const String& presenceXml)
     }
     const XmlElement* rootNode = pc.GetRoot();
 /*
-	xmlDocPtr doc = xmlParseMemory(presenceXmlBuf, strlen(presenceXmlBuf));
-	if (doc == NULL) {
-		return;
-	}
-	xmlNodePtr rootNode = xmlDocGetRootElement(doc);
+    xmlDocPtr doc = xmlParseMemory(presenceXmlBuf, strlen(presenceXmlBuf));
+    if (doc == NULL) {
+        return;
+    }
+    xmlNodePtr rootNode = xmlDocGetRootElement(doc);
 */
-	presence::Deserialize(rootNode);
+    presence::Deserialize(rootNode);
 }
 
 std::vector<tuple>& presence::GetTuples()
 {
-	return tupleField;
+    return tupleField;
 }
 
 }

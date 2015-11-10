@@ -33,89 +33,89 @@ namespace ims {
 class SIPE2E_GATEWAY_EXPORT service
 {
 public:
-	service();
-	~service();
+    service();
+    ~service();
 
 public:
-	void SetIntrospectionXml(const qcc::String& _introspectionXml);
-	qcc::String& GetIntrospectionXml();
+    void SetIntrospectionXml(const qcc::String& _introspectionXml);
+    qcc::String& GetIntrospectionXml();
 
 public:
-	void Serialize(qcc::String& serviceXml);
+    void Serialize(qcc::String& serviceXml);
 
 protected:
-	qcc::String introspectionXml;
+    qcc::String introspectionXml;
 };
 
 enum basic
 {
-	open,
-	closed
+    open,
+    closed
 };
 
 class SIPE2E_GATEWAY_EXPORT status
 {
 public:
-	status();
-	~status();
+    status();
+    ~status();
 
 public:
-	void SetBasicStatus(basic basicStatus);
-	basic GetBasicStatus();
+    void SetBasicStatus(basic basicStatus);
+    basic GetBasicStatus();
 
 public:
-	void Serialize(qcc::String& statusXml);
-	void Deserialize(const qcc::XmlElement* statusNode);
+    void Serialize(qcc::String& statusXml);
+    void Deserialize(const qcc::XmlElement* statusNode);
 
 protected:
-	basic basicField;
+    basic basicField;
 };
 
 class SIPE2E_GATEWAY_EXPORT tuple 
 {
 public:
-	tuple();
-	~tuple();
+    tuple();
+    ~tuple();
 
 public:
-	void SetId(const qcc::String& id);
-	qcc::String& GetId();
-	void SetStatus(const status& _status);
-	status& GetStatus();
-	void SetService(const service& _service);
-	service& GetService();
+    void SetId(const qcc::String& id);
+    qcc::String& GetId();
+    void SetStatus(const status& _status);
+    status& GetStatus();
+    void SetService(const service& _service);
+    service& GetService();
 
 public:
-	void Serialize(qcc::String& tupleXml);
-	void Deserialize(const qcc::XmlElement* tupleNode);
+    void Serialize(qcc::String& tupleXml);
+    void Deserialize(const qcc::XmlElement* tupleNode);
 
 protected:
-	qcc::String idField;
-	status statusField;
-// 	std::vector<note> noteField;
-	service serviceField;
+    qcc::String idField;
+    status statusField;
+//     std::vector<note> noteField;
+    service serviceField;
 };
 
 class SIPE2E_GATEWAY_EXPORT presence 
 {
 public:
-	presence();
-	~presence();
+    presence();
+    ~presence();
 
 public:
-	void SetEntity(const qcc::String& entity);
-	void AddTuple(const tuple& _tuple);
+    void SetEntity(const qcc::String& entity);
+    void AddTuple(const tuple& _tuple);
 
 public:
-	void Serialize(qcc::String& presenceXml);
-	void Deserialize(const qcc::XmlElement* presenceNode);
-	void Deserialize(const qcc::String& presenceXml);
+    void Serialize(qcc::String& presenceXml);
+    void Deserialize(const qcc::XmlElement* presenceNode);
+    void Deserialize(const qcc::String& presenceXml);
 
-	std::vector<tuple>& GetTuples();
+    std::vector<tuple>& GetTuples();
 
 protected:
-	qcc::String entityField;
-	std::vector<tuple> tupleField;
+    qcc::String entityField;
+    std::vector<tuple> tupleField;
 };
 
 

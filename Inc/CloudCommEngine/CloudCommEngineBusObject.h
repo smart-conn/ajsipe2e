@@ -44,7 +44,7 @@ typedef struct axiom_node axiom_node_t;
 
 
 namespace ajn {
-	class MsgArg;
+    class MsgArg;
 }
 
 namespace qcc {
@@ -63,60 +63,60 @@ typedef struct _CloudMethodCallThreadArg CloudMethodCallThreadArg;
 class CloudCommEngineBusObject : public ajn::BusObject
 {
 public:
-	CloudCommEngineBusObject(qcc::String const& objectPath, uint32_t threadPoolSize);
-	virtual ~CloudCommEngineBusObject();
+    CloudCommEngineBusObject(qcc::String const& objectPath, uint32_t threadPoolSize);
+    virtual ~CloudCommEngineBusObject();
 
 public:
-	/**
-	 * @param proximalCommBus -	 the BusAttachment that connects ProximalCommEngine and CloudCommEngine
-	 */
-	QStatus Init(ajn::BusAttachment& cloudCommBus);
+    /**
+     * @param proximalCommBus -     the BusAttachment that connects ProximalCommEngine and CloudCommEngine
+     */
+    QStatus Init(ajn::BusAttachment& cloudCommBus);
 
-	void ResetProximalEngineProxyBusObject(qcc::ManagedObj<ajn::ProxyBusObject> obj);
+    void ResetProximalEngineProxyBusObject(qcc::ManagedObj<ajn::ProxyBusObject> obj);
 
     // Delete dependency on Axis2, 20151019, LYH
 /*
-	void SetAxis2Env(axutil_env_t* env);
-	axutil_env_t* GetAxis2Env();
+    void SetAxis2Env(axutil_env_t* env);
+    axutil_env_t* GetAxis2Env();
 */
-	/**
-	 * Clean up the AllJoyn execution context
-	 * @param -	
-	 */
-	QStatus Cleanup();
+    /**
+     * Clean up the AllJoyn execution context
+     * @param -    
+     */
+    QStatus Cleanup();
 
 public:
-	/************************************************************************/
-	/* interface implementation for AllJoyn network */
-	/************************************************************************/
+    /************************************************************************/
+    /* interface implementation for AllJoyn network */
+    /************************************************************************/
 
-	/**
-	* Callback when local object call a method on some cloud interface
-	 * @param member - the member (method) of the interface that was executed
-	 * @param msg - the Message of the method
-	 */
-	void AJCloudMethodCall(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
+    /**
+    * Callback when local object call a method on some cloud interface
+     * @param member - the member (method) of the interface that was executed
+     * @param msg - the Message of the method
+     */
+    void AJCloudMethodCall(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
 
-	/**
-	 * Callback when publishing some local service to cloud
-	 * @param member - the member (method) of the interface that was executed
-	 * @param msg - the Message of the method
-	 */
-	void AJPublishLocalServiceToCloud(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
+    /**
+     * Callback when publishing some local service to cloud
+     * @param member - the member (method) of the interface that was executed
+     * @param msg - the Message of the method
+     */
+    void AJPublishLocalServiceToCloud(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
 
-	/**
-	 * Callback when deleting some local service from cloud
-	 * @param member - the member (method) of the interface that was executed
-	 * @param msg - the Message of the method
-	 */
-	void AJDeleteLocalServiceFromCloud(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
+    /**
+     * Callback when deleting some local service from cloud
+     * @param member - the member (method) of the interface that was executed
+     * @param msg - the Message of the method
+     */
+    void AJDeleteLocalServiceFromCloud(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
 
-	/**
-	 * Callback when deleting some local service from cloud
-	 * @param member - the member (method) of the interface that was executed
-	 * @param msg - the Message of the method
-	 */
-	void AJSubscribe(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
+    /**
+     * Callback when deleting some local service from cloud
+     * @param member - the member (method) of the interface that was executed
+     * @param msg - the Message of the method
+     */
+    void AJSubscribe(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
     /**
      * 
      * @param member - the member (method) of the interface that was executed
@@ -126,21 +126,21 @@ public:
 
 private:
     // Delete dependency on Axis2, 20151019, LYH
-// 	static void* __stdcall CloudMethodCallThreadFunc(axutil_thread_t * thd, void *data);
+//     static void* __stdcall CloudMethodCallThreadFunc(axutil_thread_t * thd, void *data);
 
-	/**
-	 * Build XML content 
-	 * @param inArgsVariant - arguments of incoming method call
-	 * @param inArgsVariant - number of arguments of incoming method call
-	 */
+    /**
+     * Build XML content 
+     * @param inArgsVariant - arguments of incoming method call
+     * @param inArgsVariant - number of arguments of incoming method call
+     */
     // Delete dependency on Axis2, 20151019, LYH
-// 	axiom_node_t* BuildOmProgramatically(ajn::MsgArg* args, size_t argsNum);
-	/**
-	 * Parse the XML content and generate the reply args
-	 * @param - 
-	 */
+//     axiom_node_t* BuildOmProgramatically(ajn::MsgArg* args, size_t argsNum);
+    /**
+     * Parse the XML content and generate the reply args
+     * @param - 
+     */
     // Delete dependency on Axis2, 20151019, LYH
-// 	void ParseOmProgramatically(axiom_node_t* node, size_t argsNum, char* argsSignature, ajn::MsgArg* args);
+//     void ParseOmProgramatically(axiom_node_t* node, size_t argsNum, char* argsSignature, ajn::MsgArg* args);
 
     /**
      * Returns an XML string representation of this type, just exactly as ToString() does
@@ -167,15 +167,15 @@ protected:
 
     qcc::ThreadPool cloudMethodCallThreadPool;
 
-	/**
-	 *	The CloudCommEngine BusObject, that is for re-marshaling the calls and forward to cloud
-	 */
-	qcc::ManagedObj<ajn::ProxyBusObject> proximalEngineProxyBusObject;
+    /**
+     *    The CloudCommEngine BusObject, that is for re-marshaling the calls and forward to cloud
+     */
+    qcc::ManagedObj<ajn::ProxyBusObject> proximalEngineProxyBusObject;
 
     // Delete dependency on Axis2, 20151019, LYH
 /*
-	axutil_env_t* axis2Env;
-	std::map<qcc::String, axis2_stub_t*> cloudStubs;
+    axutil_env_t* axis2Env;
+    std::map<qcc::String, axis2_stub_t*> cloudStubs;
 */
 };
 

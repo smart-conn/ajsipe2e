@@ -23,28 +23,28 @@ namespace sipe2e {
 namespace gateway {
 
 class IMSTransportSipCallback :
-	public SipCallback
+    public SipCallback
 {
 public:
-	IMSTransportSipCallback();
-	virtual ~IMSTransportSipCallback(void);
+    IMSTransportSipCallback();
+    virtual ~IMSTransportSipCallback(void);
 
 public:
-	virtual int OnDialogEvent(const DialogEvent* e);
-	virtual int OnStackEvent(const StackEvent* e);
+    virtual int OnDialogEvent(const DialogEvent* e);
+    virtual int OnStackEvent(const StackEvent* e);
 
-	virtual int OnRegistrationEvent(const RegistrationEvent* e);
+    virtual int OnRegistrationEvent(const RegistrationEvent* e);
 
-	virtual int OnOptionsEvent(const OptionsEvent* e);
+    virtual int OnOptionsEvent(const OptionsEvent* e);
 
-	virtual int OnMessagingEvent(const MessagingEvent* e);
-	/**
-	 * Callback while receiving NOTIFY
-	 * @param e - the subscription event
-	 */
-	virtual int OnSubscriptionEvent(const SubscriptionEvent* e);
+    virtual int OnMessagingEvent(const MessagingEvent* e);
+    /**
+     * Callback while receiving NOTIFY
+     * @param e - the subscription event
+     */
+    virtual int OnSubscriptionEvent(const SubscriptionEvent* e);
 
-	virtual int OnPublicationEvent(const PublicationEvent* e);
+    virtual int OnPublicationEvent(const PublicationEvent* e);
 
 };
 

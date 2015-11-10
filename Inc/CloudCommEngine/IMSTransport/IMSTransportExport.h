@@ -29,39 +29,39 @@
 extern "C"
 {
 #endif
-	SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
-		ITInitialize();
-	SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
-		ITShutdown();
+    SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
+        ITInitialize();
+    SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
+        ITShutdown();
 
-	SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
-		ITSubscribe(const char* remoteAccount);
+    SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
+        ITSubscribe(const char* remoteAccount);
 
     SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
         ITUnsubscribe(const char* remoteAccount);
 
-	SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
-		ITPublishService(const char* introspectionXml);
+    SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
+        ITPublishService(const char* introspectionXml);
 
-	SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
-		ITDeleteService(const char* introspectionXml);
+    SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
+        ITDeleteService(const char* introspectionXml);
 
-	SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
-		ITReadCloudMessage(char** msgBuf);
+    SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
+        ITReadCloudMessage(char** msgBuf);
 
-	SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
-		ITSendCloudMessage(int isRequest,
-			const char* peer,
-			const char* callId,
-			const char* addr,
-			const char* msgBuf,
-			char** resMsgBuf);
+    SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
+        ITSendCloudMessage(int isRequest,
+            const char* peer,
+            const char* callId,
+            const char* addr,
+            const char* msgBuf,
+            char** resMsgBuf);
 
-	SIPE2E_GATEWAY_EXTERN void SIPE2E_GATEWAY_CALL
-		ITReleaseBuf(char* buf);
+    SIPE2E_GATEWAY_EXTERN void SIPE2E_GATEWAY_CALL
+        ITReleaseBuf(char* buf);
 #ifdef _DEBUG
-	SIPE2E_GATEWAY_EXTERN const char* SIPE2E_GATEWAY_CALL
-		ITTestServiceSerialize(char* buf);
+    SIPE2E_GATEWAY_EXTERN const char* SIPE2E_GATEWAY_CALL
+        ITTestServiceSerialize(char* buf);
 #endif
 #ifdef __cplusplus
 }

@@ -29,8 +29,8 @@ static const char* RPC_CALL_ID = "RPC-Call-ID";
 static const char* RPC_ADDR = "RPC-Addr";
 
 enum RPC_MSG_TYPE_ENUM {
-	RPC_MSG_TYPE_REQ = 0,
-	RPC_MSG_TYPE_RES = 1
+    RPC_MSG_TYPE_REQ = 0,
+    RPC_MSG_TYPE_RES = 1
 };
 
 }

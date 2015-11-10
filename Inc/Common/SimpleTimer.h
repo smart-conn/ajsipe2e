@@ -23,22 +23,22 @@ typedef void (*TimerCallBack)(void* cbPara);
 class SimpleTimer
 {
 public:
-	SimpleTimer();
-	~SimpleTimer();
+    SimpleTimer();
+    ~SimpleTimer();
 
-	void Start(unsigned int intvl, TimerCallBack cb, void* cbPara);
-	void Stop();
+    void Start(unsigned int intvl, TimerCallBack cb, void* cbPara);
+    void Stop();
 
 private:
-	void TimerThreadFunc();
+    void TimerThreadFunc();
 private:
-	boost::mutex mtx,mtxStart;
-	boost::condition_variable cond, condStart;
-	boost::thread timerThread;
+    boost::mutex mtx,mtxStart;
+    boost::condition_variable cond, condStart;
+    boost::thread timerThread;
 
-	unsigned int interval;
-	TimerCallBack timerCB;
-	void* timerCBPara;
+    unsigned int interval;
+    TimerCallBack timerCB;
+    void* timerCBPara;
 };
 
 #endif

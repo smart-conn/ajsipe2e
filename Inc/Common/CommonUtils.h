@@ -47,7 +47,7 @@ qcc::String GenerateIntrospectionXml(ajn::ProxyBusObject* proxy, qcc::String& ob
 
 /**
  * Filling in the property store using the key/value pair
- * @param propertyStore -	the propertyStore that will be filled in
+ * @param propertyStore -    the propertyStore that will be filled in
  * @param aboutKey - the key of one about data
  * @param aboutValue - the value of one about data
  */

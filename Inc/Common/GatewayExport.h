@@ -34,7 +34,7 @@ extern "C"
     /**
       *   Importing
       */
-	#if defined(WIN32)
+    #if defined(WIN32)
 #define SIPE2E_GATEWAY_IMPORT __declspec(dllimport)
 #else
 #define SIPE2E_GATEWAY_IMPORT

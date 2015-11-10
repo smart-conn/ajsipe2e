@@ -26,64 +26,64 @@
 #define CHECK_RETURN(x) if ((status = x) != ER_OK) { return status; }
 
 #define CHECK_STATUS_AND_REPLY(errorInfo) \
-	if (ER_OK != status) { \
-	    QCC_LogError(status, (errorInfo)); \
-	    status = MethodReply(msg, status); \
-	    if (ER_OK != status) { \
-	        QCC_LogError(status, ("Method Reply did not complete successfully")); \
-	    } \
-	    return; \
-	}
+    if (ER_OK != status) { \
+        QCC_LogError(status, (errorInfo)); \
+        status = MethodReply(msg, status); \
+        if (ER_OK != status) { \
+            QCC_LogError(status, ("Method Reply did not complete successfully")); \
+        } \
+        return; \
+    }
 
 #define CHECK_STATUS_AND_LOG(errorInfo) \
-	if (ER_OK != status) { \
-	    QCC_LogError(status, (errorInfo)); \
-		return; \
-	}
+    if (ER_OK != status) { \
+        QCC_LogError(status, (errorInfo)); \
+        return; \
+    }
 
 namespace sipe2e {
 
 namespace gateway {
 
 typedef struct _AllJoynContext {
-	ajn::BusAttachment* bus;
-	ajn::services::AboutPropertyStoreImpl* propertyStore;
-	CommonBusListener* busListener;
-	ajn::services::AnnounceHandler* aboutHandler;
-	ajn::services::AboutService* about;
-	_AllJoynContext() : bus(NULL), propertyStore(NULL), busListener(NULL),
-		aboutHandler(NULL), about(NULL) {}
+    ajn::BusAttachment* bus;
+    ajn::services::AboutPropertyStoreImpl* propertyStore;
+    CommonBusListener* busListener;
+    ajn::services::AnnounceHandler* aboutHandler;
+    ajn::services::AboutService* about;
+    _AllJoynContext() : bus(NULL), propertyStore(NULL), busListener(NULL),
+        aboutHandler(NULL), about(NULL) {}
 } AllJoynContext;
 
 typedef struct _AnnounceContent {
-	uint16_t version; // version of AboutService
-	uint16_t port; // port used by the AboutService
-	qcc::String busName; // unique bus name of the service
-	ajn::services::AnnounceHandler::ObjectDescriptions objectDescs; // map of ObjectDescriptions describing objects/interfaces
-	ajn::services::AnnounceHandler::AboutData aboutData; // map of AboutData describing properties of app/device/services
+    uint16_t version; // version of AboutService
+    uint16_t port; // port used by the AboutService
+    qcc::String busName; // unique bus name of the service
+    ajn::services::AnnounceHandler::ObjectDescriptions objectDescs; // map of ObjectDescriptions describing objects/interfaces
+    ajn::services::AnnounceHandler::AboutData aboutData; // map of AboutData describing properties of app/device/services
 } AnnounceContent;
 
 typedef struct _AsyncReplyContext {
-	ajn::Message msg;
-	ajn::InterfaceDescription::Member* member;
+    ajn::Message msg;
+    ajn::InterfaceDescription::Member* member;
 /*
-	_AsyncReplyContext() 
-		: msg(*(new ajn::BusAttachment(""))), member(NULL)
-	{
-		/ * Just for compilation, never call this default constructor * /
-	}
+    _AsyncReplyContext() 
+        : msg(*(new ajn::BusAttachment(""))), member(NULL)
+    {
+        / * Just for compilation, never call this default constructor * /
+    }
 */
-	_AsyncReplyContext(ajn::Message& _msg, const ajn::InterfaceDescription::Member* _member)
-		: msg(_msg), member(new ajn::InterfaceDescription::Member(*_member))
-	{
-	}
-	~_AsyncReplyContext() 
-	{
-		if (member) {
-			delete member;
-			member = NULL;
-		}
-	}
+    _AsyncReplyContext(ajn::Message& _msg, const ajn::InterfaceDescription::Member* _member)
+        : msg(_msg), member(new ajn::InterfaceDescription::Member(*_member))
+    {
+    }
+    ~_AsyncReplyContext() 
+    {
+        if (member) {
+            delete member;
+            member = NULL;
+        }
+    }
 } AsyncReplyContext;
 
 }

@@ -28,7 +28,7 @@ namespace sipe2e {
 namespace gateway {
 
 CommonBusListener::CommonBusListener(ajn::BusAttachment* bus /*= NULL*/, void(*daemonDisconnectCB)() /*= NULL*/)
-	: BusListener(), SessionPortListener(), m_SessionPort(0), m_Bus(bus), m_DaemonDisconnectCB(daemonDisconnectCB)
+    : BusListener(), SessionPortListener(), m_SessionPort(0), m_Bus(bus), m_DaemonDisconnectCB(daemonDisconnectCB)
 {
 
 }
@@ -40,53 +40,53 @@ CommonBusListener::~CommonBusListener()
 
 void CommonBusListener::setSessionPort(ajn::SessionPort sessionPort)
 {
-	m_SessionPort = sessionPort;
+    m_SessionPort = sessionPort;
 }
 
 ajn::SessionPort CommonBusListener::getSessionPort()
 {
-	return m_SessionPort;
+    return m_SessionPort;
 }
 
 bool CommonBusListener::AcceptSessionJoiner(ajn::SessionPort sessionPort, const char* joiner, const ajn::SessionOpts& opts)
 {
-	if (sessionPort != m_SessionPort) {
-		return false;
-	}
+    if (sessionPort != m_SessionPort) {
+        return false;
+    }
 
-	std::cout << "Accepting JoinSessionRequest" << std::endl;
-	return true;
+    std::cout << "Accepting JoinSessionRequest" << std::endl;
+    return true;
 }
 
 void CommonBusListener::SessionJoined(ajn::SessionPort sessionPort, ajn::SessionId id, const char* joiner)
 {
-	std::cout << "Session has been joined successfully" << std::endl;
-	if (m_Bus) {
-		m_Bus->SetSessionListener(id, this);
-	}
-	m_SessionIds.push_back(id);
+    std::cout << "Session has been joined successfully" << std::endl;
+    if (m_Bus) {
+        m_Bus->SetSessionListener(id, this);
+    }
+    m_SessionIds.push_back(id);
 }
 
 void CommonBusListener::SessionLost(ajn::SessionId sessionId, SessionLostReason reason)
 {
-	std::cout << "Session has been lost" << std::endl;
-	std::vector<ajn::SessionId>::iterator it = std::find(m_SessionIds.begin(), m_SessionIds.end(), sessionId);
-	if (it != m_SessionIds.end()) {
-		m_SessionIds.erase(it);
-	}
+    std::cout << "Session has been lost" << std::endl;
+    std::vector<ajn::SessionId>::iterator it = std::find(m_SessionIds.begin(), m_SessionIds.end(), sessionId);
+    if (it != m_SessionIds.end()) {
+        m_SessionIds.erase(it);
+    }
 }
 
 const std::vector<ajn::SessionId>& CommonBusListener::getSessionIds() const
 {
-	return m_SessionIds;
+    return m_SessionIds;
 }
 
 void CommonBusListener::BusDisconnected()
 {
-	std::cout << "Bus has been disconnected" << std::endl;
-	if (m_DaemonDisconnectCB) {
-		m_DaemonDisconnectCB();
-	}
+    std::cout << "Bus has been disconnected" << std::endl;
+    if (m_DaemonDisconnectCB) {
+        m_DaemonDisconnectCB();
+    }
 }
 
 

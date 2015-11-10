@@ -92,12 +92,12 @@ static volatile sig_atomic_t s_restart = false;
 
 static void SigIntHandler(int sig)
 {
-	s_interrupt = true;
+    s_interrupt = true;
 }
 
 static void daemonDisconnectCB()
 {
-	s_restart = true;
+    s_restart = true;
 }
 
 typedef void (*AnnounceHandlerCallback)(qcc::String const& busName, unsigned short port);
@@ -106,111 +106,111 @@ class CloudCommEngineAnnounceHandler : public ajn::services::AnnounceHandler {
 
 public:
 
-	CloudCommEngineAnnounceHandler(AnnounceHandlerCallback callback = 0)
-		: AnnounceHandler(), m_Callback(callback)
-	{
-	}
+    CloudCommEngineAnnounceHandler(AnnounceHandlerCallback callback = 0)
+        : AnnounceHandler(), m_Callback(callback)
+    {
+    }
 
-	~CloudCommEngineAnnounceHandler()
-	{
-	}
+    ~CloudCommEngineAnnounceHandler()
+    {
+    }
 
 
-	virtual void Announce(unsigned short version, unsigned short port, const char* busName, const ObjectDescriptions& objectDescs,
-		const AboutData& aboutData)
-	{
-		/* Only receive the announcement from ProximalCommEngine module */
-		if (gwConsts::SIPE2E_PROXIMALCOMMENGINE_SESSION_PORT == port) {
-			for (services::AnnounceHandler::ObjectDescriptions::const_iterator itObjDesc = objectDescs.begin();
-				itObjDesc != objectDescs.end(); ++itObjDesc) {
-					String objPath = itObjDesc->first;
-					size_t pos = objPath.find_last_of('/');
-					if (String::npos != pos) {
-						if (objPath.substr(pos + 1, objPath.length() - pos - 1) == gwConsts::SIPE2E_PROXIMALCOMMENGINE_NAME) {
-							s_bus->EnableConcurrentCallbacks();
-							SessionOpts opts(SessionOpts::TRAFFIC_MESSAGES, true, SessionOpts::PROXIMITY_ANY, TRANSPORT_ANY);
-							SessionId sessionId;
-							QStatus status = s_bus->JoinSession(busName, (SessionPort)port, s_busListener, sessionId, opts);
-							if (ER_OK != status) {
-								QCC_LogError(status, ("Error while trying to join the session with remote ProximalCommEngine"));
-								continue;
-							}
-							const char* objPathStr = objPath.c_str();
-							bool isSec = false;
-							ManagedObj<ProxyBusObject> tmp(*s_bus, busName, objPathStr, sessionId, isSec);
-							status = tmp->IntrospectRemoteObject();
-							if (ER_OK != status) {
-								QCC_LogError(status, ("Error while IntrospectRemoteObject the ProximalCommEngineBusObject"));
-								continue;
-							}
-							s_cceBusObject->ResetProximalEngineProxyBusObject(tmp);
-							s_pceProxyBusObject = tmp;
-						}
-					}
-			}
-		}
-	}
+    virtual void Announce(unsigned short version, unsigned short port, const char* busName, const ObjectDescriptions& objectDescs,
+        const AboutData& aboutData)
+    {
+        /* Only receive the announcement from ProximalCommEngine module */
+        if (gwConsts::SIPE2E_PROXIMALCOMMENGINE_SESSION_PORT == port) {
+            for (services::AnnounceHandler::ObjectDescriptions::const_iterator itObjDesc = objectDescs.begin();
+                itObjDesc != objectDescs.end(); ++itObjDesc) {
+                    String objPath = itObjDesc->first;
+                    size_t pos = objPath.find_last_of('/');
+                    if (String::npos != pos) {
+                        if (objPath.substr(pos + 1, objPath.length() - pos - 1) == gwConsts::SIPE2E_PROXIMALCOMMENGINE_NAME) {
+                            s_bus->EnableConcurrentCallbacks();
+                            SessionOpts opts(SessionOpts::TRAFFIC_MESSAGES, true, SessionOpts::PROXIMITY_ANY, TRANSPORT_ANY);
+                            SessionId sessionId;
+                            QStatus status = s_bus->JoinSession(busName, (SessionPort)port, s_busListener, sessionId, opts);
+                            if (ER_OK != status) {
+                                QCC_LogError(status, ("Error while trying to join the session with remote ProximalCommEngine"));
+                                continue;
+                            }
+                            const char* objPathStr = objPath.c_str();
+                            bool isSec = false;
+                            ManagedObj<ProxyBusObject> tmp(*s_bus, busName, objPathStr, sessionId, isSec);
+                            status = tmp->IntrospectRemoteObject();
+                            if (ER_OK != status) {
+                                QCC_LogError(status, ("Error while IntrospectRemoteObject the ProximalCommEngineBusObject"));
+                                continue;
+                            }
+                            s_cceBusObject->ResetProximalEngineProxyBusObject(tmp);
+                            s_pceProxyBusObject = tmp;
+                        }
+                    }
+            }
+        }
+    }
 private:
 
-	AnnounceHandlerCallback m_Callback;
+    AnnounceHandlerCallback m_Callback;
 };
 
 ThreadReturn STDCALL NotificationReceiverThreadFunc(void* arg)
 {
-	while (boost::shared_array<char> notification = IMSTransport::GetInstance()->ReadServiceNotification()) {
+    while (boost::shared_array<char> notification = IMSTransport::GetInstance()->ReadServiceNotification()) {
         QStatus status = ER_OK;
-		char* notificationBuffer = notification.get();
-		char* tmp = strchr(notificationBuffer, '^');
-		if (!tmp) {
-			// the format is not correct
-			QCC_LogError(ER_FAIL, ("The notification message format is not correct"));
-			continue;
-		}
-		*tmp = '\0';
-		char* peer = notificationBuffer;
-		char* subState = tmp + 1;
-		int nSubState = atoi(subState);
-		tmp = strchr(subState, '^');
-		if (!tmp) {
-			// the format is not correct
-			QCC_LogError(ER_FAIL, ("The notification message format is not correct"));
-			continue;
-		}
-		*tmp = '\0';
-		char* notificationContent = tmp + 1;
+        char* notificationBuffer = notification.get();
+        char* tmp = strchr(notificationBuffer, '^');
+        if (!tmp) {
+            // the format is not correct
+            QCC_LogError(ER_FAIL, ("The notification message format is not correct"));
+            continue;
+        }
+        *tmp = '\0';
+        char* peer = notificationBuffer;
+        char* subState = tmp + 1;
+        int nSubState = atoi(subState);
+        tmp = strchr(subState, '^');
+        if (!tmp) {
+            // the format is not correct
+            QCC_LogError(ER_FAIL, ("The notification message format is not correct"));
+            continue;
+        }
+        *tmp = '\0';
+        char* notificationContent = tmp + 1;
 
 /*
-		// 
-		xmlDocPtr doc = xmlParseMemory(notificationContent, strlen(notificationContent));
-		if (doc == NULL) {
-			QCC_LogError(ER_XML_MALFORMED, ("Can not parse the notification xml content: %s", notificationContent));
-			continue;
-		}
-		xmlNodePtr rootNode = xmlDocGetRootElement(doc);
-		if (rootNode == NULL) {
-			QCC_LogError(ER_XML_MALFORMED, ("Can not get the root node of the notification xml content: %s", notificationContent));
-			continue;
-		}
-		if (!xmlStrcmp(rootNode->name, (const xmlChar*)"presence")) {
-			// check if the entity property of the node is equal to peer
-			xmlChar* entity = xmlGetProp(rootNode, (const xmlChar*)"entity");
-			if (entity) {
-				char* tmp = strchr((char*)entity, ':');
-				char* entityAddr = (char*)entity;
-				if (tmp) {
-					entityAddr = tmp + 1;
-				} else {
-					// if the entity address does not contains ':', just ignore it
-				}
-				if (strcmp(entityAddr, peer)) { // Here only for 
-					// if the entity address is not the peer address, then the notification
-					// is not from the correct peer address, just skip this notification
-					QCC_LogError(ER_FAIL, ("The entity address (%s) is not equal to the peer address (%s)", entityAddr, peer));
-					continue;
-				}
-			} else {
-				// if the entity property is not present, just ignore it
-			}
+        // 
+        xmlDocPtr doc = xmlParseMemory(notificationContent, strlen(notificationContent));
+        if (doc == NULL) {
+            QCC_LogError(ER_XML_MALFORMED, ("Can not parse the notification xml content: %s", notificationContent));
+            continue;
+        }
+        xmlNodePtr rootNode = xmlDocGetRootElement(doc);
+        if (rootNode == NULL) {
+            QCC_LogError(ER_XML_MALFORMED, ("Can not get the root node of the notification xml content: %s", notificationContent));
+            continue;
+        }
+        if (!xmlStrcmp(rootNode->name, (const xmlChar*)"presence")) {
+            // check if the entity property of the node is equal to peer
+            xmlChar* entity = xmlGetProp(rootNode, (const xmlChar*)"entity");
+            if (entity) {
+                char* tmp = strchr((char*)entity, ':');
+                char* entityAddr = (char*)entity;
+                if (tmp) {
+                    entityAddr = tmp + 1;
+                } else {
+                    // if the entity address does not contains ':', just ignore it
+                }
+                if (strcmp(entityAddr, peer)) { // Here only for 
+                    // if the entity address is not the peer address, then the notification
+                    // is not from the correct peer address, just skip this notification
+                    QCC_LogError(ER_FAIL, ("The entity address (%s) is not equal to the peer address (%s)", entityAddr, peer));
+                    continue;
+                }
+            } else {
+                // if the entity property is not present, just ignore it
+            }
 */
 
         StringSource source(notificationContent);
@@ -241,380 +241,380 @@ ThreadReturn STDCALL NotificationReceiverThreadFunc(void* arg)
                 continue;
             }
 
-			ims::presence pidfPresence;
-			pidfPresence.Deserialize(rootNode);
+            ims::presence pidfPresence;
+            pidfPresence.Deserialize(rootNode);
 
-			// Note that the presence server will probably send all tuples to watchers,
-			// so we should iterate all tuples, and check if the basic status is open or closed
-			// to determine how to deal with it. If some service's (tuple's) status is closed,
-			// then unsubscribe the corresponding service from local environment
-			std::vector<ims::tuple>& tuples = pidfPresence.GetTuples();
-			for (size_t i = 0; i < tuples.size(); i++) {
-				ims::tuple& _tuple = tuples[i];
-				String& serviceIntrospectionXml = _tuple.GetService().GetIntrospectionXml();
-				ims::status& _status = _tuple.GetStatus();
-				if (nSubState && _status.GetBasicStatus() == ims::basic::open) {
-					// if the status is open, then subscribe it
-					MsgArg proximalCallArg("ss", peer, serviceIntrospectionXml.c_str());
-					status = s_pceProxyBusObject->MethodCall(gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
-						gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_SUBSCRIBE.c_str(),
-						&proximalCallArg, 2);
-					if (ER_OK != status) {
-						QCC_LogError(status, ("Error subscribing cloud service to local"));
-					}
-				} else {
-					// if the status is closed, then unsubscribe it
-					MsgArg proximalCallArg("ss", peer, serviceIntrospectionXml.c_str());
-					status = s_pceProxyBusObject->MethodCall(gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
-						gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_UNSUBSCRIBE.c_str(),
-						&proximalCallArg, 2);
-					if (ER_OK != status) {
-						QCC_LogError(status, ("Error unsubscribing cloud service from local"));
-					}
-				}
-			}
-		} else {
-			// the root node is not presence node, just ignore it
-			QCC_DbgPrintf(("The root node is not presence."));
-			continue;
-		}
+            // Note that the presence server will probably send all tuples to watchers,
+            // so we should iterate all tuples, and check if the basic status is open or closed
+            // to determine how to deal with it. If some service's (tuple's) status is closed,
+            // then unsubscribe the corresponding service from local environment
+            std::vector<ims::tuple>& tuples = pidfPresence.GetTuples();
+            for (size_t i = 0; i < tuples.size(); i++) {
+                ims::tuple& _tuple = tuples[i];
+                String& serviceIntrospectionXml = _tuple.GetService().GetIntrospectionXml();
+                ims::status& _status = _tuple.GetStatus();
+                if (nSubState && _status.GetBasicStatus() == ims::basic::open) {
+                    // if the status is open, then subscribe it
+                    MsgArg proximalCallArg("ss", peer, serviceIntrospectionXml.c_str());
+                    status = s_pceProxyBusObject->MethodCall(gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
+                        gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_SUBSCRIBE.c_str(),
+                        &proximalCallArg, 2);
+                    if (ER_OK != status) {
+                        QCC_LogError(status, ("Error subscribing cloud service to local"));
+                    }
+                } else {
+                    // if the status is closed, then unsubscribe it
+                    MsgArg proximalCallArg("ss", peer, serviceIntrospectionXml.c_str());
+                    status = s_pceProxyBusObject->MethodCall(gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
+                        gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_UNSUBSCRIBE.c_str(),
+                        &proximalCallArg, 2);
+                    if (ER_OK != status) {
+                        QCC_LogError(status, ("Error unsubscribing cloud service from local"));
+                    }
+                }
+            }
+        } else {
+            // the root node is not presence node, just ignore it
+            QCC_DbgPrintf(("The root node is not presence."));
+            continue;
+        }
 
-	}
-	return NULL;
+    }
+    return NULL;
 }
 
 // Delete the dependency on Axis2, 20151019, LYH
 /*
 ThreadReturn STDCALL Axis2ServerThreadFunc(void* arg)
 {
-	axis2_status_t status = axis2_transport_receiver_start(s_axis2Server, s_axis2Env);
-	if (status == AXIS2_FAILURE) {
-		QCC_LogError(ER_FAIL, ("Error (%u: %s) while trying to start IMS transport server", s_axis2Env->error->error_number, AXIS2_ERROR_GET_MESSAGE(s_axis2Env->error)));
-		return NULL;
-	}
-	return NULL;
+    axis2_status_t status = axis2_transport_receiver_start(s_axis2Server, s_axis2Env);
+    if (status == AXIS2_FAILURE) {
+        QCC_LogError(ER_FAIL, ("Error (%u: %s) while trying to start IMS transport server", s_axis2Env->error->error_number, AXIS2_ERROR_GET_MESSAGE(s_axis2Env->error)));
+        return NULL;
+    }
+    return NULL;
 }
 
 QStatus initAxi2System(const axutil_log_levels_t logLevel)
 {
-	// Before initializing any Axis2 moudule, first initialize the IMSTransport
-	if (0 != ITInitialize())
-	{
-		return ER_FAIL;
-	}
+    // Before initializing any Axis2 moudule, first initialize the IMSTransport
+    if (0 != ITInitialize())
+    {
+        return ER_FAIL;
+    }
 
-	axutil_allocator_t *allocator = axutil_allocator_init(NULL);
-	axutil_error_t *error = axutil_error_create(allocator);
-	axutil_log_t *log = axutil_log_create(allocator, NULL, "axis2ims.log");
-	axutil_thread_pool_t *thread_pool = axutil_thread_pool_init(allocator);
+    axutil_allocator_t *allocator = axutil_allocator_init(NULL);
+    axutil_error_t *error = axutil_error_create(allocator);
+    axutil_log_t *log = axutil_log_create(allocator, NULL, "axis2ims.log");
+    axutil_thread_pool_t *thread_pool = axutil_thread_pool_init(allocator);
     // We need to init the parser in main thread before spawning child
     // threads
     axis2_status_t status = axiom_xml_reader_init();
-	if (AXIS2_SUCCESS != status) {
-		QCC_LogError(ER_FAIL, ("Error (%u) while initializing axiom xml reader of Axis2", status));
-		return ER_FAIL;
-	}
-	s_axis2Env = axutil_env_create_with_error_log_thread_pool(allocator, error, log, thread_pool);
+    if (AXIS2_SUCCESS != status) {
+        QCC_LogError(ER_FAIL, ("Error (%u) while initializing axiom xml reader of Axis2", status));
+        return ER_FAIL;
+    }
+    s_axis2Env = axutil_env_create_with_error_log_thread_pool(allocator, error, log, thread_pool);
 
-	if (!s_axis2Env) {
-		QCC_LogError(ER_FAIL, ("Error while creating Axis2 system environment"));
-		return ER_FAIL;
-	}
-	status = axutil_error_init();
-	if (AXIS2_SUCCESS != status) {
-		QCC_LogError(ER_FAIL, ("Error (%u: %s) while initializing error system of Axis2", s_axis2Env->error->error_number, AXIS2_ERROR_GET_MESSAGE(s_axis2Env->error)));
-		return ER_FAIL;
-	}
+    if (!s_axis2Env) {
+        QCC_LogError(ER_FAIL, ("Error while creating Axis2 system environment"));
+        return ER_FAIL;
+    }
+    status = axutil_error_init();
+    if (AXIS2_SUCCESS != status) {
+        QCC_LogError(ER_FAIL, ("Error (%u: %s) while initializing error system of Axis2", s_axis2Env->error->error_number, AXIS2_ERROR_GET_MESSAGE(s_axis2Env->error)));
+        return ER_FAIL;
+    }
 
-	String axisPath(gwConsts::AXIS2_DEPLOY_HOME);
-	QStatus qStatus = NormalizePath(axisPath);
-	if (ER_OK != qStatus) {
-		QCC_LogError(qStatus, ("Error while trying to converting relative path"));
-		return qStatus;
-	}
-	status = axutil_file_handler_access((const axis2_char_t*)axisPath.c_str(), AXIS2_R_OK);
-	if (AXIS2_SUCCESS != status) {
-		QCC_LogError(ER_FAIL, ("Error (%u: %s) while trying to access the Axis2 server home directory (%s)", s_axis2Env->error->error_number, AXIS2_ERROR_GET_MESSAGE(s_axis2Env->error), gwConsts::AXIS2_DEPLOY_HOME));
-		return ER_FAIL;
-	}
-	// Try to prepare the IMS transport server side
-	s_axis2Server = axis2_ims_server_create(s_axis2Env, (const axis2_char_t*)axisPath.c_str());
-	if (!s_axis2Server) {
-		QCC_LogError(ER_FAIL, ("Error (%u: %s) while creating IMS server", s_axis2Env->error->error_number, AXIS2_ERROR_GET_MESSAGE(s_axis2Env->error)));
-		return ER_FAIL;
-	}
+    String axisPath(gwConsts::AXIS2_DEPLOY_HOME);
+    QStatus qStatus = NormalizePath(axisPath);
+    if (ER_OK != qStatus) {
+        QCC_LogError(qStatus, ("Error while trying to converting relative path"));
+        return qStatus;
+    }
+    status = axutil_file_handler_access((const axis2_char_t*)axisPath.c_str(), AXIS2_R_OK);
+    if (AXIS2_SUCCESS != status) {
+        QCC_LogError(ER_FAIL, ("Error (%u: %s) while trying to access the Axis2 server home directory (%s)", s_axis2Env->error->error_number, AXIS2_ERROR_GET_MESSAGE(s_axis2Env->error), gwConsts::AXIS2_DEPLOY_HOME));
+        return ER_FAIL;
+    }
+    // Try to prepare the IMS transport server side
+    s_axis2Server = axis2_ims_server_create(s_axis2Env, (const axis2_char_t*)axisPath.c_str());
+    if (!s_axis2Server) {
+        QCC_LogError(ER_FAIL, ("Error (%u: %s) while creating IMS server", s_axis2Env->error->error_number, AXIS2_ERROR_GET_MESSAGE(s_axis2Env->error)));
+        return ER_FAIL;
+    }
 
-	// Try to prepare the IMS transport client side
+    // Try to prepare the IMS transport client side
 
-	return ER_OK;
+    return ER_OK;
 }
 
 QStatus cleanupAxisSystem()
 {
-	if (s_axis2Server) {
-		axis2_transport_receiver_free(s_axis2Server, s_axis2Env);
-		s_axis2Server = NULL;
-	}
-	if (s_axis2Env) {
-		axutil_env_free(s_axis2Env);
-		s_axis2Env = NULL;
-	}
-	axiom_xml_reader_cleanup();
+    if (s_axis2Server) {
+        axis2_transport_receiver_free(s_axis2Server, s_axis2Env);
+        s_axis2Server = NULL;
+    }
+    if (s_axis2Env) {
+        axutil_env_free(s_axis2Env);
+        s_axis2Env = NULL;
+    }
+    axiom_xml_reader_cleanup();
 
     ITShutdown();
-	return ER_OK;
+    return ER_OK;
 }
 */
 
 
 void cleanup()
 {
-	if (s_bus && s_busListener) {
-		s_bus->UnregisterBusListener(*s_busListener);
-		s_bus->UnbindSessionPort(s_busListener->getSessionPort());
-	}
+    if (s_bus && s_busListener) {
+        s_bus->UnregisterBusListener(*s_busListener);
+        s_bus->UnbindSessionPort(s_busListener->getSessionPort());
+    }
 /*
-	if (s_pceProxyBusObject->IsValid()) {
-		ManagedObj<ProxyBusObject> tmp;
-		s_pceProxyBusObject = tmp;
-	}
+    if (s_pceProxyBusObject->IsValid()) {
+        ManagedObj<ProxyBusObject> tmp;
+        s_pceProxyBusObject = tmp;
+    }
 */
-	if (s_cceBusObject) {
-		if (s_bus) {
-			s_bus->UnregisterBusObject(*s_cceBusObject);
-		}
-		s_cceBusObject->Cleanup();
-		delete s_cceBusObject;
-		s_cceBusObject = NULL;
-	}
-	if (s_pceProxyBusObject->IsValid()) {
-		ManagedObj<ProxyBusObject> tmp;
-		s_pceProxyBusObject = tmp;
-	}
-	/* Destroying the AboutService must be after deletion of s_pceBusObject where AboutService will unregister the s_pceBusObject */
-	services::AboutServiceApi::DestroyInstance();
-	if (s_busListener) {
-		delete s_busListener;
-		s_busListener = NULL;
-	}
-	if (s_propertyStoreImpl) {
-		delete s_propertyStoreImpl;
-		s_propertyStoreImpl = NULL;
-	}
-	if (s_announceHandler) {
-		if (s_bus) {
-			services::AnnouncementRegistrar::UnRegisterAllAnnounceHandlers(*s_bus);
-		}
-		delete s_announceHandler;
-		s_announceHandler = NULL;
-	}
-	if (s_bus) {
-		delete s_bus;
-		s_bus = NULL;
-	}
+    if (s_cceBusObject) {
+        if (s_bus) {
+            s_bus->UnregisterBusObject(*s_cceBusObject);
+        }
+        s_cceBusObject->Cleanup();
+        delete s_cceBusObject;
+        s_cceBusObject = NULL;
+    }
+    if (s_pceProxyBusObject->IsValid()) {
+        ManagedObj<ProxyBusObject> tmp;
+        s_pceProxyBusObject = tmp;
+    }
+    /* Destroying the AboutService must be after deletion of s_pceBusObject where AboutService will unregister the s_pceBusObject */
+    services::AboutServiceApi::DestroyInstance();
+    if (s_busListener) {
+        delete s_busListener;
+        s_busListener = NULL;
+    }
+    if (s_propertyStoreImpl) {
+        delete s_propertyStoreImpl;
+        s_propertyStoreImpl = NULL;
+    }
+    if (s_announceHandler) {
+        if (s_bus) {
+            services::AnnouncementRegistrar::UnRegisterAllAnnounceHandlers(*s_bus);
+        }
+        delete s_announceHandler;
+        s_announceHandler = NULL;
+    }
+    if (s_bus) {
+        delete s_bus;
+        s_bus = NULL;
+    }
 
     // Delete the dependency on Axis2, 20151019, LYH
 /*
-	cleanupAxisSystem();
+    cleanupAxisSystem();
 */
 }
 
 
 QStatus fillPropertyStore(services::AboutPropertyStoreImpl* propertyStore, String const& appIdHex,
-											String const& appName, String const& deviceId, map<String, String> const& deviceNames,
-											String const& defaultLanguage)
+                                            String const& appName, String const& deviceId, map<String, String> const& deviceNames,
+                                            String const& defaultLanguage)
 {
-	if (!propertyStore) {
-		return ER_BAD_ARG_1;
-	}
+    if (!propertyStore) {
+        return ER_BAD_ARG_1;
+    }
 
-	QStatus status = ER_OK;
+    QStatus status = ER_OK;
 
-	CHECK_RETURN(propertyStore->setDeviceId(deviceId))
-	CHECK_RETURN(propertyStore->setAppId(appIdHex))
-	CHECK_RETURN(propertyStore->setAppName(appName))
+    CHECK_RETURN(propertyStore->setDeviceId(deviceId))
+    CHECK_RETURN(propertyStore->setAppId(appIdHex))
+    CHECK_RETURN(propertyStore->setAppName(appName))
 
-	std::vector<qcc::String> languages(2);
-	languages[0] = "en";
-	languages[1] = "zh";
-	CHECK_RETURN(propertyStore->setSupportedLangs(languages))
-	CHECK_RETURN(propertyStore->setDefaultLang(defaultLanguage))
+    std::vector<qcc::String> languages(2);
+    languages[0] = "en";
+    languages[1] = "zh";
+    CHECK_RETURN(propertyStore->setSupportedLangs(languages))
+    CHECK_RETURN(propertyStore->setDefaultLang(defaultLanguage))
 
-	CHECK_RETURN(propertyStore->setModelNumber("sipe2e002"))
-	CHECK_RETURN(propertyStore->setDateOfManufacture("1/1/2015"))
-	CHECK_RETURN(propertyStore->setSoftwareVersion("1.0.0 build 1"))
-	CHECK_RETURN(propertyStore->setAjSoftwareVersion(ajn::GetVersion()))
-	CHECK_RETURN(propertyStore->setHardwareVersion("1.0.0"))
+    CHECK_RETURN(propertyStore->setModelNumber("sipe2e002"))
+    CHECK_RETURN(propertyStore->setDateOfManufacture("1/1/2015"))
+    CHECK_RETURN(propertyStore->setSoftwareVersion("1.0.0 build 1"))
+    CHECK_RETURN(propertyStore->setAjSoftwareVersion(ajn::GetVersion()))
+    CHECK_RETURN(propertyStore->setHardwareVersion("1.0.0"))
 
-	map<String, String>::const_iterator iter = deviceNames.find(languages[0]);
-	if (iter != deviceNames.end()) {
-		CHECK_RETURN(propertyStore->setDeviceName(iter->second.c_str(), languages[0]));
-	} else {
-		CHECK_RETURN(propertyStore->setDeviceName(gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME.c_str(), "en"));
-	}
+    map<String, String>::const_iterator iter = deviceNames.find(languages[0]);
+    if (iter != deviceNames.end()) {
+        CHECK_RETURN(propertyStore->setDeviceName(iter->second.c_str(), languages[0]));
+    } else {
+        CHECK_RETURN(propertyStore->setDeviceName(gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME.c_str(), "en"));
+    }
 
-	iter = deviceNames.find(languages[1]);
-	if (iter != deviceNames.end()) {
-		CHECK_RETURN(propertyStore->setDeviceName(iter->second.c_str(), languages[1]));
-	} else {
-		CHECK_RETURN(propertyStore->setDeviceName("云端通讯引擎", "zh"));
-	}
+    iter = deviceNames.find(languages[1]);
+    if (iter != deviceNames.end()) {
+        CHECK_RETURN(propertyStore->setDeviceName(iter->second.c_str(), languages[1]));
+    } else {
+        CHECK_RETURN(propertyStore->setDeviceName("云端通讯引擎", "zh"));
+    }
 
-	CHECK_RETURN(propertyStore->setDescription("Cloud Communication Engine", "en"))
-	CHECK_RETURN(propertyStore->setDescription("云端通讯引擎", "zh"))
+    CHECK_RETURN(propertyStore->setDescription("Cloud Communication Engine", "en"))
+    CHECK_RETURN(propertyStore->setDescription("云端通讯引擎", "zh"))
 
-	CHECK_RETURN(propertyStore->setManufacturer("Beijing HengShengDongYang Technology Ltd.", "en"))
-	CHECK_RETURN(propertyStore->setManufacturer("北京恒胜东阳科技有限公司", "zh"))
+    CHECK_RETURN(propertyStore->setManufacturer("Beijing HengShengDongYang Technology Ltd.", "en"))
+    CHECK_RETURN(propertyStore->setManufacturer("北京恒胜东阳科技有限公司", "zh"))
 
-	CHECK_RETURN(propertyStore->setSupportUrl("http://www.nane.cn"))
+    CHECK_RETURN(propertyStore->setSupportUrl("http://www.nane.cn"))
 
-	return status;
+    return status;
 }
 QStatus prepareAboutService(BusAttachment* bus, services::AboutPropertyStoreImpl* propertyStore,
-											  CommonBusListener* busListener, uint16_t port)
+                                              CommonBusListener* busListener, uint16_t port)
 {
-	if (!bus) {
-		return ER_BAD_ARG_1;
-	}
+    if (!bus) {
+        return ER_BAD_ARG_1;
+    }
 
-	if (!propertyStore) {
-		return ER_BAD_ARG_2;
-	}
+    if (!propertyStore) {
+        return ER_BAD_ARG_2;
+    }
 
-	if (!busListener) {
-		return ER_BAD_ARG_3;
-	}
+    if (!busListener) {
+        return ER_BAD_ARG_3;
+    }
 
-	services::AboutServiceApi::Init(*bus, *propertyStore);
-	services::AboutServiceApi* aboutService = services::AboutServiceApi::getInstance();
-	if (!aboutService) {
-		return ER_BUS_NOT_ALLOWED;
-	}
+    services::AboutServiceApi::Init(*bus, *propertyStore);
+    services::AboutServiceApi* aboutService = services::AboutServiceApi::getInstance();
+    if (!aboutService) {
+        return ER_BUS_NOT_ALLOWED;
+    }
 
-	busListener->setSessionPort(port);
-	bus->RegisterBusListener(*busListener);
+    busListener->setSessionPort(port);
+    bus->RegisterBusListener(*busListener);
 
-	TransportMask transportMask = TRANSPORT_ANY;
-	SessionPort sp = port;
-	SessionOpts opts(SessionOpts::TRAFFIC_MESSAGES, false, SessionOpts::PROXIMITY_ANY, transportMask);
+    TransportMask transportMask = TRANSPORT_ANY;
+    SessionPort sp = port;
+    SessionOpts opts(SessionOpts::TRAFFIC_MESSAGES, false, SessionOpts::PROXIMITY_ANY, transportMask);
 
-	QStatus status = bus->BindSessionPort(sp, opts, *busListener);
-	if (status != ER_OK) {
-		return status;
-	}
+    QStatus status = bus->BindSessionPort(sp, opts, *busListener);
+    if (status != ER_OK) {
+        return status;
+    }
 
-	status = aboutService->Register(port);
-	if (status != ER_OK) {
-		return status;
-	}
+    status = aboutService->Register(port);
+    if (status != ER_OK) {
+        return status;
+    }
 
-	return (bus->RegisterBusObject(*aboutService));
+    return (bus->RegisterBusObject(*aboutService));
 }
 
 
 
 int main(int argc, char** argv, char** envArg)
 {
-	/* Install SIGINT handler */
-	signal(SIGINT, SigIntHandler);
+    /* Install SIGINT handler */
+    signal(SIGINT, SigIntHandler);
 
-	QStatus status = ER_OK;
+    QStatus status = ER_OK;
 
-	start:
-	/* Prepare bus attachment */
-	s_bus = new BusAttachment(gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME.c_str(), true, 8);
-	if (!s_bus) {
-		status = ER_OUT_OF_MEMORY;
-		return status;
-	}
-	status = s_bus->Start();
-	if (ER_OK != status) {
-		delete s_bus;
-		return status;
-	}
+    start:
+    /* Prepare bus attachment */
+    s_bus = new BusAttachment(gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME.c_str(), true, 8);
+    if (!s_bus) {
+        status = ER_OUT_OF_MEMORY;
+        return status;
+    }
+    status = s_bus->Start();
+    if (ER_OK != status) {
+        delete s_bus;
+        return status;
+    }
 
-	/* Prepare the BusListener */
-	s_busListener = new CommonBusListener(s_bus, daemonDisconnectCB);
-	s_bus->RegisterBusListener(*s_busListener);
+    /* Prepare the BusListener */
+    s_busListener = new CommonBusListener(s_bus, daemonDisconnectCB);
+    s_bus->RegisterBusListener(*s_busListener);
 
-	status = s_bus->Connect();
-	if (ER_OK != status) {
-		delete s_bus;
-		return status;
-	}
+    status = s_bus->Connect();
+    if (ER_OK != status) {
+        delete s_bus;
+        return status;
+    }
 
-	/* Prepare About */
-	qcc::String device_id, app_id;
-	qcc::String app_name = gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME;
-	map<String, String> deviceNames;
-	deviceNames.insert(pair<String, String>("en", gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME.c_str()));
-	deviceNames.insert(pair<String, String>("zh", "云端通讯引擎"));
-	services::GuidUtil::GetInstance()->GetDeviceIdString(&device_id);
-	services::GuidUtil::GetInstance()->GenerateGUID(&app_id);
+    /* Prepare About */
+    qcc::String device_id, app_id;
+    qcc::String app_name = gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME;
+    map<String, String> deviceNames;
+    deviceNames.insert(pair<String, String>("en", gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME.c_str()));
+    deviceNames.insert(pair<String, String>("zh", "云端通讯引擎"));
+    services::GuidUtil::GetInstance()->GetDeviceIdString(&device_id);
+    services::GuidUtil::GetInstance()->GenerateGUID(&app_id);
 
-	s_propertyStoreImpl = new services::AboutPropertyStoreImpl();
-	status = fillPropertyStore(s_propertyStoreImpl, app_id, app_name, device_id, deviceNames, String("en"));
-	if (ER_OK != status) {
-		QCC_LogError(status, ("Error while filling the property store"));
-		cleanup();
-		return status;
-	}
-	status = prepareAboutService(s_bus, s_propertyStoreImpl, s_busListener, gwConsts::SIPE2E_CLOUDCOMMENGINE_SESSION_PORT);
-	if (ER_OK != status) {
-		QCC_LogError(status, ("Error while preparing the about service"));
-		cleanup();
-		return status;
-	}
-	s_cceBusObject = new CloudCommEngineBusObject(gwConsts::SIPE2E_CLOUDCOMMENGINE_OBJECTPATH, gwConsts::CLOUD_METHOD_CALL_THREAD_POOL_SIZE);
-	status = s_cceBusObject->Init(*s_bus);
-	if (ER_OK != status) {
-		QCC_LogError(status, ("Error while initializing ProximalCommEngine"));
-		cleanup();
-		return status;
-	}
+    s_propertyStoreImpl = new services::AboutPropertyStoreImpl();
+    status = fillPropertyStore(s_propertyStoreImpl, app_id, app_name, device_id, deviceNames, String("en"));
+    if (ER_OK != status) {
+        QCC_LogError(status, ("Error while filling the property store"));
+        cleanup();
+        return status;
+    }
+    status = prepareAboutService(s_bus, s_propertyStoreImpl, s_busListener, gwConsts::SIPE2E_CLOUDCOMMENGINE_SESSION_PORT);
+    if (ER_OK != status) {
+        QCC_LogError(status, ("Error while preparing the about service"));
+        cleanup();
+        return status;
+    }
+    s_cceBusObject = new CloudCommEngineBusObject(gwConsts::SIPE2E_CLOUDCOMMENGINE_OBJECTPATH, gwConsts::CLOUD_METHOD_CALL_THREAD_POOL_SIZE);
+    status = s_cceBusObject->Init(*s_bus);
+    if (ER_OK != status) {
+        QCC_LogError(status, ("Error while initializing ProximalCommEngine"));
+        cleanup();
+        return status;
+    }
 
-	/* Register AnnounceHandler */
-	s_announceHandler = new CloudCommEngineAnnounceHandler();
-	const char* pceIntf = gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str();
-	status = services::AnnouncementRegistrar::RegisterAnnounceHandler(*s_bus, *s_announceHandler, &pceIntf, 1);
-	if (ER_OK != status) {
-		QCC_LogError(status, ("Error while registering AnnounceHandler"));
-		cleanup();
-		return status;
-	}
+    /* Register AnnounceHandler */
+    s_announceHandler = new CloudCommEngineAnnounceHandler();
+    const char* pceIntf = gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str();
+    status = services::AnnouncementRegistrar::RegisterAnnounceHandler(*s_bus, *s_announceHandler, &pceIntf, 1);
+    if (ER_OK != status) {
+        QCC_LogError(status, ("Error while registering AnnounceHandler"));
+        cleanup();
+        return status;
+    }
 
 
-	status = services::AboutServiceApi::getInstance()->Announce();
-	if (ER_OK != status) {
-		QCC_LogError(status, ("Error while announcing"));
-		cleanup();
-		return status;
-	}
+    status = services::AboutServiceApi::getInstance()->Announce();
+    if (ER_OK != status) {
+        QCC_LogError(status, ("Error while announcing"));
+        cleanup();
+        return status;
+    }
 
-	// Start a new thread to handle incoming service notification (from previous offline subscription)
-	Thread notificationReceiverThread("NotificationReceiverThread", NotificationReceiverThreadFunc);
-	notificationReceiverThread.Start();
+    // Start a new thread to handle incoming service notification (from previous offline subscription)
+    Thread notificationReceiverThread("NotificationReceiverThread", NotificationReceiverThreadFunc);
+    notificationReceiverThread.Start();
 
-	// Initialize the Axis2 system environment
+    // Initialize the Axis2 system environment
     // Delete dependency on Axis2, 20151019, LYH
 /*
 #ifdef _DEBUG
-	status = initAxi2System(AXIS2_LOG_LEVEL_TRACE);
+    status = initAxi2System(AXIS2_LOG_LEVEL_TRACE);
 #else
-	status = initAxi2System(AXIS2_LOG_LEVEL_ERROR);
+    status = initAxi2System(AXIS2_LOG_LEVEL_ERROR);
 #endif
-	if (ER_OK != status) {
-		QCC_LogError(status, ("Error while initializing the Axis system environment"));
-		cleanup();
-		IMSTransport::GetInstance()->StopReadServiceNotification();
-		return status;
-	}
+    if (ER_OK != status) {
+        QCC_LogError(status, ("Error while initializing the Axis system environment"));
+        cleanup();
+        IMSTransport::GetInstance()->StopReadServiceNotification();
+        return status;
+    }
 
-	s_cceBusObject->SetAxis2Env(s_axis2Env);
+    s_cceBusObject->SetAxis2Env(s_axis2Env);
 
-	// Start a new thread to execute the server side environment
-	Thread axis2ServerThread("Axis2ServerThread", Axis2ServerThreadFunc);
-	axis2ServerThread.Start();
+    // Start a new thread to execute the server side environment
+    Thread axis2ServerThread("Axis2ServerThread", Axis2ServerThreadFunc);
+    axis2ServerThread.Start();
 */
     // Initialize the IMSTransport
     if (0 != ITInitialize())
@@ -623,27 +623,27 @@ int main(int argc, char** argv, char** envArg)
     }
 
 
-	while (s_interrupt == false) {
+    while (s_interrupt == false) {
 /*
 #ifdef _WIN32
-		::Sleep(100);
+        ::Sleep(100);
 #else
-		usleep(100 * 1000);
+        usleep(100 * 1000);
 #endif
 */
 
-		qcc::Sleep(100);
-	}
+        qcc::Sleep(100);
+    }
 
     ITShutdown();
 
-	cleanup();
+    cleanup();
     // Delete dependency on Axis2, 20151019, LYH
 /*
-	axis2ServerThread.Join();
+    axis2ServerThread.Join();
 */
-	IMSTransport::GetInstance()->StopReadServiceNotification();
-	notificationReceiverThread.Join();
+    IMSTransport::GetInstance()->StopReadServiceNotification();
+    notificationReceiverThread.Join();
 
-	return 0;
+    return 0;
 }

@@ -20,6 +20,8 @@
 
 #include <qcc/Thread.h>
 
+#include "CloudCommEngine/IMSTransport/IMSTransportExport.h"
+#include "CloudCommEngine/IMSTransport/IMSTransportConstants.h"
 
 #define QCC_MODULE "SIPE2E"
 
@@ -39,8 +41,17 @@ int main(int argc, char** argv, char** envArg)
     Thread cloudCommEngineThread("CloudCommEngineThread", CloudCommEngineThreadFunc);
     cloudCommEngineThread.Start();
 
+    // Wait until the gateway client is successfully registered
+    while (ITGetStatus() == sipe2e::gateway::gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED) {
+        qcc::Sleep(100);
+    }
+
+    // For demo purpose, 
+    ITSubscribe("sip:renwei@nane.cn");
+
     proximalCommEngineThread.Join();
     cloudCommEngineThread.Join();
+
 
     return 0;
 }

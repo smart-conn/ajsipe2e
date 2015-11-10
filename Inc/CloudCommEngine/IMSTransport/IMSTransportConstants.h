@@ -35,6 +35,14 @@ enum RPC_MSG_TYPE_ENUM {
 
 }
 
+/**
+ * The status of IMS Transport Layer, which will be sometimes tested to ensure the gateway network availability
+ */
+enum IMS_TRANSPORT_STATUS_ENUM {
+    IMS_TRANSPORT_STATUS_REGISTERED,
+    IMS_TRANSPORT_STATUS_UNREGISTERED
+};
+
 static const char* DEFAULT_REALM = "nane.cn";
 static const unsigned short DEFAULT_PCSCF_PORT = 4060;
 

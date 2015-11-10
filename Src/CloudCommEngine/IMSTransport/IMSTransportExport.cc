@@ -32,6 +32,11 @@ int SIPE2E_GATEWAY_CALL ITShutdown()
     return IMSTransport::DeleteInstance();
 }
 
+int SIPE2E_GATEWAY_CALL ITGetStatus()
+{
+    return IMSTransport::GetInstance()->GetStatus();
+}
+
 int SIPE2E_GATEWAY_CALL ITSubscribe(const char* remoteAccount)
 {
     return IMSTransport::GetInstance()->Subscribe(remoteAccount);

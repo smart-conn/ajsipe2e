@@ -55,7 +55,7 @@ static IMSTransport* imsIns = NULL;
 
 
 IMSTransport::IMSTransport()
-    : stack(NULL), sipCB(NULL), 
+    : stack(NULL), sipCB(NULL), imsTransportStatus(gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED),
     realm(gwConsts::DEFAULT_REALM), pcscfPort(gwConsts::DEFAULT_PCSCF_PORT),
     regSession(NULL), opSession(NULL), msgSession(NULL),
     regThread(NULL), timerHeartBeat(NULL), regExpires(gwConsts::REGISTRATION_DEFAULT_EXPIRES)
@@ -86,6 +86,7 @@ IMSTransport::~IMSTransport()
             }
         }
         delete regSession;
+        imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
     }
     if (opSession) {
         delete opSession;
@@ -123,6 +124,13 @@ IMSTransport::~IMSTransport()
         sipCB = NULL;
     }
 }
+
+
+gwConsts::IMS_TRANSPORT_STATUS_ENUM IMSTransport::GetStatus()
+{
+    return imsTransportStatus;
+}
+
 
 IMSTransport* IMSTransport::GetInstance()
 {
@@ -377,6 +385,7 @@ IStatus IMSTransport::Subscribe(const char* remoteAccount)
     if (!subSession) {
         subSession = new SubscriptionSession(stack);
         subSession->setToUri(remoteAccount);
+        subSession->addHeader("Event", "presence");
         isNewCreated = true;
     }
     if (subSession->subscribe()) {
@@ -417,6 +426,7 @@ IStatus IMSTransport::Unsubscribe(const char* remoteAccount)
         // If a subsession is not present, should construct a new subsession
         subSession = new SubscriptionSession(stack);
         subSession->setToUri(remoteAccount);
+        subSession->addHeader("Event", "presence");
         subSessions.insert(std::pair<std::string, SubscriptionSession*>((std::string)remoteAccount, subSession));
     }
     if (subSession) {

@@ -35,6 +35,9 @@ extern "C"
         ITShutdown();
 
     SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
+        ITGetStatus();
+
+    SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
         ITSubscribe(const char* remoteAccount);
 
     SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL

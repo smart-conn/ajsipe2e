@@ -116,11 +116,15 @@ int IMSTransportSipCallback::OnRegistrationEvent(const RegistrationEvent* e)
         {
             SipMessage* msg = (SipMessage*)e->getSipMessage();
             short resCode = msg->getResponseCode();
-            if (resCode >= 300) {
+            IMSTransport* ims = IMSTransport::GetInstance();
+            if (resCode >= 300 && resCode < 400) {
                 // error occurs while trying to registering the UAC
                 // retry to register immediately
-                IMSTransport* ims = IMSTransport::GetInstance();
                 ims->regCmdQueue.Enqueue(ims->regExpires);
+            } else if (resCode >= 401) {
+                ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
+            } else {
+                ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_REGISTERED;
             }
         }
         break;
@@ -131,6 +135,7 @@ int IMSTransportSipCallback::OnRegistrationEvent(const RegistrationEvent* e)
             if (resCode < 300) {// unregister successful
                 IMSTransport* ims = IMSTransport::GetInstance();
                 ims->condUnregister.notify_one();
+                ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
             } else { // unregister failed
             }
         }
@@ -172,9 +177,11 @@ int IMSTransportSipCallback::OnOptionsEvent(const OptionsEvent* e)
             if (resCode < 300) {
 //                 boost::lock_guard<boost::mutex> lock(ims->mtxHeartBeat);
                 ims->condHeartBeat.notify_one();
+                ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_REGISTERED;
             } else {
                 // error occurs during HeartBeat, then re-register the UAC
                 ims->regCmdQueue.Enqueue(ims->regExpires);
+                ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
             }
         }
         break;
@@ -389,6 +396,11 @@ int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
                 ims->condSubscribe.notify_one();
             } else {
                 // error occurs while subscribing. Do something?
+                // In the future, the error reason should be retrieved, and if the reason
+                // is because of authorization, should re-register the whole client
+                // TBD
+                ims->regCmdQueue.Enqueue(ims->regExpires);
+                ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
             }
         }
         break;
@@ -401,6 +413,11 @@ int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
                 ims->condUnsubscribe.notify_one();
             } else {
                 // error occurs while subscribing. Do something?
+                // In the future, the error reason should be retrieved, and if the reason
+                // is because of authorization, should re-register the whole client
+                // TBD
+                ims->regCmdQueue.Enqueue(ims->regExpires);
+                ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
             }
         }
         break;
@@ -438,6 +455,11 @@ int IMSTransportSipCallback::OnPublicationEvent(const PublicationEvent* e)
                 ims->condPublish.notify_one();
             } else {
                 // error occurs while publishing service. Do something?
+                // In the future, the error reason should be retrieved, and if the reason
+                // is because of authorization, should re-register the whole client
+                // TBD
+                ims->regCmdQueue.Enqueue(ims->regExpires);
+                ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
             }
         }
         break;
@@ -450,6 +472,11 @@ int IMSTransportSipCallback::OnPublicationEvent(const PublicationEvent* e)
                 ims->condUnpublish.notify_one();
             } else {
                 // error occures while publishing service. Do something?
+                // In the future, the error reason should be retrieved, and if the reason
+                // is because of authorization, should re-register the whole client
+                // TBD
+                ims->regCmdQueue.Enqueue(ims->regExpires);
+                ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
             }
         }
         break;

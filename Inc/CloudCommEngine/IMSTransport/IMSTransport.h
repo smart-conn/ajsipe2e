@@ -47,6 +47,10 @@ class SimpleTimer;
 namespace sipe2e {
 namespace gateway {
 
+namespace gwConsts {
+    enum IMS_TRANSPORT_STATUS_ENUM;
+}
+
 class IMSTransportSipCallback;
 
 struct SyncContext {
@@ -75,6 +79,8 @@ public:
      * @param -    
      */
     IStatus Init();
+
+    gwConsts::IMS_TRANSPORT_STATUS_ENUM GetStatus();
 
     /**
      * 
@@ -147,6 +153,9 @@ private:
     SipStack* stack;
     /* Callback for receiving incoming messages */
     IMSTransportSipCallback* sipCB;
+
+    /* The status of the IMS Transport Layer */
+    gwConsts::IMS_TRANSPORT_STATUS_ENUM imsTransportStatus; 
 
     /* Realm */
     qcc::String realm;

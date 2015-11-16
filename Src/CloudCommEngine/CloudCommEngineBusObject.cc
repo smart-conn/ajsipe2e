@@ -24,6 +24,8 @@
 #include <qcc/XmlElement.h>
 #include <qcc/StringSource.h>
 
+#include <alljoyn/about/AboutService.h>
+
 // Delete dependency on Axis2, 20151019, LYH
 /*
 #include <platforms/axutil_platform_auto_sense.h>
@@ -118,7 +120,7 @@ size_t StringSplit(const String& inStr, char delim, std::vector<String>& arrayOu
 CloudCommEngineBusObject::CloudCommEngineBusObject(qcc::String const& objectPath, uint32_t threadPoolSize)
     : BusObject(objectPath.c_str())/*, axis2Env(NULL)*//* Delete dependency on Axis2, 20151019, LYH */
     , cloudMethodCallThreadPool("CloudMethodCallThreadPool", threadPoolSize)
-
+    , aboutService(NULL)
 {
 
 }
@@ -128,7 +130,7 @@ CloudCommEngineBusObject::~CloudCommEngineBusObject()
 
 }
 
-QStatus CloudCommEngineBusObject::Init(BusAttachment& cloudCommBus)
+QStatus CloudCommEngineBusObject::Init(BusAttachment& cloudCommBus, services::AboutService& cloudCommAboutService)
 {
     QStatus status = ER_OK;
 
@@ -170,11 +172,12 @@ QStatus CloudCommEngineBusObject::Init(BusAttachment& cloudCommBus)
     /* Prepare the About announcement object descriptions */
     vector<String> intfNames;
     intfNames.push_back(SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE);
-    status = services::AboutServiceApi::getInstance()->AddObjectDescription(SIPE2E_CLOUDCOMMENGINE_OBJECTPATH, intfNames);
+    status = cloudCommAboutService.AddObjectDescription(SIPE2E_CLOUDCOMMENGINE_OBJECTPATH, intfNames);
     if (ER_OK != status) {
         Cleanup();
         return status;
     }
+    aboutService = &cloudCommAboutService;
 
     /* Prepare the Axis2 environment */
 /*
@@ -237,7 +240,9 @@ QStatus CloudCommEngineBusObject::Cleanup()
     /* Prepare the About announcement object descriptions */
     vector<String> intfNames;
     intfNames.push_back(SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE);
-    status = services::AboutServiceApi::getInstance()->RemoveObjectDescription(SIPE2E_CLOUDCOMMENGINE_OBJECTPATH, intfNames);
+    if (aboutService) {
+        status = aboutService->RemoveObjectDescription(SIPE2E_CLOUDCOMMENGINE_OBJECTPATH, intfNames);
+    }
 
     return status;
 }

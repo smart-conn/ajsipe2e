@@ -45,6 +45,9 @@ typedef struct axiom_node axiom_node_t;
 
 namespace ajn {
     class MsgArg;
+    namespace services {
+        class AboutService;
+    }
 }
 
 namespace qcc {
@@ -70,7 +73,7 @@ public:
     /**
      * @param proximalCommBus -     the BusAttachment that connects ProximalCommEngine and CloudCommEngine
      */
-    QStatus Init(ajn::BusAttachment& cloudCommBus);
+    QStatus Init(ajn::BusAttachment& cloudCommBus, ajn::services::AboutService& cloudCommAboutService);
 
     void ResetProximalEngineProxyBusObject(qcc::ManagedObj<ajn::ProxyBusObject> obj);
 
@@ -171,6 +174,8 @@ protected:
      *    The CloudCommEngine BusObject, that is for re-marshaling the calls and forward to cloud
      */
     qcc::ManagedObj<ajn::ProxyBusObject> proximalEngineProxyBusObject;
+
+    ajn::services::AboutService* aboutService;
 
     // Delete dependency on Axis2, 20151019, LYH
 /*

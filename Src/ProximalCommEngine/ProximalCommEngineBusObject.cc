@@ -38,7 +38,7 @@
 #include <alljoyn/InterfaceDescription.h>
 
 #include <alljoyn/about/AboutPropertyStoreImpl.h>
-#include <alljoyn/about/AboutServiceApi.h>
+#include <alljoyn/about/AboutService.h>
 #include <alljoyn/about/AnnouncementRegistrar.h>
 
 // #include <SignatureUtils.h>
@@ -246,7 +246,8 @@ void ProximalCommEngineBusObject::LocalServiceAnnounceHandler::Announce(uint16_t
 
 
 ProximalCommEngineBusObject::ProximalCommEngineBusObject(String const& objectPath)
-    : BusObject(objectPath.c_str())
+    : BusObject(objectPath.c_str()),
+    aboutService(NULL)
 {
 }
 
@@ -255,7 +256,7 @@ ProximalCommEngineBusObject::~ProximalCommEngineBusObject()
 {
 }
 
-QStatus ProximalCommEngineBusObject::Init(BusAttachment& proximalCommBus)
+QStatus ProximalCommEngineBusObject::Init(BusAttachment& proximalCommBus, services::AboutService& proximalCommAboutService)
 {
     QStatus status = ER_OK;
 
@@ -327,7 +328,12 @@ QStatus ProximalCommEngineBusObject::Init(BusAttachment& proximalCommBus)
     /* Prepare the About announcement object descriptions */
     vector<String> intfNames;
     intfNames.push_back(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE);
-    status = services::AboutServiceApi::getInstance()->AddObjectDescription(SIPE2E_PROXIMALCOMMENGINE_OBJECTPATH, intfNames);
+    status = proximalCommAboutService.AddObjectDescription(SIPE2E_PROXIMALCOMMENGINE_OBJECTPATH, intfNames);
+    if (ER_OK != status) {
+        Cleanup();
+        return status;
+    }
+    aboutService = &proximalCommAboutService;
 
     return status;
 }
@@ -406,7 +412,9 @@ QStatus ProximalCommEngineBusObject::Cleanup()
     /* Delete object descriptions from AboutService */
     vector<String> intfNames;
     intfNames.push_back(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE);
-    status = services::AboutServiceApi::getInstance()->RemoveObjectDescription(SIPE2E_PROXIMALCOMMENGINE_OBJECTPATH, intfNames);
+    if (aboutService) {
+        status = aboutService->RemoveObjectDescription(SIPE2E_PROXIMALCOMMENGINE_OBJECTPATH, intfNames);
+    }
 
     return status;
 }

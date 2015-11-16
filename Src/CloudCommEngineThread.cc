@@ -55,6 +55,7 @@ namespace ccethread {
 static BusAttachment* s_cceBus = NULL;
 static CommonBusListener* s_cceBusListener = NULL;
 static services::AboutPropertyStoreImpl* s_ccePropertyStoreImpl = NULL;
+static services::AboutService* s_cceAboutService = NULL;
 static CloudCommEngineBusObject* s_cceBusObject = NULL;
 class CloudCommEngineAnnounceHandler;
 static CloudCommEngineAnnounceHandler* s_cceAnnounceHandler = NULL;
@@ -284,7 +285,10 @@ void cleanup()
         s_pceProxyBusObject = tmp;
     }
     /* Destroying the AboutService must be after deletion of s_pceBusObject where AboutService will unregister the s_pceBusObject */
-    services::AboutServiceApi::DestroyInstance();
+    if (s_cceAboutService) {
+        delete s_cceAboutService;
+        s_cceAboutService = NULL;
+    }
     if (s_cceBusListener) {
         delete s_cceBusListener;
         s_cceBusListener = NULL;
@@ -373,9 +377,8 @@ QStatus prepareAboutService(BusAttachment* bus, services::AboutPropertyStoreImpl
         return ER_BAD_ARG_3;
     }
 
-    services::AboutServiceApi::Init(*bus, *propertyStore);
-    services::AboutServiceApi* aboutService = services::AboutServiceApi::getInstance();
-    if (!aboutService) {
+    s_cceAboutService = new services::AboutService(*bus, *s_ccePropertyStoreImpl);
+    if (!s_cceAboutService) {
         return ER_BUS_NOT_ALLOWED;
     }
 
@@ -391,12 +394,13 @@ QStatus prepareAboutService(BusAttachment* bus, services::AboutPropertyStoreImpl
         return status;
     }
 
-    status = aboutService->Register(port);
-    if (status != ER_OK) {
-        return status;
-    }
+    /*status = */s_cceAboutService->Register(port);
+//     if (status != ER_OK) {
+//         return status;
+//     }
 
-    return (bus->RegisterBusObject(*aboutService));
+    bus->RegisterBusObject(*s_cceAboutService);
+    return status;
 }
 
 
@@ -457,7 +461,7 @@ ThreadReturn STDCALL CloudCommEngineThreadFunc(void* arg)
         return (ThreadReturn)status;
     }
     s_cceBusObject = new CloudCommEngineBusObject(gwConsts::SIPE2E_CLOUDCOMMENGINE_OBJECTPATH, gwConsts::CLOUD_METHOD_CALL_THREAD_POOL_SIZE);
-    status = s_cceBusObject->Init(*s_cceBus);
+    status = s_cceBusObject->Init(*s_cceBus, *s_cceAboutService);
     if (ER_OK != status) {
         QCC_LogError(status, ("Error while initializing ProximalCommEngine"));
         cleanup();
@@ -467,7 +471,7 @@ ThreadReturn STDCALL CloudCommEngineThreadFunc(void* arg)
     /* Register AnnounceHandler */
     s_cceAnnounceHandler = new CloudCommEngineAnnounceHandler();
     const char* pceIntf = gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str();
-    status = services::AnnouncementRegistrar::RegisterAnnounceHandler(*s_cceBus, *s_cceAnnounceHandler, &pceIntf, 1);
+    status = services::AnnouncementRegistrar::RegisterAnnounceHandler(*s_cceBus, *s_cceAnnounceHandler, NULL, 0/*&pceIntf, 1*/);
     if (ER_OK != status) {
         QCC_LogError(status, ("Error while registering AnnounceHandler"));
         cleanup();
@@ -475,7 +479,7 @@ ThreadReturn STDCALL CloudCommEngineThreadFunc(void* arg)
     }
 
 
-    status = services::AboutServiceApi::getInstance()->Announce();
+    status = s_cceAboutService->Announce();
     if (ER_OK != status) {
         QCC_LogError(status, ("Error while announcing"));
         cleanup();

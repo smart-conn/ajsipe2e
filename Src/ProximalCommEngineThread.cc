@@ -44,6 +44,7 @@ namespace pcethread {
 static BusAttachment* s_pceBus = NULL;
 static CommonBusListener* s_pceBusListener = NULL;
 static services::AboutPropertyStoreImpl* s_pcePropertyStoreImpl = NULL;
+static services::AboutService* s_pceAboutService = NULL;
 static ProximalCommEngineBusObject* s_pceBusObject = NULL;
 class ProximalCommEngineAnnounceHandler;
 static ProximalCommEngineAnnounceHandler* s_pceAnnounceHandler = NULL;
@@ -134,7 +135,10 @@ void cleanup()
         s_pceBusObject = NULL;
     }
     /* Destroying the AboutService must be after deletion of s_pceBusObject where AboutService will unregister the s_pceBusObject */
-    services::AboutServiceApi::DestroyInstance();
+    if (s_pceAboutService) {
+        delete s_pceAboutService;
+        s_pceAboutService = NULL;
+    }
     if (s_pceBusListener) {
         delete s_pceBusListener;
         s_pceBusListener = NULL;
@@ -222,9 +226,8 @@ QStatus prepareAboutService(BusAttachment* bus, services::AboutPropertyStoreImpl
         return ER_BAD_ARG_3;
     }
 
-    services::AboutServiceApi::Init(*bus, *propertyStore);
-    services::AboutServiceApi* aboutService = services::AboutServiceApi::getInstance();
-    if (!aboutService) {
+    s_pceAboutService = new services::AboutService(*bus, *propertyStore);
+    if (!s_pceAboutService) {
         return ER_BUS_NOT_ALLOWED;
     }
 
@@ -240,12 +243,13 @@ QStatus prepareAboutService(BusAttachment* bus, services::AboutPropertyStoreImpl
         return status;
     }
 
-    status = aboutService->Register(port);
-    if (status != ER_OK) {
-        return status;
-    }
+    /*status = */s_pceAboutService->Register(port);
+//     if (status != ER_OK) {
+//         return status;
+//     }
 
-    return (bus->RegisterBusObject(*aboutService));
+    bus->RegisterBusObject(*s_pceAboutService);
+    return status;
 }
 
 } // namespace pcethread
@@ -305,7 +309,7 @@ ThreadReturn STDCALL ProximalCommEngineThreadFunc(void* arg)
         return (ThreadReturn)status;
     }
     s_pceBusObject = new ProximalCommEngineBusObject(gwConsts::SIPE2E_PROXIMALCOMMENGINE_OBJECTPATH);
-    status = s_pceBusObject->Init(*s_pceBus);
+    status = s_pceBusObject->Init(*s_pceBus, *s_pceAboutService);
     if (ER_OK != status) {
         QCC_LogError(status, ("Error while preparing proxy context for ProximalCommEngine"));
         cleanup();
@@ -315,7 +319,7 @@ ThreadReturn STDCALL ProximalCommEngineThreadFunc(void* arg)
     /* Register AnnounceHandler */
     s_pceAnnounceHandler = new ProximalCommEngineAnnounceHandler();
     const char* cceIntf = gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str();
-    status = services::AnnouncementRegistrar::RegisterAnnounceHandler(*s_pceBus, *s_pceAnnounceHandler, &cceIntf, 1);
+    status = services::AnnouncementRegistrar::RegisterAnnounceHandler(*s_pceBus, *s_pceAnnounceHandler, NULL, 0/*&cceIntf, 1*/);
     if (ER_OK != status) {
         QCC_LogError(status, ("Error while registering AnnounceHandler"));
         cleanup();
@@ -323,7 +327,7 @@ ThreadReturn STDCALL ProximalCommEngineThreadFunc(void* arg)
     }
 
 
-    status = services::AboutServiceApi::getInstance()->Announce();
+    status = s_pceAboutService->Announce();
     if (ER_OK != status) {
         QCC_LogError(status, ("Error while announcing"));
         cleanup();

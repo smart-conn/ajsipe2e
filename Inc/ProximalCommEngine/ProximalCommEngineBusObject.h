@@ -39,6 +39,12 @@
 
 #include "ProximalCommEngine/CloudServiceAgentBusObject.h"
 
+namespace ajn {
+    namespace services {
+        class AboutService;
+    }
+}
+
 
 namespace sipe2e {
 namespace gateway {
@@ -126,7 +132,7 @@ public:
      * Besides that, prepare the object description for About announcements
      * @param proximalCommBus -     the BusAttachment that connects ProximalCommEngine and CloudCommEngine
      */
-    QStatus Init(ajn::BusAttachment& proximalCommBus);
+    QStatus Init(ajn::BusAttachment& proximalCommBus, ajn::services::AboutService& proximalCommAboutService);
 
     void ResetCloudEngineProxyBusObject(qcc::ManagedObj<ajn::ProxyBusObject> obj);
 
@@ -221,6 +227,8 @@ protected:
      *    The CloudCommEngine BusObject, that is for re-marshaling the calls and forward to cloud
      */
     qcc::ManagedObj<ajn::ProxyBusObject> cloudEngineProxyBusObject;
+
+    ajn::services::AboutService* aboutService;
 };
 
 } /* namespace gateway */

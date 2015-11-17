@@ -44,6 +44,7 @@ using namespace gateway;
 static BusAttachment* s_bus = NULL;
 static CommonBusListener* s_busListener = NULL;
 static services::AboutPropertyStoreImpl* s_propertyStoreImpl = NULL;
+static services::AboutService* s_pceAboutService = NULL;
 static ProximalCommEngineBusObject* s_pceBusObject = NULL;
 class ProximalCommEngineAnnounceHandler;
 static ProximalCommEngineAnnounceHandler* s_announceHandler = NULL;
@@ -134,7 +135,10 @@ void cleanup()
         s_pceBusObject = NULL;
     }
     /* Destroying the AboutService must be after deletion of s_pceBusObject where AboutService will unregister the s_pceBusObject */
-    services::AboutServiceApi::DestroyInstance();
+    if (s_pceAboutService) {
+        delete s_pceAboutService;
+        s_pceAboutService = NULL;
+    }
     if (s_busListener) {
         delete s_busListener;
         s_busListener = NULL;
@@ -222,9 +226,8 @@ QStatus prepareAboutService(BusAttachment* bus, services::AboutPropertyStoreImpl
         return ER_BAD_ARG_3;
     }
 
-    services::AboutServiceApi::Init(*bus, *propertyStore);
-    services::AboutServiceApi* aboutService = services::AboutServiceApi::getInstance();
-    if (!aboutService) {
+    s_pceAboutService = new services::AboutService(*bus, *propertyStore);
+    if (!s_pceAboutService) {
         return ER_BUS_NOT_ALLOWED;
     }
 
@@ -240,12 +243,12 @@ QStatus prepareAboutService(BusAttachment* bus, services::AboutPropertyStoreImpl
         return status;
     }
 
-    status = aboutService->Register(port);
+    status = s_pceAboutService->Register(port);
     if (status != ER_OK) {
         return status;
     }
 
-    return (bus->RegisterBusObject(*aboutService));
+    return (bus->RegisterBusObject(*s_pceAboutService));
 }
 
 
@@ -327,7 +330,7 @@ int main(int argc, char** argv, char** envArg)
         return status;
     }
     s_pceBusObject = new ProximalCommEngineBusObject(gwConsts::SIPE2E_PROXIMALCOMMENGINE_OBJECTPATH);
-    status = s_pceBusObject->Init(*s_bus);
+    status = s_pceBusObject->Init(*s_bus, *s_pceAboutService);
     if (ER_OK != status) {
         QCC_LogError(status, ("Error while preparing proxy context for ProximalCommEngine"));
         cleanup();
@@ -345,7 +348,7 @@ int main(int argc, char** argv, char** envArg)
     }
 
 
-    status = services::AboutServiceApi::getInstance()->Announce();
+    status = s_pceAboutService->Announce();
     if (ER_OK != status) {
         QCC_LogError(status, ("Error while announcing"));
         cleanup();

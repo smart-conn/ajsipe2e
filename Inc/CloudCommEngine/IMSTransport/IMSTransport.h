@@ -142,11 +142,23 @@ private:
     static void RegThreadFunc();
 
     /**
+     * Subscription routine, periodically checking the map 'subscriptions'.
+     * If there is some account that is not subscribed, then just send subscription
+     * @param - parameters for subscription routine
+     */
+    static void SubFunc(void* para);
+
+    /**
      * Heartbeat routine, generally sending OPTIONS periodically
      * @param para - parameters for heartbeat routine
      */
     static void HeartBeatFunc(void* para);
 
+    /**
+     * TBD
+     * @param - 
+     */
+    IStatus doSubscribe(const char* remoteAccount);
 
 private:
     /* The stack that supports the whole IMS communications */
@@ -180,6 +192,9 @@ private:
     /* */
     std::map<std::string, SubscriptionSession*> subSessions;
 
+    /* All subscribed account information, if the subscription is successful, the value is true */
+    std::map<std::string, bool> subscriptions;
+
     /* The condition for waiting for the response of subscribing/unsubscribing */
     boost::mutex mtxSubscribe, mtxUnsubscribe;
     boost::condition_variable condSubscribe, condUnsubscribe;
@@ -206,6 +221,11 @@ private:
      * The integer passed in means the registration expiration seconds.
      */
     SyncQueue<unsigned int> regCmdQueue;
+
+    /**
+     * TBD
+     */
+    SimpleTimer* timerSub;
 
     /* */
     SimpleTimer* timerHeartBeat;

@@ -414,6 +414,7 @@ QStatus ProximalCommEngineBusObject::Cleanup()
     intfNames.push_back(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE);
     if (aboutService) {
         status = aboutService->RemoveObjectDescription(SIPE2E_PROXIMALCOMMENGINE_OBJECTPATH, intfNames);
+        aboutService = NULL;
     }
 
     return status;

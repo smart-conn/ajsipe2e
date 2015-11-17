@@ -392,6 +392,7 @@ int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
             IMSTransport* ims = IMSTransport::GetInstance();
             const SipMessage* msg = e->getSipMessage();
             short resCode = ((SipMessage*)msg)->getResponseCode();
+            char* peer = ((SipMessage*)msg)->getSipHeaderValue("f");
             if (resCode < 300) {
                 ims->condSubscribe.notify_one();
             } else {
@@ -399,8 +400,30 @@ int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
                 // In the future, the error reason should be retrieved, and if the reason
                 // is because of authorization, should re-register the whole client
                 // TBD
-                ims->regCmdQueue.Enqueue(ims->regExpires);
-                ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
+                switch (resCode) {
+                case 401: // authorization problem ?
+                    {
+                        ims->regCmdQueue.Enqueue(ims->regExpires);
+                        ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
+                    }
+                    break;
+                case 403: // forbidden ?
+                    break;
+                case 404: // user not found or not registered, should re-try
+                    {
+                        if (peer) {
+                            std::map<std::string, bool>::iterator itrSub = ims->subscriptions.find((std::string)peer);
+                            if (itrSub != ims->subscriptions.end()) {
+                                itrSub->second = false;
+                            } else {
+                                ims->subscriptions.insert(std::pair<std::string, bool>((std::string)peer, false));
+                            }
+                        }
+                    }
+                    break;
+                default:
+                    break;
+                }
             }
         }
         break;
@@ -409,6 +432,7 @@ int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
             IMSTransport* ims = IMSTransport::GetInstance();
             const SipMessage* msg = e->getSipMessage();
             short resCode = ((SipMessage*)msg)->getResponseCode();
+            char* peer = ((SipMessage*)msg)->getSipHeaderValue("f");
             if (resCode < 300) {
                 ims->condUnsubscribe.notify_one();
             } else {
@@ -416,8 +440,30 @@ int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
                 // In the future, the error reason should be retrieved, and if the reason
                 // is because of authorization, should re-register the whole client
                 // TBD
-                ims->regCmdQueue.Enqueue(ims->regExpires);
-                ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
+                switch (resCode) {
+                case 401: // authorization problem ?
+                    {
+                        ims->regCmdQueue.Enqueue(ims->regExpires);
+                        ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
+                    }
+                    break;
+                case 403: // forbidden ?
+                    break;
+                case 404: // user not found or not registered, should re-try
+                    {
+                        if (peer) {
+                            std::map<std::string, bool>::iterator itrSub = ims->subscriptions.find((std::string)peer);
+                            if (itrSub != ims->subscriptions.end()) {
+                                itrSub->second = true;
+                            } else {
+                                ims->subscriptions.insert(std::pair<std::string, bool>((std::string)peer, true));
+                            }
+                        }
+                    }
+                    break;
+                default:
+                    break;
+                }
             }
         }
         break;

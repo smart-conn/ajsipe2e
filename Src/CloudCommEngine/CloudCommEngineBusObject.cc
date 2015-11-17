@@ -242,6 +242,7 @@ QStatus CloudCommEngineBusObject::Cleanup()
     intfNames.push_back(SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE);
     if (aboutService) {
         status = aboutService->RemoveObjectDescription(SIPE2E_CLOUDCOMMENGINE_OBJECTPATH, intfNames);
+        aboutService = NULL;
     }
 
     return status;

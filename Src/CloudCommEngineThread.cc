@@ -377,7 +377,7 @@ QStatus prepareAboutService(BusAttachment* bus, services::AboutPropertyStoreImpl
         return ER_BAD_ARG_3;
     }
 
-    s_cceAboutService = new services::AboutService(*bus, *s_ccePropertyStoreImpl);
+    s_cceAboutService = new services::AboutService(*bus, *propertyStore);
     if (!s_cceAboutService) {
         return ER_BUS_NOT_ALLOWED;
     }

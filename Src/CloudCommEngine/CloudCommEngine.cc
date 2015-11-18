@@ -74,6 +74,7 @@ using namespace gateway;
 static BusAttachment* s_bus = NULL;
 static CommonBusListener* s_busListener = NULL;
 static services::AboutPropertyStoreImpl* s_propertyStoreImpl = NULL;
+static services::AboutService* s_cceAboutService = NULL;
 static CloudCommEngineBusObject* s_cceBusObject = NULL;
 class CloudCommEngineAnnounceHandler;
 static CloudCommEngineAnnounceHandler* s_announceHandler = NULL;
@@ -392,7 +393,10 @@ void cleanup()
         s_pceProxyBusObject = tmp;
     }
     /* Destroying the AboutService must be after deletion of s_pceBusObject where AboutService will unregister the s_pceBusObject */
-    services::AboutServiceApi::DestroyInstance();
+    if (s_cceAboutService) {
+        delete s_cceAboutService;
+        s_cceAboutService = NULL;
+    }
     if (s_busListener) {
         delete s_busListener;
         s_busListener = NULL;
@@ -485,9 +489,8 @@ QStatus prepareAboutService(BusAttachment* bus, services::AboutPropertyStoreImpl
         return ER_BAD_ARG_3;
     }
 
-    services::AboutServiceApi::Init(*bus, *propertyStore);
-    services::AboutServiceApi* aboutService = services::AboutServiceApi::getInstance();
-    if (!aboutService) {
+    s_cceAboutService = new services::AboutService(*bus, *propertyStore);
+    if (!s_cceAboutService) {
         return ER_BUS_NOT_ALLOWED;
     }
 
@@ -503,12 +506,12 @@ QStatus prepareAboutService(BusAttachment* bus, services::AboutPropertyStoreImpl
         return status;
     }
 
-    status = aboutService->Register(port);
+    status = s_cceAboutService->Register(port);
     if (status != ER_OK) {
         return status;
     }
 
-    return (bus->RegisterBusObject(*aboutService));
+    return (bus->RegisterBusObject(*s_cceAboutService));
 }
 
 
@@ -566,7 +569,7 @@ int main(int argc, char** argv, char** envArg)
         return status;
     }
     s_cceBusObject = new CloudCommEngineBusObject(gwConsts::SIPE2E_CLOUDCOMMENGINE_OBJECTPATH, gwConsts::CLOUD_METHOD_CALL_THREAD_POOL_SIZE);
-    status = s_cceBusObject->Init(*s_bus);
+    status = s_cceBusObject->Init(*s_bus, *s_cceAboutService);
     if (ER_OK != status) {
         QCC_LogError(status, ("Error while initializing ProximalCommEngine"));
         cleanup();
@@ -584,7 +587,7 @@ int main(int argc, char** argv, char** envArg)
     }
 
 
-    status = services::AboutServiceApi::getInstance()->Announce();
+    status = s_cceAboutService->Announce();
     if (ER_OK != status) {
         QCC_LogError(status, ("Error while announcing"));
         cleanup();

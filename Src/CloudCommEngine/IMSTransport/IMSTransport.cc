@@ -155,7 +155,7 @@ IStatus IMSTransport::Init()
     // including IMPI, IMPU, password, pCSCF settings
 
     /**
-     *    <Transport>
+     *  <Transport>
      *    <IMS>
      *      <Realm>nane.cn</Realm>
      *      <IMPI>sip:lyh@nane.cn</IMPI>
@@ -320,7 +320,7 @@ IStatus IMSTransport::Init()
             }
         }
     }
-
+    
     sipCB = new IMSTransportSipCallback();
     stack = new SipStack(sipCB, realm.c_str(), impi.c_str(), impu.c_str());
     if (password.size() > 0) {
@@ -363,6 +363,12 @@ IStatus IMSTransport::Init()
     regCmdQueue.Enqueue(regExpires); // registration command
 
     /**
+     * TBD
+     */
+    timerSub = new SimpleTimer();
+    timerSub->Start(gwConsts::SIPSTACK_HEARTBEAT_INTERVAL, IMSTransport::SubFunc, this);
+
+    /**
      * Start a timer for heartbeat OPTIONS
      */
     timerHeartBeat = new SimpleTimer();
@@ -372,6 +378,20 @@ IStatus IMSTransport::Init()
 }
 
 IStatus IMSTransport::Subscribe(const char* remoteAccount)
+{
+    if (!remoteAccount) {
+        return IC_BAD_ARG_1;
+    }
+    std::map<std::string, bool>::iterator itrSub = subscriptions.find((std::string)remoteAccount);
+    if (itrSub != subscriptions.end()) {
+        itrSub->second = false;
+    } else {
+        subscriptions.insert(std::pair<std::string, bool>((std::string)remoteAccount, false));
+    }
+    return IC_OK;
+}
+
+IStatus IMSTransport::doSubscribe(const char* remoteAccount)
 {
     if (!remoteAccount) {
         return IC_BAD_ARG_1;
@@ -391,6 +411,11 @@ IStatus IMSTransport::Subscribe(const char* remoteAccount)
     if (subSession->subscribe()) {
         // wait for the response of the SUBSCRIBE
         boost::unique_lock<boost::mutex> lock(imsIns->mtxSubscribe);
+
+        // Note: here we set a timer to wait for the response. This mechanism is not correct in case of
+        // multi-thread environment where multi users call Subscribe at the same time.
+        // Should be changed using the session Call-ID to differentiate multiple subscribe sessions
+        // TBD
         if (condSubscribe.timed_wait(lock, boost::posix_time::milliseconds(gwConsts::SUBSCRIPTION_DEFAULT_TIMEOUT))) {
             // if subscribing is correctly responded
             if (isNewCreated) {
@@ -432,6 +457,11 @@ IStatus IMSTransport::Unsubscribe(const char* remoteAccount)
     if (subSession) {
         if (subSession->unSubscribe()) {
             boost::unique_lock<boost::mutex> lock(imsIns->mtxUnsubscribe);
+
+            // Note: here we set a timer to wait for the response. This mechanism is not correct in case of
+            // multi-thread environment where multi users call Subscribe at the same time.
+            // Should be changed using the session Call-ID to differentiate multiple subscribe sessions
+            // TBD
             if (condUnsubscribe.timed_wait(lock, boost::posix_time::milliseconds(gwConsts::SUBSCRIPTION_DEFAULT_TIMEOUT))) {
                 delete subSession;
                 subSessions.erase(itrSubsession);
@@ -744,6 +774,20 @@ void IMSTransport::RegThreadFunc()
         if (!ims->regSession->register_()) {
             // log
         }
+    }
+}
+
+void IMSTransport::SubFunc(void* para)
+{
+    std::string subAccount;
+    IMSTransport* ims = (IMSTransport*)para;
+    
+    std::map<std::string, bool>::iterator itrSub = ims->subscriptions.begin();
+    while (itrSub != ims->subscriptions.begin()) {
+        if (!itrSub->second) {
+            ims->doSubscribe(itrSub->first.c_str());
+        }
+        itrSub++;
     }
 }
 

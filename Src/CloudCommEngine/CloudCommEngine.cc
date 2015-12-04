@@ -156,9 +156,129 @@ private:
     AnnounceHandlerCallback m_Callback;
 };
 
+ThreadReturn STDCALL MessageReceiverThreadFunc(void* arg)
+{
+    while (1) {
+        char* msgBuf = NULL;
+        if (IMSTransport::GetInstance()->ReadCloudMessage(&msgBuf) && msgBuf) {
+            QStatus status = ER_OK;
+
+            char* peer = msgBuf;
+            char* tmp = strchr(msgBuf, '^');
+            if (!tmp) {
+                // the format is not correct
+                QCC_LogError(ER_FAIL, ("The notification message format is not correct"));
+                ITReleaseBuf(msgBuf);
+                continue;
+            }
+            *tmp = '\0';
+            char* callId = tmp + 1;
+            tmp = strchr(callId, '^');
+            if (!tmp) {
+                // the format is not correct
+                QCC_LogError(ER_FAIL, ("The notification message format is not correct"));
+                ITSendCloudMessage(0, peer, callId, NULL, "", NULL);
+                ITReleaseBuf(msgBuf);
+                continue;
+            }
+            *tmp = '\0';
+            char* addr = tmp + 1;
+            tmp = strchr(addr, '^');
+            if (!tmp) {
+                // the format is not correct
+                QCC_LogError(ER_FAIL, ("The message format is not correct"));
+                ITSendCloudMessage(0, peer, callId, addr, "", NULL);
+                ITReleaseBuf(msgBuf);
+                continue;
+            }
+            char* msgContent = tmp + 1;
+
+            MsgArg args[3];
+            args[0].Set("s", addr);
+            args[2].Set("s", callId);
+
+            StringSource source(msgContent);
+            XmlParseContext pc(source);
+            status = XmlElement::Parse(pc);
+            if (ER_OK != status) {
+                QCC_LogError(status, ("Error parsing the message xml content: %s", msgContent));
+                ITSendCloudMessage(0, peer, callId, addr, "", NULL);
+                ITReleaseBuf(msgBuf);
+                continue;
+            }
+            const XmlElement* rootEle = pc.GetRoot();
+            if (!rootEle) {
+                // the format is not correct
+                QCC_LogError(ER_FAIL, ("The message format is not correct"));
+                ITSendCloudMessage(0, peer, callId, addr, "", NULL);
+                ITReleaseBuf(msgBuf);
+                continue;
+            }
+
+            std::vector<MsgArg> argsVec;
+            argsVec.clear();
+            const std::vector<XmlElement*>& argsEles = rootEle->GetChildren();
+            for (size_t argIndx = 0; argIndx < argsEles.size(); argIndx++) {
+                MsgArg arg;
+                arg.Clear();
+                XmlElement* argEle = argsEles[argIndx];
+                if (argEle) {
+                    if (ER_OK == XmlToArg(argEle, arg)) {
+                        argsVec.push_back(arg);
+                    }
+                }
+            }
+            MsgArg* argsArray = new MsgArg[argsVec.size()];
+            for (size_t argIndx = 0; argIndx < argsVec.size(); argIndx++) {
+                argsArray[argIndx] = argsVec[argIndx];
+            }
+            args[1].Set("av", argsVec.size(), argsArray);
+
+            // Calling the local method
+            ajn::Message replyMsg(*s_bus);
+            // TBD: Change it to MethodCallAsync or start a new task thread to execute the MethodCall
+            status = s_pceProxyBusObject->MethodCall(sipe2e::gateway::gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
+                sipe2e::gateway::gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_LOCALMETHODCALL.c_str(),
+                args, 3, replyMsg);
+
+            if (ER_OK != status) {
+                QCC_LogError(status, ("Error subscribing cloud service to local"));
+                ITSendCloudMessage(0, peer, callId, addr, "", NULL);
+                ITReleaseBuf(msgBuf);
+                continue;
+            }
+            
+            const MsgArg* replyArgsArray = replyMsg->GetArg(0);
+            if (replyArgsArray) {
+                MsgArg* outArgsVariant = NULL;
+                size_t numOutArgs = 0;
+                replyArgsArray->Get("av", &numOutArgs, &outArgsVariant);
+                String argsStr = String("<args>\n");
+                for (size_t outArgIndx = 0; outArgIndx < numOutArgs; outArgIndx++) {
+                    argsStr += ArgToXml(outArgsVariant[outArgIndx].v_variant.val, 0);
+                }
+                argsStr += String("</args>");
+
+                int itStatus = ITSendCloudMessage(0, peer, callId, addr, argsStr.c_str(), NULL);
+                if (0 != itStatus) {
+                    QCC_LogError(ER_FAIL, ("Failed to send message to cloud"));
+                }
+            } else {
+                // The reply message is not correct
+                // Reply with empty message
+                ITSendCloudMessage(0, peer, callId, addr, "", NULL);
+            }
+            ITReleaseBuf(msgBuf);
+        }
+    }
+    return NULL;
+}
+
+
 ThreadReturn STDCALL NotificationReceiverThreadFunc(void* arg)
 {
-    while (boost::shared_array<char> notification = IMSTransport::GetInstance()->ReadServiceNotification()) {
+    while (1) {
+        boost::shared_array<char> notification = IMSTransport::GetInstance()->ReadServiceNotification();
         QStatus status = ER_OK;
         char* notificationBuffer = notification.get();
         char* tmp = strchr(notificationBuffer, '^');
@@ -593,6 +713,9 @@ int main(int argc, char** argv, char** envArg)
         cleanup();
         return status;
     }
+
+    // Start a new thread to handle incoming service call
+    Thread messageReceiverThread("MessageReceiverThread", MessageReceiverThreadFunc);
 
     // Start a new thread to handle incoming service notification (from previous offline subscription)
     Thread notificationReceiverThread("NotificationReceiverThread", NotificationReceiverThreadFunc);

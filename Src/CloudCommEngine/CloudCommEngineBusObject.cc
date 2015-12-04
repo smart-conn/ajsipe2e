@@ -20,9 +20,10 @@
 #include <qcc/String.h>
 #include <qcc/Debug.h>
 #include <qcc/Thread.h>
-#include <qcc/StringUtil.h>
 #include <qcc/XmlElement.h>
 #include <qcc/StringSource.h>
+
+#include "Common/CommonUtils.h"
 
 #include <alljoyn/about/AboutService.h>
 
@@ -62,6 +63,7 @@ typedef struct _CloudMethodCallThreadArg
 //     size_t inArgsNum, outArgsNum;
 //     char* inArgsSignature, * outArgsSignature;
     MsgArg* inArgs;
+    unsigned int inArgsNum;
     String calledAddr;
     AsyncReplyContext* replyContext;
     CloudCommEngineBusObject* cceBusObject;
@@ -70,7 +72,7 @@ typedef struct _CloudMethodCallThreadArg
         // Delete the dependency on ServiceInfo, 20151021, LYH
 //         inArgsNum(0), outArgsNum(0), 
 //         inArgsSignature(NULL), outArgsSignature(NULL), 
-        inArgs(NULL),
+        inArgs(NULL), inArgsNum(0),
         replyContext(NULL), cceBusObject(NULL)
     {
 
@@ -95,26 +97,6 @@ typedef struct _CloudMethodCallThreadArg
         }
     }
 } CloudMethodCallThreadArg;
-
-size_t StringSplit(const String& inStr, char delim, std::vector<String>& arrayOut)
-{
-    size_t arraySize = 0;
-    size_t space = 0, startPos = 0;
-    size_t arrayStrSize = inStr.size();
-    space = inStr.find_first_of(delim, startPos);
-    while (space != String::npos) {
-        arraySize++;
-        const String& currArgStr = inStr.substr(startPos, space - startPos);
-        arrayOut.push_back(currArgStr);
-        startPos = space + 1;
-        if (startPos >= arrayStrSize) {
-            break;
-        }
-        space = inStr.find_first_of(delim, startPos);
-    }
-
-    return arraySize;
-}
 
 
 CloudCommEngineBusObject::CloudCommEngineBusObject(qcc::String const& objectPath, uint32_t threadPoolSize)
@@ -378,6 +360,7 @@ void CloudCommEngineBusObject::AJCloudMethodCall(const InterfaceDescription::Mem
     argList->outArgsSignature = outArgsSignature;
 */
     argList->inArgs = inArgs;
+    argList->inArgsNum = numInArgs;
     argList->calledAddr = addr;
     argList->cceBusObject = this;
     argList->replyContext = new AsyncReplyContext(msg, member);
@@ -538,449 +521,6 @@ void CloudCommEngineBusObject::AJUnsubscribe(const ajn::InterfaceDescription::Me
     }
 }
 
-qcc::String CloudCommEngineBusObject::ArgToXml(const ajn::MsgArg* args, size_t indent)
-{
-    qcc::String str;
-    if (!args) {
-        return str;
-    }
-#define CHK_STR(s)  (((s) == NULL) ? "" : (s))
-    qcc::String in = qcc::String(indent, ' ');
-
-    str = in;
-
-    indent += 2;
-
-    switch (args->typeId) {
-    case ALLJOYN_ARRAY:
-        str += "<array type_sig=\"" + qcc::String(CHK_STR(args->v_array.GetElemSig())) + "\">";
-        for (uint32_t i = 0; i < args->v_array.GetNumElements(); i++) {
-            str += "\n" + ArgToXml(&args->v_array.GetElements()[i], indent)/*args->v_array.elements[i].ToString(indent)*/;
-        }
-        str += "\n" + in + "</array>";
-        break;
-
-    case ALLJOYN_BOOLEAN:
-        str += args->v_bool ? "<boolean>1</boolean>" : "<boolean>0</boolean>";
-        break;
-
-    case ALLJOYN_DOUBLE:
-        // To be bit-exact stringify double as a 64 bit hex value
-        str += "<double>" "0x" + U64ToString(args->v_uint64, 16) + "</double>";
-        break;
-
-    case ALLJOYN_DICT_ENTRY:
-        str += "<dict_entry>\n" +
-            ArgToXml(args->v_dictEntry.key, indent) + "\n" + 
-//             args->v_dictEntry.key->ToString(indent) + "\n" +
-//             args->v_dictEntry.val->ToString(indent) + "\n" +
-            ArgToXml(args->v_dictEntry.val, indent) + "\n" + 
-            in + "</dict_entry>";
-        break;
-
-    case ALLJOYN_SIGNATURE:
-        str += "<signature>" + qcc::String(CHK_STR(args->v_signature.sig)) + "</signature>";
-        break;
-
-    case ALLJOYN_INT32:
-        str += "<int32>" + I32ToString(args->v_int32) + "</int32>";
-        break;
-
-    case ALLJOYN_INT16:
-        str += "<int16>" + I32ToString(args->v_int16) + "</int16>";
-        break;
-
-    case ALLJOYN_OBJECT_PATH:
-        str += "<object_path>" + qcc::String(CHK_STR(args->v_objPath.str)) + "</object_path>";
-        break;
-
-    case ALLJOYN_UINT16:
-        str += "<uint16>" + U32ToString(args->v_uint16) + "</uint16>";
-        break;
-
-    case ALLJOYN_STRUCT:
-        str += "<struct>\n";
-        for (uint32_t i = 0; i < args->v_struct.numMembers; i++) {
-            str += ArgToXml(&args->v_struct.members[i], indent)/*args->v_struct.members[i].ToString(indent)*/ + "\n";
-        }
-        str += in + "</struct>";
-        break;
-
-    case ALLJOYN_STRING:
-        str += "<string>" + qcc::String(CHK_STR(args->v_string.str)) + "</string>";
-        break;
-
-    case ALLJOYN_UINT64:
-        str += "<uint64>" + U64ToString(args->v_uint64) + "</uint64>";
-        break;
-
-    case ALLJOYN_UINT32:
-        str += "<uint32>" + U32ToString(args->v_uint32) + "</uint32>";
-        break;
-
-    case ALLJOYN_VARIANT:
-        str += "<variant signature=\"" + args->v_variant.val->Signature() + "\">\n";
-        str += ArgToXml(args->v_variant.val, indent)/*args->v_variant.val->ToString(indent)*/;
-        str += "\n" + in + "</variant>";
-        break;
-
-    case ALLJOYN_INT64:
-        str += "<int64>" + I64ToString(args->v_int64) + "</int64>";
-        break;
-
-    case ALLJOYN_BYTE:
-        str += "<byte>" + U32ToString(args->v_byte) + "</byte>";
-        break;
-
-    case ALLJOYN_HANDLE:
-        str += "<handle>" + qcc::BytesToHexString((const uint8_t*)&args->v_handle.fd, sizeof(args->v_handle.fd)) + "</handle>";
-        break;
-
-    case ALLJOYN_BOOLEAN_ARRAY:
-        str += "<array type=\"boolean\">";
-        if (args->v_scalarArray.numElements) {
-            str += "\n" + qcc::String(indent, ' ');
-            for (uint32_t i = 0; i < args->v_scalarArray.numElements; i++) {
-                str += args->v_scalarArray.v_bool[i] ? "1 " : "0 ";
-            }
-        }
-        str += "\n" + in + "</array>";
-        break;
-
-    case ALLJOYN_DOUBLE_ARRAY:
-        str += "<array type=\"double\">";
-        if (args->v_scalarArray.numElements) {
-            str += "\n" + qcc::String(indent, ' ');
-            for (uint32_t i = 0; i < args->v_scalarArray.numElements; i++) {
-                str += U64ToString((uint64_t)args->v_scalarArray.v_double[i]) + " ";
-            }
-        }
-        str += "\n" + in + "</array>";
-        break;
-
-    case ALLJOYN_INT32_ARRAY:
-        str += "<array type=\"int32\">";
-        if (args->v_scalarArray.numElements) {
-            str += "\n" + qcc::String(indent, ' ');
-            for (uint32_t i = 0; i < args->v_scalarArray.numElements; i++) {
-                str += I32ToString(args->v_scalarArray.v_int32[i]) + " ";
-            }
-        }
-        str += "\n" + in + "</array>";
-        break;
-
-    case ALLJOYN_INT16_ARRAY:
-        str += "<array type=\"int16\">";
-        if (args->v_scalarArray.numElements) {
-            str += "\n" + qcc::String(indent, ' ');
-            for (uint32_t i = 0; i < args->v_scalarArray.numElements; i++) {
-                str += I32ToString(args->v_scalarArray.v_int16[i]) + " ";
-            }
-        }
-        str += "\n" + in + "</array>";
-        break;
-
-    case ALLJOYN_UINT16_ARRAY:
-        str += "<array type=\"uint16\">";
-        if (args->v_scalarArray.numElements) {
-            str += "\n" + qcc::String(indent, ' ');
-            for (uint32_t i = 0; i < args->v_scalarArray.numElements; i++) {
-                str += U32ToString(args->v_scalarArray.v_uint16[i]) + " ";
-            }
-        }
-        str += "\n" + in + "</array>";
-        break;
-
-    case ALLJOYN_UINT64_ARRAY:
-        str += "<array type=\"uint64\">";
-        if (args->v_scalarArray.numElements) {
-            str += "\n" + qcc::String(indent, ' ');
-            for (uint32_t i = 0; i < args->v_scalarArray.numElements; i++) {
-                str += U64ToString(args->v_scalarArray.v_uint64[i]) + " ";
-            }
-        }
-        str += "\n" + in + "</array>";
-        break;
-
-    case ALLJOYN_UINT32_ARRAY:
-        str += "<array type=\"uint32\">";
-        if (args->v_scalarArray.numElements) {
-            str += "\n" + qcc::String(indent, ' ');
-            for (uint32_t i = 0; i < args->v_scalarArray.numElements; i++) {
-                str += U32ToString(args->v_scalarArray.v_uint32[i]) + " ";
-            }
-        }
-        str += "\n" + in + "</array>";
-        break;
-
-    case ALLJOYN_INT64_ARRAY:
-        str += "<array type=\"int64\">";
-        if (args->v_scalarArray.numElements) {
-            str += "\n" + qcc::String(indent, ' ');
-            for (uint32_t i = 0; i < args->v_scalarArray.numElements; i++) {
-                str += I64ToString(args->v_scalarArray.v_int64[i]) + " ";
-            }
-        }
-        str += "\n" + in + "</array>";
-        break;
-
-    case ALLJOYN_BYTE_ARRAY:
-        str += "<array type=\"byte\">";
-        if (args->v_scalarArray.numElements) {
-            str += "\n" + qcc::String(indent, ' ');
-            for (uint32_t i = 0; i < args->v_scalarArray.numElements; i++) {
-                str += U32ToString(args->v_scalarArray.v_byte[i]) + " ";
-            }
-        }
-        str += "\n" + in + "</array>";
-        break;
-
-    default:
-        str += "<invalid/>";
-        break;
-    }
-    str += "\n";
-#undef CHK_STR
-    return str;
-}
-
-QStatus CloudCommEngineBusObject::XmlToArg(const XmlElement* argEle, MsgArg& arg)
-{
-    QStatus status = ER_OK;
-
-    const String& argType = argEle->GetName();
-    // here calculate a simple hash value to use switch
-    int32_t hashVal = 0;
-    for (size_t i = 0; i < argType.size(); i++) {
-        hashVal += argType[i];
-    }
-
-    switch (hashVal) {
-    case 543: // array
-        {
-            const String& arrayType = argEle->GetAttribute("type");
-            int32_t hashValArray = 0;
-            for (size_t j = 0; j < arrayType.size(); j++) {
-                hashValArray += arrayType[j];
-            }
-
-#define ParseArrayArg(StringToFunc, arraySig, argType) \
-    const String& argStr = argEle->GetContent(); \
-    std::vector<String> arrayTmp; \
-    size_t arraySize = StringSplit(argStr, ' ', arrayTmp); \
-    if (arraySize > 0) { \
-        argType* argArray = new argType[arraySize]; \
-        for (size_t indx = 0; indx < arraySize; indx++) { \
-            argArray[indx] = StringToFunc(arrayTmp[indx]); \
-        } \
-        status = arg.Set(arraySig, arraySize, argArray); \
-    }
-
-            switch (hashValArray) {
-            case 736: // boolean array
-                {
-                    const String& booleanStr = argEle->GetContent();
-                    size_t booleanArraySize = booleanStr.size();
-                    if (booleanArraySize > 0) {
-                        bool* booleanArray = new bool[booleanArraySize];
-                        for (size_t boolIndx = 0; boolIndx < booleanArraySize; boolIndx++) {
-                            booleanArray[boolIndx] = (booleanStr[boolIndx] == '1' ? true : false);
-                        }
-                        status = arg.Set("ab", booleanArraySize, booleanArray);
-                    } else {}
-                }
-                break;
-            case 635: // double array
-                {
-                    ParseArrayArg(StringToDouble, "ad", double);
-                }
-                break;
-            case 432: // int32 array
-                {
-                    ParseArrayArg(StringToI32, "ai", int32_t);
-                }
-                break;
-            case 434: // int16 array
-                {
-                    ParseArrayArg(StringToI32, "an", int16_t);
-                }
-                break;
-            case 551: // uint16 array
-                {
-                    ParseArrayArg(StringToU32, "aq", uint16_t);
-                }
-                break;
-            case 554: // uint64 array
-                {
-                    ParseArrayArg(StringToU64, "at", uint64_t);
-                }
-                break;
-            case 549: // uint32 array
-                {
-                    ParseArrayArg(StringToU32, "au", uint32_t);
-                }
-                break;
-            case 437: // int64 array
-                {
-                    ParseArrayArg(StringToI64, "ax", int64_t);
-                }
-                break;
-            case 436: // byte array
-                {
-                    ParseArrayArg(StringToU32, "ay", uint8_t);
-                }
-                break;
-            default: // array of variant
-                {
-                    // fill the array of variant by traversing its children
-                    const std::vector<XmlElement*>& argsVec = argEle->GetChildren();
-                    size_t argsNum = argsVec.size();
-                    if (argsNum > 0) {
-                        MsgArg* argsArray = new MsgArg[argsNum];
-                        for (size_t argIndx = 0; argIndx < argsNum; argIndx++) {
-                            const XmlElement* currArgEle = argsVec[argIndx];
-                            status = XmlToArg(currArgEle, argsArray[argIndx]);
-                            if (ER_OK != status) {
-                                return status;
-                            }
-                        }
-                        status = arg.Set("av", argsNum, argsArray);
-                    } else {}
-                }
-                break;
-            }
-        }
-        break;
-    case 736: // boolean
-        {
-            const String& argStr = argEle->GetContent();
-            status = arg.Set("b", (argStr[0] == '1' ? true : false));
-        }
-        break;
-    case 635: // double
-        {
-            const String& argStr = argEle->GetContent();
-            status = arg.Set("d", StringToDouble(argStr));
-        }
-        break;
-    case 1077: // dict_entry
-        {
-            const std::vector<XmlElement*>& entryEleVec = argEle->GetChildren();
-            if (entryEleVec.size() != 2) {// should be one key and one value
-                break;
-            }
-            arg.v_dictEntry.key = new MsgArg();
-            arg.v_dictEntry.val = new MsgArg();
-            status = XmlToArg(entryEleVec[0], *arg.v_dictEntry.key);
-            if (ER_OK != status) {
-                return status;
-            }
-            status = XmlToArg(entryEleVec[1], *arg.v_dictEntry.val);
-        }
-        break;
-    case 978: // signature
-        {
-            const String& argStr = argEle->GetContent();
-            status = arg.Set("g", strdup(argStr.c_str()));
-        }
-        break;
-    case 432: // int32
-        {
-            const String& argStr = argEle->GetContent();
-            status = arg.Set("i", StringToI32(argStr));
-        }
-        break;
-    case 434: // int16
-        {
-            const String& argStr = argEle->GetContent();
-            status = arg.Set("n", StringToI32(argStr));
-        }
-        break;
-    case 1155: // object_path
-        {
-            const String& argStr = argEle->GetContent();
-            status = arg.Set("o", strdup(argStr.c_str()));
-        }
-        break;
-    case 551: // uint16
-        {
-            const String& argStr = argEle->GetContent();
-            status = arg.Set("q", StringToU32(argStr));
-        }
-        break;
-    case 677: // struct
-        {
-            // fill the array of variant by traversing its children
-            const std::vector<XmlElement*>& argsVec = argEle->GetChildren();
-            size_t argsNum = argsVec.size();
-            if (argsNum > 0) {
-                MsgArg* argsArray = new MsgArg[argsNum];
-                for (size_t argIndx = 0; argIndx < argsNum; argIndx++) {
-                    const XmlElement* currArgEle = argsVec[argIndx];
-                    status = XmlToArg(currArgEle, argsArray[argIndx]);
-                    if (ER_OK != status) {
-                        return status;
-                    }
-                }
-                arg.typeId = ALLJOYN_STRUCT;
-                arg.v_struct.numMembers = argsNum;
-                arg.v_struct.members = argsArray;
-            } else {}
-        }
-        break;
-    case 663: // string
-        {
-            const String& argStr = argEle->GetContent();
-            status = arg.Set("s", strdup(argStr.c_str()));
-        }
-        break;
-    case 554: // uint64
-        {
-            const String& argStr = argEle->GetContent();
-            status = arg.Set("t", StringToU64(argStr));
-        }
-        break;
-    case 549: // uint32
-        {
-            const String& argStr = argEle->GetContent();
-            status = arg.Set("u", StringToU32(argStr));
-        }
-        break;
-    case 757: // variant
-        {
-            // fill the array of variant by traversing its children
-            const std::vector<XmlElement*>& argsVec = argEle->GetChildren();
-            arg.typeId = ALLJOYN_VARIANT;
-            arg.v_variant.val = new MsgArg();
-            status = XmlToArg(argsVec[0], *arg.v_variant.val);
-        }
-        break;
-    case 437: // int64
-        {
-            const String& argStr = argEle->GetContent();
-            status = arg.Set("x", StringToI64(argStr));
-        }
-        break;
-    case 436: // byte
-        {
-            const String& argStr = argEle->GetContent();
-            status = arg.Set("y", StringToU32(argStr));
-        }
-        break;
-    case 620: // handle
-        {
-            const String& argStr = argEle->GetContent();
-            SocketFd fd;
-            HexStringToBytes(argStr, (uint8_t*)&fd, 32);
-            status = arg.Set("h", fd);
-        }
-        break;
-    default:
-        break;
-    }
-    return status;
-}
-
 
 CloudCommEngineBusObject::CloudMethodCallRunable::CloudMethodCallRunable(CloudMethodCallThreadArg* _arg)
     : arg(_arg)
@@ -1021,8 +561,12 @@ void CloudCommEngineBusObject::CloudMethodCallRunable::Run()
     String peer = calledAddr.substr(0, slash);
     String addr = calledAddr.substr(slash + 1, calledAddr.size() - slash - 1);
     String argsStr;
-    if (arg->inArgs) {
-        argsStr = String("<args>\n") + ArgToXml(arg->inArgs, 0) + String("</args>");
+    if (arg->inArgs && arg->inArgsNum > 0) {
+        argsStr = String("<args>\n");
+        for (unsigned int i = 0; i < arg->inArgsNum; i++) {
+            argsStr += ArgToXml(&arg->inArgs[i], 0);
+        }
+        argsStr +=  String("</args>");
     }
     char* resBuf = NULL;
     int itStatus = ITSendCloudMessage(1, peer.c_str(), NULL, addr.c_str(), argsStr.c_str(), &resBuf);
@@ -1053,8 +597,35 @@ void CloudCommEngineBusObject::CloudMethodCallRunable::Run()
             ITReleaseBuf(resBuf);
             return;
         }
+        const XmlElement* rootEle = pc.GetRoot();
+        if (!rootEle) {
+            QCC_LogError(ER_FAIL, ("The message format is not correct"));
+            status = cceBusObject->MethodReply(replyContext->msg, ER_FAIL);
+            if (ER_OK != status) {
+                QCC_LogError(status, ("Method Reply did not complete successfully"));
+            }
+            ITReleaseBuf(resBuf);
+            return;
+        }
 
-        status = cceBusObject->XmlToArg(pc.GetRoot(), cloudReplyArgs[0]);
+        std::vector<MsgArg> argsVec;
+        argsVec.clear();
+        const std::vector<XmlElement*>& argsEles = rootEle->GetChildren();
+        for (size_t argIndx = 0; argIndx < argsEles.size(); argIndx++) {
+            MsgArg arg;
+            XmlElement* argEle = argsEles[argIndx];
+            if (argEle) {
+                if (ER_OK == XmlToArg(argEle, arg)) {
+                    argsVec.push_back(arg);
+                }
+            }
+        }
+        MsgArg* argsArray = new MsgArg[argsVec.size()];
+        for (size_t argIndx = 0; argIndx < argsVec.size(); argIndx++) {
+            argsArray[argIndx] = argsVec[argIndx];
+        }
+        cloudReplyArgs[0].Set("av", argsVec.size(), argsArray);
+
         // The cloud session ID is not returned. To be continued.
         cloudReplyArgs[1].Set("s", "");
 

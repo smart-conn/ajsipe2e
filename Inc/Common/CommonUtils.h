@@ -20,6 +20,7 @@
 #include <qcc/platform.h>
 
 #include <qcc/String.h>
+#include <qcc/XmlElement.h>
 
 #include <alljoyn/ProxyBusObject.h>
 
@@ -58,6 +59,19 @@ QStatus FillPropertyStore(ajn::services::AboutPropertyStoreImpl* propertyStore, 
  * @param strPath - the relative path
  */
 QStatus NormalizePath(qcc::String& strPath);
+
+/**
+ * Returns an XML string representation of this type, just exactly as ToString() does
+ * @param args - input arguments
+ * @param indent - number of spaces to indent the generated xml
+ */
+qcc::String ArgToXml(const ajn::MsgArg* args, size_t indent);
+/**
+ * Parse the xml string and return the result arguments array
+ * @param argsStr - the result of ArgsToXml() of response argument array
+ * @param args - parsed result arguments with signature 'av'
+ */
+QStatus XmlToArg(const qcc::XmlElement* argEle, ajn::MsgArg& arg);
 
 } // namespace gateway
 

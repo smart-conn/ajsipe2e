@@ -145,18 +145,6 @@ private:
     // Delete dependency on Axis2, 20151019, LYH
 //     void ParseOmProgramatically(axiom_node_t* node, size_t argsNum, char* argsSignature, ajn::MsgArg* args);
 
-    /**
-     * Returns an XML string representation of this type, just exactly as ToString() does
-     * @param args - input arguments
-     * @param indent - number of spaces to indent the generated xml
-     */
-    static qcc::String ArgToXml(const ajn::MsgArg* args, size_t indent);
-    /**
-     * Parse the xml string and return the result arguments array
-     * @param argsStr - the result of ArgsToXml() of response argument array
-     * @param args - parsed result arguments with signature 'av'
-     */
-    static QStatus XmlToArg(const qcc::XmlElement* argEle, ajn::MsgArg& arg);
 protected:
 
     class CloudMethodCallRunable : public qcc::Runnable {

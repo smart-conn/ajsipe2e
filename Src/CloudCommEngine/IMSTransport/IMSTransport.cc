@@ -51,7 +51,7 @@ using namespace qcc;
 namespace sipe2e {
 namespace gateway {
 
-static IMSTransport* imsIns = NULL;
+static IMSTransport* imsIns = new IMSTransport();
 
 
 IMSTransport::IMSTransport()
@@ -81,20 +81,7 @@ IMSTransport::~IMSTransport()
     }
     incomingNotifyQueue.StopQueue();
     incomingMsgQueue.StopQueue();
-    if (regSession) {
-        for (int i = 0; i < 5; i++) { // try to unregister for 5 times with 5 seconds timeout every time
-            regSession->unRegister();
-            {
-                boost::unique_lock<boost::mutex> lock(mtxUnregister);
-                if (condUnregister.timed_wait(lock, boost::posix_time::milliseconds(gwConsts::REGISTRATION_DEFAULT_TIMEOUT))) {
-                    break; // unregister successful
-                }
-            }
-        }
-        delete regSession;
-        regSession = NULL;
-        imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
-    }
+
     if (opSession) {
         delete opSession;
         opSession = NULL;
@@ -109,7 +96,7 @@ IMSTransport::~IMSTransport()
         if (subSession) {
             // do not need to unsubscribe to the remote account, since the service may be still on
             // but the subscriber may be (temporarily) down.
-//             subSession->unSubscribe();
+            //             subSession->unSubscribe();
             delete subSession;
             subSession = NULL;
         }
@@ -119,10 +106,30 @@ IMSTransport::~IMSTransport()
         PublicationSession* pubSession = itrPubsession->second;
         if (pubSession) {
             pubSession->unPublish();
+            {
+                boost::unique_lock<boost::mutex> lock(mtxUnpublish);
+                if (condUnpublish.timed_wait(lock, boost::posix_time::milliseconds(gwConsts::PUBLICATION_DEFAULT_TIMEOUT))) {
+                    break; // unregister successful
+                }
+            }
             delete pubSession;
             pubSession = NULL;
         }
         itrPubsession++;
+    }
+    if (regSession) {
+        for (int i = 0; i < 5; i++) { // try to unregister for 5 times with 5 seconds timeout every time
+            regSession->unRegister();
+            {
+                boost::unique_lock<boost::mutex> lock(mtxUnregister);
+                if (condUnregister.timed_wait(lock, boost::posix_time::milliseconds(gwConsts::REGISTRATION_DEFAULT_TIMEOUT))) {
+                    break; // unregister successful
+                }
+            }
+        }
+        delete regSession;
+        regSession = NULL;
+        imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
     }
     if (stack) {
         stack->deInitialize();
@@ -367,8 +374,8 @@ IStatus IMSTransport::Init()
      *   > the heartbeat (OPTIONS) is not responded correctly (timed out or with 401 Unauthorized)
      *   > some normal service, like MESSAGE, is responded with 401 Unauthorized
      */
-    regThread = new boost::thread(IMSTransport::RegThreadFunc);
     regCmdQueue.Enqueue(regExpires); // registration command
+    regThread = new boost::thread(IMSTransport::RegThreadFunc);
 
     /**
      * TBD
@@ -525,14 +532,41 @@ IStatus IMSTransport::PublishService(const char* introspectionXml)
     if (rootNode == NULL) {
         return IC_INTROSPECTION_XML_PARSING;
     }
-    const String& servicePath = rootNode->GetAttribute("name");
+//     const String& busName = rootNode->GetAttribute("name");
+    const XmlElement* aboutEle = rootNode->GetChild((String)"about");
+    if (!aboutEle) {
+        return IC_INTROSPECTION_XML_PARSING;
+    }
+    const std::vector<XmlElement*>& aboutDatas = aboutEle->GetChildren();
+    if (aboutDatas.empty()) {
+        return IC_INTROSPECTION_XML_PARSING;
+    }
+    String appId, deviceId;
+    bool appIdFound = false, deviceIdFound = false;
+    for (size_t aboutDataIndx = 0; aboutDataIndx < aboutDatas.size(); aboutDataIndx++) {
+        const XmlElement* aboutData = aboutDatas[aboutDataIndx];
+        if (aboutData) {
+            const String& key = aboutData->GetAttribute("key");
+            if (key == "AppId") {
+                appId = aboutData->GetAttribute("value");
+                appIdFound = true;
+            } else if (key == "DeviceId") {
+                deviceId = aboutData->GetAttribute("value");
+                deviceIdFound = true;
+            }
+        }
+        if (appIdFound && deviceIdFound) {
+            break;
+        }
+    }
+    String serviceId = appId + "@" + deviceId;
 
     ims::service _service;
     _service.SetIntrospectionXml((String)introspectionXml);
     ims::status _status;
     _status.SetBasicStatus(ims::basic::open);
     ims::tuple _tuple;
-    _tuple.SetId(servicePath);
+    _tuple.SetId(serviceId);
     _tuple.SetStatus(_status);
     _tuple.SetService(_service);
     ims::presence _presence;
@@ -555,7 +589,7 @@ IStatus IMSTransport::PublishService(const char* introspectionXml)
 
     PublicationSession* pubSession = NULL;
     bool isNewCreated = false;
-    std::map<std::string, PublicationSession*>::iterator itrPubsession = pubSessions.find((std::string)(const char*)servicePath.c_str());
+    std::map<std::string, PublicationSession*>::iterator itrPubsession = pubSessions.find((std::string)(const char*)serviceId.c_str());
     if (itrPubsession != pubSessions.end()) {
         pubSession = itrPubsession->second;
     }
@@ -572,7 +606,7 @@ IStatus IMSTransport::PublishService(const char* introspectionXml)
         if (condPublish.timed_wait(lock, boost::posix_time::milliseconds(gwConsts::PUBLICATION_DEFAULT_TIMEOUT))) {
             // if publishing is correctly responded
             if (isNewCreated) {
-                pubSessions.insert(std::pair<std::string, PublicationSession*>((std::string)(const char*)servicePath.c_str(), pubSession));
+                pubSessions.insert(std::pair<std::string, PublicationSession*>((std::string)(const char*)serviceId.c_str(), pubSession));
             }
         } else {
             // if publishing is not correctly responded or timed out (no response)

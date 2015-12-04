@@ -123,8 +123,22 @@ int IMSTransportSipCallback::OnRegistrationEvent(const RegistrationEvent* e)
                 ims->regCmdQueue.Enqueue(ims->regExpires);
             } else if (resCode >= 401) {
                 ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
-            } else {
+            } else if (resCode >= 200) {
+                // REGISTER successfully
                 ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_REGISTERED;
+                // The 'Service-Route' header will be like:
+                //     Service-Route: <sip:orig@scscf.nane.cn:6060;lr>
+                char* serviceRoute = msg->getSipHeaderValue("Service-Route");
+                if (serviceRoute) {
+                    char* atSymbol = strchr(serviceRoute, '@');
+                    if (atSymbol) {
+                        ims->scscf = atSymbol + 1;
+                        size_t colon = ims->scscf.find_first_of(':');
+                        if (colon != qcc::String::npos) {
+                            ims->scscf.erase(colon, ims->scscf.size() - colon);
+                        }
+                    }
+                }
             }
         }
         break;
@@ -132,7 +146,7 @@ int IMSTransportSipCallback::OnRegistrationEvent(const RegistrationEvent* e)
         {
             SipMessage* msg = (SipMessage*)e->getSipMessage();
             short resCode = msg->getResponseCode();
-            if (resCode < 300) {// unregister successful
+            if (resCode >= 200 && resCode < 300) {// unregister successful
                 IMSTransport* ims = IMSTransport::GetInstance();
                 ims->condUnregister.notify_one();
                 ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
@@ -174,11 +188,11 @@ int IMSTransportSipCallback::OnOptionsEvent(const OptionsEvent* e)
             IMSTransport* ims = IMSTransport::GetInstance();
             const SipMessage* msg = e->getSipMessage();
             short resCode = ((SipMessage*)msg)->getResponseCode();
-            if (resCode < 300) {
+            if (resCode >= 200 && resCode < 300) {
 //                 boost::lock_guard<boost::mutex> lock(ims->mtxHeartBeat);
                 ims->condHeartBeat.notify_one();
                 ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_REGISTERED;
-            } else {
+            } else if (resCode >= 400) {
                 // error occurs during HeartBeat, then re-register the UAC
                 ims->regCmdQueue.Enqueue(ims->regExpires);
                 ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
@@ -393,9 +407,9 @@ int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
             const SipMessage* msg = e->getSipMessage();
             short resCode = ((SipMessage*)msg)->getResponseCode();
             char* peer = ((SipMessage*)msg)->getSipHeaderValue("f");
-            if (resCode < 300) {
+            if (resCode >= 200 && resCode < 300) {
                 ims->condSubscribe.notify_one();
-            } else {
+            } else if (resCode >= 400) {
                 // error occurs while subscribing. Do something?
                 // In the future, the error reason should be retrieved, and if the reason
                 // is because of authorization, should re-register the whole client
@@ -433,9 +447,9 @@ int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
             const SipMessage* msg = e->getSipMessage();
             short resCode = ((SipMessage*)msg)->getResponseCode();
             char* peer = ((SipMessage*)msg)->getSipHeaderValue("f");
-            if (resCode < 300) {
+            if (resCode >= 200 && resCode < 300) {
                 ims->condUnsubscribe.notify_one();
-            } else {
+            } else if (resCode >= 400) {
                 // error occurs while subscribing. Do something?
                 // In the future, the error reason should be retrieved, and if the reason
                 // is because of authorization, should re-register the whole client
@@ -497,9 +511,9 @@ int IMSTransportSipCallback::OnPublicationEvent(const PublicationEvent* e)
             IMSTransport* ims = IMSTransport::GetInstance();
             const SipMessage* msg = e->getSipMessage();
             short resCode = ((SipMessage*)msg)->getResponseCode();
-            if (resCode < 300) {
+            if (resCode >= 200 && resCode < 300) {
                 ims->condPublish.notify_one();
-            } else {
+            } else if (resCode >= 400) {
                 // error occurs while publishing service. Do something?
                 // In the future, the error reason should be retrieved, and if the reason
                 // is because of authorization, should re-register the whole client
@@ -514,9 +528,9 @@ int IMSTransportSipCallback::OnPublicationEvent(const PublicationEvent* e)
             IMSTransport* ims = IMSTransport::GetInstance();
             const SipMessage* msg = e->getSipMessage();
             short resCode = ((SipMessage*)msg)->getResponseCode();
-            if (resCode < 300) {
+            if (resCode >= 200 && resCode < 300) {
                 ims->condUnpublish.notify_one();
-            } else {
+            } else if (resCode >= 400) {
                 // error occures while publishing service. Do something?
                 // In the future, the error reason should be retrieved, and if the reason
                 // is because of authorization, should re-register the whole client

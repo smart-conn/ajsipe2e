@@ -72,6 +72,12 @@ IMSTransport::~IMSTransport()
     if (timerHeartBeat) {
         timerHeartBeat->Stop();
         delete timerHeartBeat;
+        timerHeartBeat = NULL;
+    }
+    if (timerSub) {
+        timerSub->Stop();
+        delete timerSub;
+        timerSub = NULL;
     }
     incomingNotifyQueue.StopQueue();
     incomingMsgQueue.StopQueue();
@@ -86,13 +92,16 @@ IMSTransport::~IMSTransport()
             }
         }
         delete regSession;
+        regSession = NULL;
         imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
     }
     if (opSession) {
         delete opSession;
+        opSession = NULL;
     }
     if (msgSession) {
         delete msgSession;
+        msgSession = NULL;
     }
     std::map<std::string, SubscriptionSession*>::iterator itrSubsession = subSessions.begin();
     while (itrSubsession != subSessions.end()) {
@@ -102,6 +111,7 @@ IMSTransport::~IMSTransport()
             // but the subscriber may be (temporarily) down.
 //             subSession->unSubscribe();
             delete subSession;
+            subSession = NULL;
         }
     }
     std::map<std::string, PublicationSession*>::iterator itrPubsession = pubSessions.begin();
@@ -110,6 +120,7 @@ IMSTransport::~IMSTransport()
         if (pubSession) {
             pubSession->unPublish();
             delete pubSession;
+            pubSession = NULL;
         }
         itrPubsession++;
     }
@@ -344,10 +355,7 @@ IStatus IMSTransport::Init()
     regSession->addCaps("language", "\"zh,en\"");
 //     regSession->setExpires(expires);
 
-    opSession = new OptionsSession(stack);
-    String pcscfUri("sip:");
-    pcscfUri += pcscf;
-    opSession->setToUri(pcscfUri.c_str());
+//     opSession = new OptionsSession(stack);
 
     msgSession = new MessagingSession(stack);
     
@@ -798,15 +806,21 @@ void IMSTransport::HeartBeatFunc(void* para)
     if (!ims) {
         return;
     }
-    if (restartOpSession) {
+    // If the scscf is not present which means REGISTER is not successfull, should retry to REGISTER
+    if (ims->scscf.empty()) {
+        ims->regCmdQueue.Enqueue(ims->regExpires);
+        restartOpSession = true;
+        return;
+    }
+    if (restartOpSession || !ims->opSession) {
         if (ims->opSession) {
             delete ims->opSession;
             ims->opSession = NULL;
         }
         ims->opSession = new OptionsSession(ims->stack);
-        String pcscfUri("sip:");
-        pcscfUri += ims->pcscf;
-        ims->opSession->setToUri(pcscfUri.c_str());
+        String scscfUri("sip:");
+        scscfUri += ims->scscf;
+        ims->opSession->setToUri(scscfUri.c_str());
         restartOpSession = false;
     }
     if (!ims->opSession->send()) {

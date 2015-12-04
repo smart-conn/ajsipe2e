@@ -72,7 +72,7 @@ void service::Serialize(String& serviceXml)
         return;
     }
 
-    if (rootNode->GetName() != "service") {
+    if (rootNode->GetName() == "service") {
         rootNode->AddAttribute((String)"xmlns", (String)gwConsts::DEFAULT_NAMESPACE_URI);
         serviceXml = rootNode->Generate();
     } else {

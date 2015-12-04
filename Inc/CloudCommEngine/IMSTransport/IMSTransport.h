@@ -183,6 +183,14 @@ private:
     unsigned short pcscfPort;
     qcc::String pcscfTransport, pcscfIpversion;
 
+    /**
+     * sCSCF, which is not pre-set, but only extracted from the response of REGISTER
+     * Only after sCSCF was not empty, meaning REGISTER is successfull at least once,
+     * can OPTIONS be able to be sent to sCSCF for HeartBeat purpose
+     */
+    qcc::String scscf;
+
+
     /* */
     RegistrationSession* regSession;
     /* */

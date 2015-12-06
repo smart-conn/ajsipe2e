@@ -560,14 +560,14 @@ void CloudCommEngineBusObject::CloudMethodCallRunable::Run()
     }
     String peer = calledAddr.substr(0, slash);
     String addr = calledAddr.substr(slash + 1, calledAddr.size() - slash - 1);
-    String argsStr;
+    String argsStr = String("<args>\n");
     if (arg->inArgs && arg->inArgsNum > 0) {
-        argsStr = String("<args>\n");
         for (unsigned int i = 0; i < arg->inArgsNum; i++) {
             argsStr += ArgToXml(&arg->inArgs[i], 0);
         }
-        argsStr +=  String("</args>");
     }
+    argsStr +=  String("</args>");
+
     char* resBuf = NULL;
     int itStatus = ITSendCloudMessage(1, peer.c_str(), NULL, addr.c_str(), argsStr.c_str(), &resBuf);
     if (0 != itStatus) {

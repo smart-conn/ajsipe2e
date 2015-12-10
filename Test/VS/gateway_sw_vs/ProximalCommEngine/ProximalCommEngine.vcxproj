@@ -88,6 +88,7 @@
     <ClInclude Include="..\..\..\..\Inc\Common\GuidUtil.h" />
     <ClInclude Include="..\..\..\..\Inc\ProximalCommEngine\CloudServiceAgentBusObject.h" />
     <ClInclude Include="..\..\..\..\Inc\ProximalCommEngine\ProximalCommEngineBusObject.h" />
+    <ClInclude Include="..\..\..\..\Inc\ProximalCommEngine\ProximalProxyBusObjectWrapper.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\Src\Common\CommonBusListener.cc" />
@@ -96,6 +97,7 @@
     <ClCompile Include="..\..\..\..\Src\ProximalCommEngine\CloudServiceAgentBusObject.cc" />
     <ClCompile Include="..\..\..\..\Src\ProximalCommEngine\ProximalCommEngine.cc" />
     <ClCompile Include="..\..\..\..\Src\ProximalCommEngine\ProximalCommEngineBusObject.cc" />
+    <ClCompile Include="..\..\..\..\Src\ProximalCommEngine\ProximalProxyBusObjectWrapper.cc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

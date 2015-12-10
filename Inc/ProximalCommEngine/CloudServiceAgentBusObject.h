@@ -26,6 +26,7 @@
 #include <alljoyn/ProxyBusObject.h>
 #include <alljoyn/InterfaceDescription.h>
 #include <alljoyn/ProxyBusObject.h>
+#include <alljoyn/SessionListener.h>
 
 #include "Common/GatewayConstants.h"
 #include "Common/GatewayStd.h"
@@ -86,6 +87,32 @@ public:
         * @param topLevel - true indicates that this object is top level parent
         */
     QStatus Cleanup(bool topLevel = true);
+
+    static void LocalSessionJoined(void* arg, ajn::SessionPort sessionPort, ajn::SessionId id, const char* joiner);
+    static void LocalSessionLost(void* arg, ajn::SessionId sessionId, ajn::SessionListener::SessionLostReason reason);
+
+protected:
+    /**
+     * Override the virtual method from its parent ProxyBusObject to handle all signals' Get
+     * 
+     * @param ifcName    Identifies the interface that the property is defined on
+     * @param propName  Identifies the the property to get
+     * @param[out] val        Returns the property value. The type of this value is the actual value
+     *                   type.
+     * @return #ER_BUS_NO_SUCH_PROPERTY (Should be changed by user implementation of BusObject)
+     */
+    virtual QStatus Get(const char* ifcName, const char* propName, ajn::MsgArg& val);
+    /**
+     * Override the virtual method from its parent ProxyBusObject to handle all signals' Set
+     * 
+     * @param ifcName    Identifies the interface that the property is defined on
+     * @param propName  Identifies the the property to set
+     * @param val        The property value to set. The type of this value is the actual value
+     *                   type.
+     * @return #ER_BUS_NO_SUCH_PROPERTY (Should be changed by user implementation of BusObject)
+     */
+    virtual QStatus Set(const char* ifcName, const char* propName, ajn::MsgArg& val);
+
 private:
     /**
         * @internal

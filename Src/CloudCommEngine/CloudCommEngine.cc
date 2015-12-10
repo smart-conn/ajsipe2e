@@ -19,9 +19,11 @@
 #include <qcc/platform.h>
 
 #include "CloudCommEngine/IMSTransport/IMSTransport.h"
+#include "CloudCommEngine/IMSTransport/IMSTransportConstants.h"
 #include <qcc/Thread.h>
 #include <qcc/StringSource.h>
 #include <qcc/XmlElement.h>
+#include <qcc/StringUtil.h>
 
 #include <alljoyn/about/AboutPropertyStoreImpl.h>
 #include <alljoyn/about/AnnouncementRegistrar.h>
@@ -96,7 +98,7 @@ static void SigIntHandler(int sig)
     s_interrupt = true;
 }
 
-static void daemonDisconnectCB()
+static void daemonDisconnectCB(void* arg)
 {
     s_restart = true;
 }
@@ -162,9 +164,10 @@ ThreadReturn STDCALL MessageReceiverThreadFunc(void* arg)
         char* msgBuf = NULL;
         if (IMSTransport::GetInstance()->ReadCloudMessage(&msgBuf) && msgBuf) {
             QStatus status = ER_OK;
-
-            char* peer = msgBuf;
-            char* tmp = strchr(msgBuf, '^');
+            // There are maybe two types of incoming MESSAGE, one of which is Method Calls and the other Signal
+            // Here we'll have to deal with these two situations
+            char* reqType = msgBuf;
+            char* tmp = strchr(reqType, '^');
             if (!tmp) {
                 // the format is not correct
                 QCC_LogError(ER_FAIL, ("The notification message format is not correct"));
@@ -172,103 +175,227 @@ ThreadReturn STDCALL MessageReceiverThreadFunc(void* arg)
                 continue;
             }
             *tmp = '\0';
-            char* callId = tmp + 1;
-            tmp = strchr(callId, '^');
+            int reqTypeN = atoi(reqType);
+
+            char* peer = tmp + 1;;
+            tmp = strchr(peer, '^');
             if (!tmp) {
                 // the format is not correct
                 QCC_LogError(ER_FAIL, ("The notification message format is not correct"));
-                ITSendCloudMessage(0, peer, callId, NULL, "", NULL);
                 ITReleaseBuf(msgBuf);
                 continue;
             }
             *tmp = '\0';
-            char* addr = tmp + 1;
-            tmp = strchr(addr, '^');
-            if (!tmp) {
-                // the format is not correct
-                QCC_LogError(ER_FAIL, ("The message format is not correct"));
-                ITSendCloudMessage(0, peer, callId, addr, "", NULL);
-                ITReleaseBuf(msgBuf);
-                continue;
-            }
-            char* msgContent = tmp + 1;
 
-            MsgArg args[3];
-            args[0].Set("s", addr);
-            args[2].Set("s", callId);
+            if (reqTypeN <= gwConsts::customheader::RPC_MSG_TYPE_SIGNAL_RET) {
+                // If the request is METHOD CALL or SIGNAL CALL
+                char* callId = tmp + 1;
+                tmp = strchr(callId, '^');
+                if (!tmp) {
+                    // the format is not correct
+                    QCC_LogError(ER_FAIL, ("The message format is not correct"));
+                    ITSendCloudMessage(reqTypeN+1, peer, callId, NULL, "", NULL);
+                    ITReleaseBuf(msgBuf);
+                    continue;
+                }
+                *tmp = '\0';
+                char* addr = tmp + 1;
+                tmp = strchr(addr, '^');
+                if (!tmp) {
+                    // the format is not correct
+                    QCC_LogError(ER_FAIL, ("The message format is not correct"));
+                    ITSendCloudMessage(reqTypeN+1, peer, callId, addr, "", NULL);
+                    ITReleaseBuf(msgBuf);
+                    continue;
+                }
+                char* msgContent = tmp + 1;
 
-            StringSource source(msgContent);
-            XmlParseContext pc(source);
-            status = XmlElement::Parse(pc);
-            if (ER_OK != status) {
-                QCC_LogError(status, ("Error parsing the message xml content: %s", msgContent));
-                ITSendCloudMessage(0, peer, callId, addr, "", NULL);
-                ITReleaseBuf(msgBuf);
-                continue;
-            }
-            const XmlElement* rootEle = pc.GetRoot();
-            if (!rootEle) {
-                // the format is not correct
-                QCC_LogError(ER_FAIL, ("The message format is not correct"));
-                ITSendCloudMessage(0, peer, callId, addr, "", NULL);
-                ITReleaseBuf(msgBuf);
-                continue;
-            }
+                StringSource source(msgContent);
+                XmlParseContext pc(source);
+                status = XmlElement::Parse(pc);
+                if (ER_OK != status) {
+                    QCC_LogError(status, ("Error parsing the message xml content: %s", msgContent));
+                    ITSendCloudMessage(reqTypeN+1, peer, callId, addr, "", NULL);
+                    ITReleaseBuf(msgBuf);
+                    continue;
+                }
+                const XmlElement* rootEle = pc.GetRoot();
+                if (!rootEle) {
+                    // the format is not correct
+                    QCC_LogError(ER_FAIL, ("The message format is not correct"));
+                    ITSendCloudMessage(reqTypeN+1, peer, callId, addr, "", NULL);
+                    ITReleaseBuf(msgBuf);
+                    continue;
+                }
 
-            std::vector<MsgArg> argsVec;
-            argsVec.clear();
-            const std::vector<XmlElement*>& argsEles = rootEle->GetChildren();
-            for (size_t argIndx = 0; argIndx < argsEles.size(); argIndx++) {
-                MsgArg arg;
-                arg.Clear();
-                XmlElement* argEle = argsEles[argIndx];
-                if (argEle) {
-                    if (ER_OK == XmlToArg(argEle, arg)) {
-                        argsVec.push_back(arg);
+                const std::vector<XmlElement*>& argsEles = rootEle->GetChildren();
+                size_t argsNum = argsEles.size();
+                MsgArg* argsArray = NULL;
+                if (argsNum > 0) {
+                    argsArray = new MsgArg[argsNum];
+                    for (size_t argIndx = 0; argIndx < argsNum; argIndx++) {
+                        MsgArg arg;
+                        XmlElement* argEle = argsEles[argIndx];
+                        if (argEle) {
+                            XmlToArg(argEle, argsArray[argIndx]);
+                        }
                     }
                 }
-            }
-            MsgArg* argsArray = new MsgArg[argsVec.size()];
-            for (size_t argIndx = 0; argIndx < argsVec.size(); argIndx++) {
-                argsArray[argIndx] = argsVec[argIndx];
-            }
-            args[1].Set("av", argsVec.size(), argsArray);
 
-            // Calling the local method
-            ajn::Message replyMsg(*s_bus);
-            // TBD: Change it to MethodCallAsync or start a new task thread to execute the MethodCall
-            status = s_pceProxyBusObject->MethodCall(sipe2e::gateway::gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
-                sipe2e::gateway::gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_LOCALMETHODCALL.c_str(),
-                args, 3, replyMsg);
+                switch (reqTypeN) {
+                case gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL:
+                    {
+                        MsgArg args[3];
+                        args[0].Set("s", addr);
+                        if (argsNum > 0) {
+                            args[1].Set("av", argsNum, argsArray);
+                        }
+                        args[2].Set("s", callId);
 
-            if (ER_OK != status) {
-                QCC_LogError(status, ("Error subscribing cloud service to local"));
-                ITSendCloudMessage(0, peer, callId, addr, "", NULL);
-                ITReleaseBuf(msgBuf);
-                continue;
-            }
-            
-            const MsgArg* replyArgsArray = replyMsg->GetArg(0);
-            if (replyArgsArray) {
-                MsgArg* outArgsVariant = NULL;
-                size_t numOutArgs = 0;
-                replyArgsArray->Get("av", &numOutArgs, &outArgsVariant);
-                String argsStr = String("<args>\n");
-                for (size_t outArgIndx = 0; outArgIndx < numOutArgs; outArgIndx++) {
-                    argsStr += ArgToXml(outArgsVariant[outArgIndx].v_variant.val, 0);
+                        ajn::Message replyMsg(*s_bus);
+                        // Calling the local method
+                        // TBD: Change it to MethodCallAsync or start a new task thread to execute the MethodCall
+                        status = s_pceProxyBusObject->MethodCall(sipe2e::gateway::gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
+                            sipe2e::gateway::gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_LOCALMETHODCALL.c_str(),
+                            args, 3, replyMsg);
+
+                        if (ER_OK != status) {
+                            QCC_LogError(status, ("Error executing local method call"));
+                            ITSendCloudMessage(reqTypeN+1, peer, callId, addr, "", NULL);
+                            ITReleaseBuf(msgBuf);
+                            continue;
+                        }
+
+                        const MsgArg* replyArgsArray = replyMsg->GetArg(0);
+                        if (replyArgsArray) {
+                            MsgArg* outArgsVariant = NULL;
+                            size_t numOutArgs = 0;
+                            replyArgsArray->Get("av", &numOutArgs, &outArgsVariant);
+                            String argsStr = String("<args>\n");
+                            for (size_t outArgIndx = 0; outArgIndx < numOutArgs; outArgIndx++) {
+                                argsStr += ArgToXml(outArgsVariant[outArgIndx].v_variant.val, 0);
+                            }
+                            argsStr += String("</args>");
+
+                            int itStatus = ITSendCloudMessage(reqTypeN+1, peer, callId, addr, argsStr.c_str(), NULL);
+                            if (0 != itStatus) {
+                                QCC_LogError(ER_FAIL, ("Failed to send message to cloud"));
+                            }
+                        } else {
+                            // The reply message is not correct
+                            // Reply with empty message
+                            ITSendCloudMessage(reqTypeN+1, peer, callId, addr, "", NULL);
+                        }
+                    }
+                    break;
+                case gwConsts::customheader::RPC_MSG_TYPE_SIGNAL_CALL:
+                    {
+                        MsgArg args[4];
+
+                        String senderReceiverAddr(addr);
+                        size_t dot = senderReceiverAddr.find_first_of('`');
+                        if (dot == String::npos) {
+                            QCC_LogError(ER_FAIL, ("The message format is not correct"));
+                            ITReleaseBuf(msgBuf);
+                            continue;
+                        }
+                        String senderAddr(peer);
+                        senderAddr += "/";
+                        senderAddr += senderReceiverAddr.substr(0, dot);
+                        String receiverAddr = senderReceiverAddr.substr(dot + 1, senderReceiverAddr.size() - dot - 1);
+
+                        args[0].Set("s", senderAddr);
+                        args[1].Set("s", receiverAddr);
+
+                        if (argsNum > 0) {
+                            args[2].Set("av", argsNum, argsArray);
+                        }
+                        args[3].Set("s", callId);
+                        // Signaling the local BusObject
+                        // TBD: Change it to MethodCallAsync or start a new task thread to execute the MethodCall
+                        status = s_pceProxyBusObject->MethodCall(sipe2e::gateway::gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
+                            sipe2e::gateway::gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_LOCALSIGNALCALL.c_str(),
+                            args, 4);
+                        if (ER_OK != status) {
+                            QCC_LogError(status, ("Error executing local signal call"));
+                            ITReleaseBuf(msgBuf);
+                            continue;
+                        }
+                    }
+                    break;
+                default:
+                    {
+                        // the format is not correct
+                        QCC_LogError(ER_FAIL, ("The message format is not correct"));
+                        ITReleaseBuf(msgBuf);
+                        continue;
+                    }
+                    break;
                 }
-                argsStr += String("</args>");
 
-                int itStatus = ITSendCloudMessage(0, peer, callId, addr, argsStr.c_str(), NULL);
-                if (0 != itStatus) {
-                    QCC_LogError(ER_FAIL, ("Failed to send message to cloud"));
+
+            } else if (reqTypeN == gwConsts::customheader::RPC_MSG_TYPE_UPDATE_SIGNAL_HANDLER) {
+                // If the request type is UPDATE SIGNAL HANDLER
+                char* callId = tmp + 1;
+                tmp = strchr(callId, '^');
+                if (!tmp) {
+                    // the format is not correct
+                    QCC_LogError(ER_FAIL, ("The message format is not correct"));
+                    ITReleaseBuf(msgBuf);
+                    continue;
                 }
-            } else {
-                // The reply message is not correct
-                // Reply with empty message
-                ITSendCloudMessage(0, peer, callId, addr, "", NULL);
+                *tmp = '\0';
+                char* addr = tmp + 1;
+                tmp = strchr(addr, '^');
+                if (!tmp) {
+                    // the format is not correct
+                    QCC_LogError(ER_FAIL, ("The message format is not correct"));
+                    ITReleaseBuf(msgBuf);
+                    continue;
+                }
+                char* msgContent = tmp + 1;
+
+                MsgArg args[4];
+                args[0].Set("s", addr);
+                args[1].Set("s", peer);
+                
+                StringSource source(msgContent);
+                XmlParseContext pc(source);
+                status = XmlElement::Parse(pc);
+                if (ER_OK != status) {
+                    QCC_LogError(status, ("Error parsing the notification xml content: %s", msgContent));
+                    ITReleaseBuf(msgBuf);
+                    continue;
+                }
+                const XmlElement* rootNode = pc.GetRoot();
+                if (rootNode == NULL) {
+                    QCC_LogError(ER_XML_MALFORMED, ("Can not get the root node of the notification xml content: %s", msgContent));
+                    ITReleaseBuf(msgBuf);
+                    continue;
+                }
+                if (rootNode->GetName() == "SignalHandlerInfo") {
+                    const String& peerBusName = rootNode->GetAttribute("busName");
+                    const String& peerSessionId = rootNode->GetAttribute("sessionId");
+                    args[2].Set("s", peerBusName.c_str());
+                    args[3].Set("u", qcc::StringToU32(peerSessionId, 10, 0));
+                } else {
+                    // the root node is not SignalHandlerInfo node, just ignore it
+                    QCC_DbgPrintf(("The root node is not SignalHandlerInfo."));
+                    ITReleaseBuf(msgBuf);
+                    continue;
+                }
+
+                // Updating
+                status = s_pceProxyBusObject->MethodCall(sipe2e::gateway::gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
+                    sipe2e::gateway::gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_UPDATESIGNALHANDLERINFO.c_str(),
+                    args, 4);
+                if (ER_OK != status) {
+                    QCC_LogError(status, ("Error updating signal handler info to local"));
+                }
+
             }
             ITReleaseBuf(msgBuf);
+
         }
     }
     return NULL;

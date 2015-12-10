@@ -14,8 +14,8 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#ifndef ALLJOYNENGINEBUSOBJECT_H_
-#define ALLJOYNENGINEBUSOBJECT_H_
+#ifndef PROXIMALCOMMENGINEBUSOBJECT_H_
+#define PROXIMALCOMMENGINEBUSOBJECT_H_
 
 #include <qcc/platform.h>
 
@@ -50,7 +50,8 @@ namespace sipe2e {
 namespace gateway {
 
 class CloudServiceAgentBusObject;
-
+class ProximalProxyBusObjectWrapper;
+typedef qcc::ManagedObj<ProximalProxyBusObjectWrapper> _ProximalProxyBusObjectWrapper;
 
 /**
  * ProximalCommEngineBusObject class. Base class to provide proximal communication functionality
@@ -59,9 +60,17 @@ class CloudServiceAgentBusObject;
 class ProximalCommEngineBusObject : public ajn::BusObject
 {
     friend class CloudServiceAgentBusObject;
+    friend class ProximalProxyBusObjectWrapper;
 public:
     ProximalCommEngineBusObject(qcc::String const& objectPath);
     virtual ~ProximalCommEngineBusObject();
+
+    typedef struct  
+    {
+        qcc::String addr;
+        qcc::String busName;
+        unsigned int sessionId;
+    } SignalHandlerInfo;
 
 
     /**
@@ -155,6 +164,13 @@ public:
     void AJLocalMethodCall(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
 
     /**
+     * Callback when cloud call a method on some local interface
+     * @param member - the member (method) of the interface that was executed
+     * @param msg - the Message of the method
+     */
+    void AJLocalSignalCall(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
+
+    /**
      * Callback when subscribing some cloud service to local proximal network
      * @param member - the member (method) of the interface that was executed
      * @param msg - the Message of the method
@@ -167,6 +183,13 @@ public:
      * @param msg - the Message of the method
      */
     void AJUnsubscribeCloudServiceFromLocal(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
+
+    /**
+     * Callback when updating remote signal handlers info to Local BusObjects
+     * @param member - the member (method) of the interface that was executed
+     * @param msg - the Message of the method
+     */
+    void AJUpdateSignalHandlerInfoToLocal(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
 
     /************************************************************************/
     /*  interface implementation for IoTivity network */
@@ -183,7 +206,7 @@ private:
      * @param proxy - the ProxyBusObject that will be saved, including its children 
      * @param busName -  the name of the bus that owns the remote BusObject
      */
-    void SaveProxyBusObject(ajn::ProxyBusObject* proxy, qcc::String& busName);
+    void SaveProxyBusObject(_ProximalProxyBusObjectWrapper proxyWrapper);
 
     /**
      * @internal
@@ -193,6 +216,22 @@ private:
      * @param context Opaque context passed from method_call to method_return
      */
      void LocalMethodCallReplyHandler(ajn::Message& msg, void* context);
+
+    /**
+     * Introspect Remote Object and its all children and grand children and so on
+     * @param proxy - the top-level ProxyBusObject
+     */
+//     QStatus IntrospectProxyChildren(ajn::ProxyBusObject* proxy);
+
+    /**
+     * Generate introspection XML string according to ProxyBusObject (and its children)
+     * @param proxy - the ProxyBusObject
+     * @param objName - the object path name of this ProxyBusObject. If it's top-level,
+     *                                   the objName should be the absolute object path, and if not,
+     *                                   the objName should be the last part of the object path
+     */
+//     qcc::String GenerateProxyIntrospectionXml(ajn::ProxyBusObject* proxy, const qcc::String& objName);
+
 
 protected:
     /**
@@ -209,7 +248,7 @@ protected:
      * So, here when we try to cleanup the ProxyBusObjects map, we need to only retrieve the top-level 
      * ProxyBusObject and delete it. That's all needed to be done.
      */
-    std::map<qcc::String, ajn::ProxyBusObject*> proxyBusObjects;
+    std::map<qcc::String, _ProximalProxyBusObjectWrapper> proxyBusObjects;
 
     /* The AllJoyn context for all ProxyBusObjects to access local services */
     AllJoynContext proxyContext;
@@ -229,6 +268,11 @@ protected:
     qcc::ManagedObj<ajn::ProxyBusObject> cloudEngineProxyBusObject;
 
     ajn::services::AboutService* aboutService;
+
+    /**
+     * This map will stores all remote signal handlers information, with local BusName as the key, and a list of SignalHanderInfo as value
+     */
+    std::map<qcc::String, std::map<qcc::String, std::vector<SignalHandlerInfo>>> signalHandlersInfo;
 };
 
 } /* namespace gateway */

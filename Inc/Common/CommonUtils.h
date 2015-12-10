@@ -32,21 +32,6 @@ namespace sipe2e {
 namespace gateway {
 
 /**
- * Introspect Remote Object and its all children and grand children and so on
- * @param proxy - the top-level ProxyBusObject
- */
-QStatus IntrospectChildren(ajn::ProxyBusObject* proxy);
-
-/**
- * Generate introspection XML string according to ProxyBusObject (and its children)
- * @param proxy - the ProxyBusObject
- * @param objName - the object path name of this ProxyBusObject. If it's top-level,
- *                                   the objName should be the absolute object path, and if not,
- *                                   the objName should be the last part of the object path
- */
-qcc::String GenerateIntrospectionXml(ajn::ProxyBusObject* proxy, qcc::String& objName);
-
-/**
  * Filling in the property store using the key/value pair
  * @param propertyStore -    the propertyStore that will be filled in
  * @param aboutKey - the key of one about data

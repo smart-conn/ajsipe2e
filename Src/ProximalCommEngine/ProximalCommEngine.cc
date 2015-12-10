@@ -58,7 +58,7 @@ static void SigIntHandler(int sig)
     s_interrupt = true;
 }
 
-static void daemonDisconnectCB()
+static void daemonDisconnectCB(void* arg)
 {
     s_restart = true;
 }

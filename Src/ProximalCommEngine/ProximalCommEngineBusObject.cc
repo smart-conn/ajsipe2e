@@ -25,10 +25,10 @@
 
 #include <qcc/Debug.h>
 #include <qcc/String.h>
-// #include <qcc/StringMapKey.h>
 #include <qcc/StringSource.h>
 #include <qcc/XmlElement.h>
 #include <qcc/ThreadPool.h>
+#include <qcc/StringUtil.h>
 
 #include <alljoyn/AllJoynStd.h>
 #include <alljoyn/DBusStd.h>
@@ -45,8 +45,9 @@
 // #include <BusUtil.h>
 
 #include "Common/GatewayConstants.h"
-#include "ProximalCommEngine/ProximalCommEngineBusObject.h"
 #include "Common/CommonUtils.h"
+#include "ProximalCommEngine/ProximalCommEngineBusObject.h"
+#include "ProximalCommEngine/ProximalProxyBusObjectWrapper.h"
 
 #define QCC_MODULE "SIPE2E"
 
@@ -59,8 +60,6 @@ using namespace std;
 namespace sipe2e {
 namespace gateway {
 using namespace gwConsts;
-
-
 
 String GetServiceRootPath(String& serviceXML)
 {
@@ -106,7 +105,7 @@ void ProximalCommEngineBusObject::LocalServiceAnnounceHandler::AnnounceHandlerTa
 {
     QStatus status = ER_OK;
     /* First we check if ownerBusObject->cloudEngineProxyBusObject is ready, if not, just simply return */
-    if (!ownerBusObject->cloudEngineProxyBusObject->IsValid()) {
+    if (!ownerBusObject->cloudEngineProxyBusObject.unwrap() || !ownerBusObject->cloudEngineProxyBusObject->IsValid()) {
         QCC_LogError(ER_OK, ("The CloudCommEngine ProxyBusObject is not ready"));
         return;
     }
@@ -174,26 +173,25 @@ void ProximalCommEngineBusObject::LocalServiceAnnounceHandler::AnnounceHandlerTa
         itObjDesc != announceData.objectDescs.end(); ++itObjDesc) {
         String objPath = itObjDesc->first;
         /* Create the ProxyBusObject according to this object description */
-        ProxyBusObject* proxy = new ProxyBusObject(*ownerBusObject->proxyContext.bus, 
-            announceData.busName.c_str(), objPath.c_str(), sessionId, false);
-        status = IntrospectChildren(proxy);
+        _ProximalProxyBusObjectWrapper proxyWrapper(_ProxyBusObject::wrap(new ProxyBusObject(*ownerBusObject->proxyContext.bus, 
+            announceData.busName.c_str(), objPath.c_str(), sessionId, false)), ownerBusObject->proxyContext.bus, ownerBusObject->cloudEngineProxyBusObject, ownerBusObject);
+        status = proxyWrapper->IntrospectProxyChildren();
         if (ER_OK != status) {
             QCC_LogError(status, ("Error while introspecting the remote BusObject"));
-            delete proxy;
             continue;
         }
         /* Try to publish the object and its interfaces/services to the cloud */
         /* First we should compose the introspection XML string */
-        introspectionXml += GenerateIntrospectionXml(proxy, objPath);
+        introspectionXml += proxyWrapper->GenerateProxyIntrospectionXml();
 
         /* And save this ProxyBusObject and all its children to map for later usage */
-        ownerBusObject->SaveProxyBusObject(proxy, announceData.busName);
+        ownerBusObject->SaveProxyBusObject(proxyWrapper);
     }
     introspectionXml += "</service>\n";
 
     /* Then we call cloudEngineProxyBusObject::AJPublishLocalServiceToCloud() to publish local services */
     /* Since this is a separate thread, we can simply use synchronous method call */
-#ifdef _DEBUG
+#ifndef NDEBUG
     printf("%s", introspectionXml.c_str());
 #endif // DEBUG
 
@@ -205,7 +203,7 @@ void ProximalCommEngineBusObject::LocalServiceAnnounceHandler::AnnounceHandlerTa
 
     // Here we may get errors from publishing local services to cloud, in case of which we should
     // cache the announcements from local service objects, and try to publish it later
-    // To be continued
+    // TBD
 }
 
 
@@ -299,6 +297,8 @@ QStatus ProximalCommEngineBusObject::Init(BusAttachment& proximalCommBus, servic
     }
     intf->AddMethod(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_LOCALMETHODCALL.c_str(),
         "savs", "avx", "addr,para,cloudSessionID,reply,localSessionID");
+    intf->AddMethod(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_LOCALSIGNALCALL.c_str(),
+        "ssavs", NULL, "senderAddr,receiverAddr,para,cloudSessionID");
     intf->AddMethod(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_SUBSCRIBE.c_str(),
         "ss", NULL, "serviceAddr,introspectionXML");
     intf->AddMethod(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_UNSUBSCRIBE.c_str(),
@@ -308,6 +308,8 @@ QStatus ProximalCommEngineBusObject::Init(BusAttachment& proximalCommBus, servic
     const MethodEntry methodEntries[] = {
         { intf->GetMember(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_LOCALMETHODCALL.c_str()), 
         static_cast<MessageReceiver::MethodHandler>(&ProximalCommEngineBusObject::AJLocalMethodCall) },
+        { intf->GetMember(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_LOCALSIGNALCALL.c_str()), 
+        static_cast<MessageReceiver::MethodHandler>(&ProximalCommEngineBusObject::AJLocalSignalCall) },
         { intf->GetMember(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_SUBSCRIBE.c_str()), 
         static_cast<MessageReceiver::MethodHandler>(&ProximalCommEngineBusObject::AJSubscribeCloudServiceToLocal) },
         { intf->GetMember(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_UNSUBSCRIBE.c_str()), 
@@ -366,6 +368,7 @@ QStatus ProximalCommEngineBusObject::Cleanup()
         proxyContext.bus->UnregisterBusListener(*proxyContext.busListener);
         proxyContext.bus->UnbindSessionPort(proxyContext.busListener->getSessionPort());
     }
+/*
     for (map<String, ProxyBusObject*>::iterator itPBO = proxyBusObjects.begin();
         itPBO != proxyBusObjects.end(); itPBO++) {
         String objPath = itPBO->first;
@@ -384,6 +387,7 @@ QStatus ProximalCommEngineBusObject::Cleanup()
             pos = objPath.find_last_of('/');
         }
     }
+*/
     proxyBusObjects.clear();
 
     if (proxyContext.busListener) {
@@ -416,6 +420,8 @@ QStatus ProximalCommEngineBusObject::Cleanup()
         status = aboutService->RemoveObjectDescription(SIPE2E_PROXIMALCOMMENGINE_OBJECTPATH, intfNames);
         aboutService = NULL;
     }
+
+    signalHandlersInfo.clear();
 
     return status;
 }
@@ -469,9 +475,9 @@ void ProximalCommEngineBusObject::AJLocalMethodCall(const InterfaceDescription::
      * Here we try to find the ProxyBusObject, and hopefully it should be in proxyBusObjects map. If not found, what
      * should we do? Just simply respond with errors, or find some ways to fix it?
      */
-    ProxyBusObject* proxy = NULL;
-    map<String, ProxyBusObject*>::const_iterator proxyBusObjectIt = proxyBusObjects.find(busNameAndObjPath);
-    if (proxyBusObjects.end() == proxyBusObjectIt) {
+    _ProximalProxyBusObjectWrapper proxyWrapper = _ProximalProxyBusObjectWrapper::wrap(NULL);
+    map<String, _ProximalProxyBusObjectWrapper>::const_iterator proxyWrapperIt = proxyBusObjects.find(busNameAndObjPath);
+    if (proxyBusObjects.end() == proxyWrapperIt) {
         /* No ProxyBusObject available, then create it and save it */
 /*
         off = busNameAndObjPath.find_first_of('/');
@@ -491,8 +497,8 @@ void ProximalCommEngineBusObject::AJLocalMethodCall(const InterfaceDescription::
         status = ER_BAD_ARG_1;
         CHECK_STATUS_AND_REPLY("No ProxyBusObject Available for this call");
     } else {
-        proxy = proxyBusObjectIt->second;
-        if (!proxy) {
+        proxyWrapper = proxyWrapperIt->second;
+        if (!proxyWrapper.unwrap()) {
             status = ER_BAD_ARG_1;
             CHECK_STATUS_AND_REPLY("No ProxyBusObject Available for this call");
         }
@@ -522,7 +528,7 @@ void ProximalCommEngineBusObject::AJLocalMethodCall(const InterfaceDescription::
 
     /* Now call the local method through the ProxyBusObject */
     AsyncReplyContext* replyContext = new AsyncReplyContext(msg, member);
-    status = proxy->MethodCallAsync(intfName.c_str(), methodName.c_str(),
+    status = proxyWrapper->proxy->MethodCallAsync(intfName.c_str(), methodName.c_str(),
         const_cast<MessageReceiver*>(static_cast<const MessageReceiver* const>(this)), 
         static_cast<MessageReceiver::ReplyHandler>(&ProximalCommEngineBusObject::LocalMethodCallReplyHandler),
         inArgs, numInArgs);
@@ -530,6 +536,92 @@ void ProximalCommEngineBusObject::AJLocalMethodCall(const InterfaceDescription::
         delete[] inArgs;
     }
     CHECK_STATUS_AND_REPLY("Error making the local method call");
+}
+
+void ProximalCommEngineBusObject::AJLocalSignalCall(const InterfaceDescription::Member* member, Message& msg)
+{
+    // We'll have to find the local CloudServiceAgentBusObject, and using this to send signals out
+    QStatus status = ER_OK;
+
+    /* Retrieve all arguments of the method call */
+    size_t  numArgs = 0;
+    const MsgArg* args = 0;
+    msg->GetArgs(numArgs, args);
+    if (numArgs != 4) {
+        status = ER_BAD_ARG_COUNT;
+        CHECK_STATUS_AND_REPLY("Error argument count");
+    }
+
+    // The first arg is the sender address: thierry_luo@nane.cn/BusName/ObjectPath/InterfaceName/MemberName
+    String senderAddr(args[0].v_string.str);
+    size_t firstSlash = senderAddr.find_first_of('/');
+    if (String::npos == firstSlash) {
+        status = ER_FAIL;
+        CHECK_STATUS_AND_REPLY("The format of sender address is not correct");
+    }
+    size_t secondSlash = senderAddr.find_first_of('/', firstSlash + 1);
+    if (String::npos == secondSlash) {
+        status = ER_FAIL;
+        CHECK_STATUS_AND_REPLY("The format of sender address is not correct");
+    }
+    String rootAgentBusObjectPath = senderAddr.substr(0, secondSlash);
+
+    std::map<qcc::String, CloudServiceAgentBusObject*>::iterator itCBO = cloudBusObjects.find(rootAgentBusObjectPath);
+    if (itCBO == cloudBusObjects.end() || !itCBO->second) {
+        status = ER_FAIL;
+        CHECK_STATUS_AND_REPLY("The format of sender address is not correct");
+    }
+    CloudServiceAgentBusObject* rootAgent = itCBO->second;
+
+    firstSlash = senderAddr.find_last_of('/');
+    if (String::npos == firstSlash) {
+        status = ER_FAIL;
+        CHECK_STATUS_AND_REPLY("The format of sender address is not correct");
+    }
+    String memberName = senderAddr.substr(firstSlash + 1, senderAddr.size() - firstSlash - 1);
+    secondSlash = senderAddr.find_last_of('/', firstSlash - 1);
+    if (String::npos == secondSlash) {
+        status = ER_FAIL;
+        CHECK_STATUS_AND_REPLY("The format of sender address is not correct");
+    }
+    String intfName = senderAddr.substr(secondSlash + 1, firstSlash - secondSlash - 1);
+    const InterfaceDescription* signalIntf = rootAgent->GetBusAttachment().GetInterface(intfName.c_str());
+    if (!signalIntf) {
+        status = ER_BUS_NO_SUCH_INTERFACE;
+        CHECK_STATUS_AND_REPLY("Cannot find the interface corresponding to the signal sender");
+    }
+    const InterfaceDescription::Member* signalMember = signalIntf->GetMember(memberName.c_str());
+    if (!signalMember) {
+        status = ER_BUS_INTERFACE_NO_SUCH_MEMBER;
+        CHECK_STATUS_AND_REPLY("Cannot find the member corresponding to the signal sender");
+    }
+
+    // The second arg is receiver address: BusName/SessionId
+    String receiverAddr(args[1].v_string.str);
+    firstSlash = receiverAddr.find_first_of('/');
+    if (String::npos == firstSlash) {
+        status = ER_FAIL;
+        CHECK_STATUS_AND_REPLY("The format of receiver address is not correct");
+    }
+    String receiverBusName = receiverAddr.substr(0, firstSlash);
+    SessionId receiverSessionId = StringToU32(receiverAddr.substr(firstSlash + 1, receiverAddr.size() - firstSlash - 1), 10);
+
+    MsgArg* inArgsVariant = NULL;
+    size_t numInArgs = 0;
+    args[2].Get("av", &numInArgs, &inArgsVariant);
+    MsgArg* inArgs = NULL;
+    if (numInArgs && inArgsVariant) {
+        inArgs = new MsgArg[numInArgs];
+        for (size_t i = 0; i < numInArgs; i++) {
+            inArgs[i] = *inArgsVariant[i].v_variant.val;
+        }
+    }
+
+    status = rootAgent->Signal(receiverBusName.c_str(), receiverSessionId, *signalMember, inArgs, numInArgs);
+    if (inArgs) {
+        delete[] inArgs;
+    }
+    CHECK_STATUS_AND_REPLY("Error sending out the signal");
 }
 
 void ProximalCommEngineBusObject::AJSubscribeCloudServiceToLocal(const InterfaceDescription::Member* member, Message& msg)
@@ -679,23 +771,60 @@ void ProximalCommEngineBusObject::AJUnsubscribeCloudServiceFromLocal(const ajn::
     }
 }
 
-void ProximalCommEngineBusObject::SaveProxyBusObject(ajn::ProxyBusObject* proxy, qcc::String& busName)
+
+void ProximalCommEngineBusObject::AJUpdateSignalHandlerInfoToLocal(const ajn::InterfaceDescription::Member* member, ajn::Message& msg)
 {
-    if (!proxy) {
-        return;
+    QStatus status = ER_OK;
+     
+    // Retrieve all arguments of the method call 
+    size_t  numArgs = 0;
+    const MsgArg* args = 0;
+    msg->GetArgs(numArgs, args);
+    if (numArgs != 4) {
+        status = ER_BAD_ARG_COUNT;
+        CHECK_STATUS_AND_REPLY("Error argument count");
     }
-    String busNameAndObjPath = busName + "/" + proxy->GetPath();
-    proxyBusObjects.insert(pair<String, ProxyBusObject*>(busNameAndObjPath, proxy));
-    size_t numChildren = proxy->GetChildren(NULL);
-    if (numChildren > 0) {
-        ProxyBusObject** children = new ProxyBusObject*[numChildren];
-        if (numChildren == proxy->GetChildren(children, numChildren)) {
-            for (size_t i = 0; i < numChildren; i++) {
-                ProxyBusObject* child = children[i];
-                SaveProxyBusObject(child, busName);
-            }
-        }
-        delete[] children;
+
+    // The first arg is the local BusName and ObjPath: BusName/ObjPath (actually it's only BusName)
+    String localBusNameObjPath(args[0].v_string.str);
+    while ('/' == localBusNameObjPath[localBusNameObjPath.length() - 1]) {
+        localBusNameObjPath.erase(localBusNameObjPath.length() - 1, 1);
+    }
+
+    // The second arg is the peer address
+    String peerAddr(args[1].v_string.str);
+
+    // The second arg is the peer BusName
+    String peerBusName(args[2].v_string.str);
+    // The third arg is the peer session id
+    unsigned int peerSessionId = args[3].v_uint32;
+
+    // Store the SignalHandler Info, with localBusNameObjPath as key and peerBusName/sessionId as value
+    std::map<qcc::String, std::map<qcc::String, std::vector<SignalHandlerInfo>>>::iterator itShiMap = signalHandlersInfo.find(localBusNameObjPath);
+    if (itShiMap == signalHandlersInfo.end()) {
+        std::map<qcc::String, std::vector<SignalHandlerInfo>> shiMap;
+        signalHandlersInfo.insert(std::make_pair(localBusNameObjPath, shiMap));
+    }
+    std::map<qcc::String, std::vector<SignalHandlerInfo>>& currShiMap = signalHandlersInfo[localBusNameObjPath];
+    std::map<qcc::String, std::vector<SignalHandlerInfo>>::iterator itSHI = currShiMap.find(peerAddr);
+    if (itSHI == currShiMap.end()) {
+        std::vector<SignalHandlerInfo> shiVec;
+        currShiMap.insert(std::make_pair(peerAddr, shiVec));
+    }
+    std::vector<SignalHandlerInfo>& currShiVec = currShiMap[peerAddr];
+
+    SignalHandlerInfo peerSignalHandlerInfo = {peerAddr, peerBusName, peerSessionId};
+    currShiVec.push_back(peerSignalHandlerInfo);
+}
+
+
+void ProximalCommEngineBusObject::SaveProxyBusObject(_ProximalProxyBusObjectWrapper proxyWrapper)
+{
+    String busNameAndObjPath = proxyWrapper->proxy->GetServiceName() /*+ "/"*/ + proxyWrapper->proxy->GetPath();
+    proxyBusObjects.insert(pair<String, _ProximalProxyBusObjectWrapper>(busNameAndObjPath, proxyWrapper));
+    for (size_t i = 0; i < proxyWrapper->children.size(); i++) {
+        _ProximalProxyBusObjectWrapper child = proxyWrapper->children[i];
+        SaveProxyBusObject(child);
     }
 }
 
@@ -740,6 +869,128 @@ void ProximalCommEngineBusObject::LocalMethodCallReplyHandler(ajn::Message& msg,
         return;
     }
 }
+
+/*
+QStatus ProximalCommEngineBusObject::IntrospectProxyChildren(ProxyBusObject* proxy)
+{
+    if (!proxy) {
+        QCC_DbgHLPrintf(("Top-level ProxyBusObject is not NULL"));
+        return ER_OK;
+    }
+
+    QStatus status = proxy->IntrospectRemoteObject();
+    if (status != ER_OK) {
+        QCC_LogError(status, ("Could not introspect RemoteObject"));
+        return status;
+    }
+
+    size_t numChildren = proxy->GetChildren();
+    if (numChildren == 0) {
+        return ER_OK;
+    }
+
+    ProxyBusObject** proxyBusObjectChildren = new ProxyBusObject *[numChildren];
+    numChildren = proxy->GetChildren(proxyBusObjectChildren, numChildren);
+
+    for (size_t i = 0; i < numChildren; i++) {
+#ifndef NDEBUG
+        String const& objectPath = proxyBusObjectChildren[i]->GetPath();
+        QCC_DbgPrintf(("ObjectPath is: %s", objectPath.c_str()));
+#endif
+
+        status = IntrospectProxyChildren(proxyBusObjectChildren[i]);
+        if (status != ER_OK) {
+            QCC_LogError(status, ("Could not introspect RemoteObjectChild"));
+            delete[] proxyBusObjectChildren;
+            return status;
+        }
+    }
+    delete[] proxyBusObjectChildren;
+    return ER_OK;
+}
+
+String ProximalCommEngineBusObject::GenerateProxyIntrospectionXml(ProxyBusObject* proxy, const String& objName)
+{
+    if (!proxy) {
+        QCC_DbgHLPrintf(("Top-level ProxyBusObject is not NULL"));
+        return ER_OK;
+    }
+
+    String introXml("");
+    const String close = "\">\n";
+
+    introXml += "<node name=\"";
+    introXml += objName + close;
+
+    / * First we add all interface description * /
+    size_t numIntf = proxy->GetInterfaces();
+    if (0 < numIntf) {
+        const InterfaceDescription** intfs = new const InterfaceDescription*[numIntf];
+        if (numIntf == proxy->GetInterfaces(intfs, numIntf)) {
+            for (size_t i = 0; i < numIntf; i++) {
+                const InterfaceDescription* intf = intfs[i];
+                //delete all interface description xml string including the following interfaces:
+                //    1. org::freedesktop::DBus::Peer::InterfaceName
+                //    2. org::freedesktop::DBus::Properties::InterfaceName
+                //    3. org::freedesktop::DBus::Introspectable::InterfaceName
+                //    4. org::allseen::Introspectable::InterfaceName
+                // because these interfaces will by default be implemented by every BusObject
+                const char* intfName = intf->GetName();
+                if (intf && intfName 
+                    && strcmp(intfName, org::freedesktop::DBus::Peer::InterfaceName)
+                    && strcmp(intfName, org::freedesktop::DBus::Properties::InterfaceName)
+                    && strcmp(intfName, org::freedesktop::DBus::Introspectable::InterfaceName)
+                    && strcmp(intfName, org::allseen::Introspectable::InterfaceName)) {
+
+                        String intfXml = intf->Introspect();
+
+                        StringSource source(intfXml);
+                        XmlParseContext pc(source);
+                        if (ER_OK == XmlElement::Parse(pc)) {
+                            const XmlElement* intfEle = pc.GetRoot();
+                            if (intfEle) {
+                                std::vector<const XmlElement*> signalEles = intfEle->GetChildren(String("signal"));
+                                for (size_t i = 0; i < signalEles.size(); i++) {
+                                    const XmlElement* signalEle = signalEles[i];
+                                    QStatus status = RegisterCommonSignalHandler(intf, signalEle->GetAttribute("name").c_str());
+                                    if (ER_OK != status) {
+                                        QCC_LogError(status, ("Could not Register Signal Handler for ProximalServiceProxyBusObject"));
+                                    }
+                                }
+                            }
+                        }
+
+                        introXml += intfXml;
+                        introXml += "\n";
+                }
+            }
+        }
+        delete[] intfs;
+    }
+
+    / * Secondly we add all children * /
+    size_t numChildren = proxy->GetChildren();
+    if (0 < numChildren) {
+        ProxyBusObject** children = new ProxyBusObject*[numChildren];
+        if (numChildren == proxy->GetChildren(children, numChildren)) {
+            for (size_t i = 0; i < numChildren; i++) {
+                // This conversion is dangerous!
+                String childObjName = children[i]->GetPath();
+                size_t pos = childObjName.find_last_of('/');
+                if (String::npos != pos) {
+                    childObjName = childObjName.substr(pos + 1, childObjName.length() - pos - 1);
+                    introXml += GenerateProxyIntrospectionXml(children[i], childObjName);
+                }
+            }
+        }
+        delete[] children;
+    }
+
+    introXml += "</node>\n";
+    return introXml;
+}
+*/
+
 
 
 } //namespace gateway

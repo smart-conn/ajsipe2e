@@ -21,6 +21,7 @@
 #include <qcc/StringSource.h>
 
 #include "Common/CommonUtils.h"
+#include "Common/GatewayStd.h"
 #include "ProximalCommEngine/CloudServiceAgentBusObject.h"
 #include "ProximalCommEngine/ProximalCommEngineBusObject.h"
 
@@ -85,7 +86,7 @@ void CloudServiceAgentBusObject::CommonMethodHandler(const InterfaceDescription:
     QStatus status = ER_OK;
 
     /* Make sure the cloud communication engine is present */
-    if (!cloudEngineProxyBusObject->IsValid()) {
+    if (!cloudEngineProxyBusObject.unwrap() || !cloudEngineProxyBusObject->IsValid()) {
         /* The CloudCommEngine is not present, so the calls cannot be forwarded */
         status = MethodReply(msg, ER_FAIL);
         QCC_DbgPrintf(("No CloudCommEngine present"));
@@ -105,8 +106,8 @@ void CloudServiceAgentBusObject::CommonMethodHandler(const InterfaceDescription:
     MsgArg cloudCallArgs[3];
 
     /**
-     *    The first arg is the address of the cloud service plus the interface name and method name
-     * 
+    *    The first arg: thierry_luo@nane.cn/BusName/ObjectPath/InterfaceName/MethodName
+    * 
      */
     String objPath(this->GetPath());
     if (objPath[objPath.length() - 1] != '/') {
@@ -141,6 +142,23 @@ void CloudServiceAgentBusObject::CommonMethodHandler(const InterfaceDescription:
         static_cast<MessageReceiver::ReplyHandler>(&CloudServiceAgentBusObject::CloudMethodCallReplyHandler),
         cloudCallArgs, 3, (void*)replyContext);
     CHECK_STATUS_AND_REPLY("Error making the cloud method call");
+}
+
+
+QStatus CloudServiceAgentBusObject::Get(const char* ifcName, const char* propName, MsgArg& val)
+{
+    // TBD
+    QStatus status = ER_OK;
+
+    return status;
+}
+
+QStatus CloudServiceAgentBusObject::Set(const char* ifcName, const char* propName, MsgArg& val)
+{
+    // TBD
+    QStatus status = ER_OK;
+
+    return status;
 }
 
 
@@ -463,21 +481,26 @@ QStatus CloudServiceAgentBusObject::ParseInterface(const XmlElement* root)
 
         /* Add method handler for all methods */
         if (intf) {
-            const InterfaceDescription::Member* intfMembers[256];
-            size_t memberNum = intf->GetMembers(intfMembers, 256);
-            for (size_t i = 0; i < memberNum; i++) {
-                const InterfaceDescription::Member* currMember = intfMembers[i];
-                if (currMember) {
-                    if (currMember->memberType == MESSAGE_METHOD_CALL) {
-                        status = this->AddMethodHandler(currMember, static_cast<MessageReceiver::MethodHandler>(&CloudServiceAgentBusObject::CommonMethodHandler), NULL);
-                        if (ER_OK != status) {
-                            // log error
-                            break;
-                        } else if (currMember->memberType == MESSAGE_SIGNAL) {
-                            // not implemented
+            size_t memberNum = intf->GetMembers();
+            if (memberNum > 0) {
+                const InterfaceDescription::Member** intfMembers = new InterfaceDescription::Member const*[memberNum];
+                intf->GetMembers(intfMembers, memberNum);
+                for (size_t i = 0; i < memberNum; i++) {
+                    const InterfaceDescription::Member* currMember = intfMembers[i];
+                    if (currMember) {
+                        if (currMember->memberType == MESSAGE_METHOD_CALL) {
+                            status = this->AddMethodHandler(currMember, static_cast<MessageReceiver::MethodHandler>(&CloudServiceAgentBusObject::CommonMethodHandler), NULL);
+                            if (ER_OK != status) {
+                                // log error
+                                break;
+                            } else if (currMember->memberType == MESSAGE_SIGNAL) {
+                                // not implemented
+                            }
                         }
                     }
                 }
+
+                delete[] intfMembers;
             }
         }
 
@@ -567,7 +590,7 @@ QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, servi
         }
 
         /* Prepare the BusListener */
-        context.busListener = new CommonBusListener(context.bus);
+        context.busListener = new CommonBusListener(context.bus, NULL, LocalSessionJoined, LocalSessionLost, this);
 
         TransportMask transportMask = TRANSPORT_ANY;
         SessionPort sp = SESSION_PORT_ANY;
@@ -685,6 +708,42 @@ QStatus CloudServiceAgentBusObject::Cleanup(bool topLevel)
     return status;
 }
 
+void CloudServiceAgentBusObject::LocalSessionJoined(void* arg, ajn::SessionPort sessionPort, ajn::SessionId id, const char* joiner)
+{
+    if (!arg) {
+        return;
+    }
+    CloudServiceAgentBusObject* parentCSABO = (CloudServiceAgentBusObject*)arg;
+    if (!parentCSABO || !parentCSABO->ownerBusObject || !parentCSABO->ownerBusObject->cloudEngineProxyBusObject.unwrap()) {
+        QCC_LogError(ER_FAIL, ("The CloudServiceAgentBusObject is not ready"));
+        return;
+    }
+    const char* objPath = parentCSABO->GetPath(); // This is only the path of the root AgentBusObject, like: thierry_luo@nane.cn/BusName (in most cases the root path is /BusName)
+    String peerAddr(objPath);
+    size_t slash = peerAddr.find_first_of('/');
+    if (slash == String::npos) {
+        QCC_LogError(ER_FAIL, ("The format of ObjPath of CloudServiceAgentBusObject is not correct"));
+        return;
+    }
+    String peerBusNameObjPath = peerAddr.substr(slash + 1, peerAddr.length() - slash - 1);
+    peerAddr.erase(slash, peerAddr.length() - slash);
+
+    MsgArg args[4];
+    args[0].Set("s", peerAddr.c_str());
+    args[1].Set("s", peerBusNameObjPath.c_str());
+    args[2].Set("s", joiner);
+    args[3].Set("u", id);
+   
+    QStatus status = parentCSABO->ownerBusObject->cloudEngineProxyBusObject->MethodCall(gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
+        gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_UPDATESIGNALHANDLERINFO.c_str(),
+        args, 4);
+    CHECK_STATUS_AND_LOG("Error updating signal handler info to cloud");
+}
+
+void CloudServiceAgentBusObject::LocalSessionLost(void* arg, ajn::SessionId sessionId, ajn::SessionListener::SessionLostReason reason)
+{
+    // TBD: 
+}
 
 }
 

@@ -723,7 +723,7 @@ IStatus IMSTransport::ReadCloudMessage(char** msgBuf)
     return IC_OK;
 }
 
-IStatus IMSTransport::SendCloudMessage(bool isRequest, 
+IStatus IMSTransport::SendCloudMessage(int reqType, 
                                        const char* peer, 
                                        const char* callId, 
                                        const char* addr,
@@ -745,64 +745,89 @@ IStatus IMSTransport::SendCloudMessage(bool isRequest,
     strcpy(peerUri, "sip:");
     strcat(peerUri, peer);
     msgSession->setToUri(peerUri);
-    if (isRequest) {
-        // if it is an outgoing request, the callId should be NULL, and will be generated here
-        // send out request through IMS engine and wait for the response to arrive (blocked for some time)
-        if (!addr) {
-            return IC_BAD_ARG_4;
-        }
-        if (!resMsgBuf) {
-            return IC_BAD_ARG_6;
-        }
-        msgSession->addHeader(gwConsts::customheader::RPC_MSG_TYPE, "1");
-        boost::uuids::uuid callIdTmp = callIdGenerator();
-        std::string callIdStr = boost::lexical_cast<std::string>(callIdTmp);
-        msgSession->addHeader(gwConsts::customheader::RPC_CALL_ID, callIdStr.c_str());
-        msgSession->addHeader(gwConsts::customheader::RPC_ADDR, addr);
-        if (!msgSession->send(msgBuf, strlen(msgBuf))) {
-            // if error sending out the message
-            return IC_TRANSPORT_FAIL;
-        }
-
-        // after sending the request out, the sending thread will be blocked to wait for the response for some time
-        boost::shared_ptr<SyncContext> syncCtx(new SyncContext());
-        syncCtx->content = NULL;
+    msgSession->addHeader(gwConsts::customheader::RPC_MSG_TYPE, qcc::I32ToString(reqType).c_str());
+    switch (reqType) {
+    case gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL:
+    case gwConsts::customheader::RPC_MSG_TYPE_SIGNAL_CALL:
         {
-            boost::lock_guard<boost::mutex> lock(mtxResponseDispatchTable);
+            // if it is an outgoing request, the callId should be NULL, and will be generated here
+            // send out request through IMS engine and wait for the response to arrive (blocked for some time)
+            if (!addr) {
+                return IC_BAD_ARG_4;
+            }
+            if (!resMsgBuf) {
+                return IC_BAD_ARG_6;
+            }
+            boost::uuids::uuid callIdTmp = callIdGenerator();
+            std::string callIdStr = boost::lexical_cast<std::string>(callIdTmp);
+            msgSession->addHeader(gwConsts::customheader::RPC_CALL_ID, callIdStr.c_str());
+            msgSession->addHeader(gwConsts::customheader::RPC_ADDR, addr);
+            if (!msgSession->send(msgBuf, strlen(msgBuf))) {
+                // if error sending out the message
+                return IC_TRANSPORT_FAIL;
+            }
 
-            std::string reqKey(peer);
-            reqKey += "^";
-            reqKey += callIdStr;
-            responseDispatchTable.insert(std::pair<std::string, boost::shared_ptr<SyncContext>>(reqKey, syncCtx));
-        }
-        {
-            boost::unique_lock<boost::mutex> lock(syncCtx->mtx);
-            if (syncCtx->con.timed_wait(lock, 
-                boost::posix_time::milliseconds(gwConsts::RPC_REQ_TIMEOUT))) {
-                // if no timeout waiting for the response
-                if (syncCtx->content) {
-                    size_t len = strlen(syncCtx->content.get());
-                    *resMsgBuf = new char[len + 1]; // will hopefully be deallocated in ReleaseBuf()
-                    memcpy(*resMsgBuf, syncCtx->content.get(), len + 1);
-                }/* else {
-                    return IC_FAIL;
-                }*/
-            } else {
-                // timeout
-                return IC_TIMEOUT;
+            // after sending the request out, the sending thread will be blocked to wait for the response for some time
+            if (reqType == gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL) {
+                // only method call will be hold waiting for the answer
+                boost::shared_ptr<SyncContext> syncCtx(new SyncContext());
+                syncCtx->content = NULL;
+                {
+                    boost::lock_guard<boost::mutex> lock(mtxResponseDispatchTable);
+
+                    std::string reqKey(peer);
+                    reqKey += "^";
+                    reqKey += callIdStr;
+                    responseDispatchTable.insert(std::pair<std::string, boost::shared_ptr<SyncContext>>(reqKey, syncCtx));
+                }
+                {
+                    boost::unique_lock<boost::mutex> lock(syncCtx->mtx);
+                    if (syncCtx->con.timed_wait(lock, 
+                        boost::posix_time::milliseconds(gwConsts::RPC_REQ_TIMEOUT))) {
+                        // if no timeout waiting for the response
+                        if (syncCtx->content) {
+                            size_t len = strlen(syncCtx->content.get());
+                            *resMsgBuf = new char[len + 1]; // will hopefully be deallocated in ReleaseBuf()
+                            memcpy(*resMsgBuf, syncCtx->content.get(), len + 1);
+                        }/* else {
+                            return IC_FAIL;
+                        }*/
+                    } else {
+                        // timeout
+                        return IC_TIMEOUT;
+                    }
+                }
             }
         }
-    } else {
-        // if it is an outgoing response, just send it out
-        if (!callId) {
-            return IC_BAD_ARG_3;
+        break;
+    case gwConsts::customheader::RPC_MSG_TYPE_METHOD_RET:
+    case gwConsts::customheader::RPC_MSG_TYPE_SIGNAL_RET:
+        {
+            // if it is an outgoing response, just send it out
+            if (!callId) {
+                return IC_BAD_ARG_3;
+            }
+            msgSession->addHeader(gwConsts::customheader::RPC_CALL_ID, callId);
+            if (!msgSession->send(msgBuf, strlen(msgBuf))) {
+                // if error sending out the message
+                return IC_TRANSPORT_FAIL;
+            }
         }
-        msgSession->addHeader(gwConsts::customheader::RPC_MSG_TYPE, "0");
-        msgSession->addHeader(gwConsts::customheader::RPC_CALL_ID, callId);
-        if (!msgSession->send(msgBuf, strlen(msgBuf))) {
-            // if error sending out the message
-            return IC_TRANSPORT_FAIL;
+        break;
+    case gwConsts::customheader::RPC_MSG_TYPE_UPDATE_SIGNAL_HANDLER:
+        {
+            if (!addr) {
+                return IC_BAD_ARG_4;
+            }
+            msgSession->addHeader(gwConsts::customheader::RPC_ADDR, addr);
+            if (!msgSession->send(msgBuf, strlen(msgBuf))) {
+                // if error sending out the message
+                return IC_TRANSPORT_FAIL;
+            }
         }
+        break;
+    default:
+        break;
     }
     return IC_OK;
 }

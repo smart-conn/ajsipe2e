@@ -101,6 +101,13 @@ public:
     void AJCloudMethodCall(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
 
     /**
+    * Callback when local object call a method on some cloud interface
+     * @param member - the member (method) of the interface that was executed
+     * @param msg - the Message of the method
+     */
+    void AJCloudSignalCall(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
+
+    /**
      * Callback when publishing some local service to cloud
      * @param member - the member (method) of the interface that was executed
      * @param msg - the Message of the method
@@ -113,6 +120,14 @@ public:
      * @param msg - the Message of the method
      */
     void AJDeleteLocalServiceFromCloud(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
+
+    /**
+     * Callback when updating local signal handler info to Cloud or Far Peer
+     * @param member - the member (method) of the interface that was executed
+     * @param msg - the Message of the method
+     */
+    void AJUpdateSignalHandlerInfoToCloud(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
+
 
     /**
      * Callback when deleting some local service from cloud

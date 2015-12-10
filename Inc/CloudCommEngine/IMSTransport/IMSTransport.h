@@ -127,7 +127,7 @@ public:
      * @param msgBuf - 
      * @param resMsgBuf - 
      */
-    IStatus SendCloudMessage(bool isRequest,
+    IStatus SendCloudMessage(int reqType,
         const char* peer,
         const char* callId,
         const char* addr,

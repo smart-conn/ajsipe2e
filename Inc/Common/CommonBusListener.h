@@ -22,7 +22,8 @@
 #include <alljoyn/BusAttachment.h>
 #include <alljoyn/BusListener.h>
 #include <alljoyn/SessionPortListener.h>
-#include <vector>
+// #include <vector>
+#include <map>
 
 namespace sipe2e {
 
@@ -40,7 +41,11 @@ class CommonBusListener : public ajn::BusListener, public ajn::SessionPortListen
      * @param bus - used to set a session Listener
      * @param daemonDisconnectCB - used to set a callback for when the daemon is disconnected
      */
-    CommonBusListener(ajn::BusAttachment* bus = NULL, void(*daemonDisconnectCB)() = NULL);
+    CommonBusListener(ajn::BusAttachment* bus = NULL,
+        void(*daemonDisconnectCB)(void* arg) = NULL,
+        void(*sessionJoinedCB)(void* arg, ajn::SessionPort sessionPort, ajn::SessionId id, const char* joiner) = NULL,
+        void(*sessionLostCB)(void* arg, ajn::SessionId sessionId, SessionLostReason reason) = NULL,
+        void* arg = NULL);
 
     /**
      * Destructor of CommonBusListener
@@ -87,7 +92,9 @@ class CommonBusListener : public ajn::BusListener, public ajn::SessionPortListen
      * Get the SessionIds associated with this Listener
      * @return vector of sessionIds
      */
-    const std::vector<ajn::SessionId>& getSessionIds() const;
+//     const std::vector<ajn::SessionId>& getSessionIds() const;
+
+    const std::map<ajn::SessionId, qcc::String>& getSessionIdJoinerMap() const;
 
     /**
      * Function when Bus has been disconnected
@@ -109,13 +116,18 @@ class CommonBusListener : public ajn::BusListener, public ajn::SessionPortListen
     /**
      * The sessionIds for the port
      */
-    std::vector<ajn::SessionId> m_SessionIds;
+//     std::vector<ajn::SessionId> m_SessionIds;
+
+    std::map<ajn::SessionId, qcc::String> m_SessionIdJoinerMap;
 
     /**
      * Callback when daemon is disconnected
      */
-    void (*m_DaemonDisconnectCB)();
+    void (*m_DaemonDisconnectCB)(void* arg);
+    void(*m_sessionJoinedCB)(void* arg, ajn::SessionPort sessionPort, ajn::SessionId id, const char* joiner);
+    void(*m_sessionLostCB)(void* arg, ajn::SessionId sessionId, SessionLostReason reason);
 
+    void* m_arg;
 };
 
 } // namespace gateway

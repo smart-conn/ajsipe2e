@@ -62,14 +62,14 @@ int SIPE2E_GATEWAY_CALL ITReadCloudMessage(char** msgBuf)
     return IMSTransport::GetInstance()->ReadCloudMessage(msgBuf);
 }
 
-int SIPE2E_GATEWAY_CALL ITSendCloudMessage(int isRequest, 
+int SIPE2E_GATEWAY_CALL ITSendCloudMessage(int reqType, 
                                            const char* peer,
                                            const char* callId,
                                            const char* addr,
                                            const char* msgBuf, 
                                            char** resMsgBuf)
 {
-    return IMSTransport::GetInstance()->SendCloudMessage(1==isRequest, peer, callId, addr, msgBuf, resMsgBuf);
+    return IMSTransport::GetInstance()->SendCloudMessage(reqType, peer, callId, addr, msgBuf, resMsgBuf);
 }
 
 void SIPE2E_GATEWAY_CALL ITReleaseBuf(char* buf)

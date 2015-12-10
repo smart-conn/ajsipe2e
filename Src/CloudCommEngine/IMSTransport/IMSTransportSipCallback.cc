@@ -254,16 +254,20 @@ int IMSTransportSipCallback::OnMessagingEvent(const MessagingEvent* e)
                         unsigned int contentLen = ((SipMessage*)msg)->getSipContentLength();
                         switch (atoi(msgType)) {
                         default:
-                        case gwConsts::customheader::RPC_MSG_TYPE_REQ:
+                        case gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL:
+                        case gwConsts::customheader::RPC_MSG_TYPE_SIGNAL_CALL:
+                        case gwConsts::customheader::RPC_MSG_TYPE_UPDATE_SIGNAL_HANDLER:
                             {
-                                // if it is an incoming request message
+                                // if it is an incoming method call request message
                                 // Fill the request buffer as the format "lyh@nane.cn^CallID^Addr^Request Content"
                                 char *addr = ((SipMessage*)msg)->getSipHeaderValue(gwConsts::customheader::RPC_ADDR);
                                 if (!addr) {
                                     return -1;
                                 }
-                                boost::shared_array<char> rpcXml(new char[contentLen + 1 + gwConsts::MAX_SIP_ADDR_LEN + gwConsts::MAX_RPC_MSG_CALLID_LEN + 2]);
-                                strcpy(rpcXml.get(), peer);
+                                boost::shared_array<char> rpcXml(new char[contentLen + 3 + gwConsts::MAX_SIP_ADDR_LEN + gwConsts::MAX_RPC_MSG_CALLID_LEN + 2]);
+                                strcpy(rpcXml.get(), msgType);
+                                strcat(rpcXml.get(), "^");
+                                strcat(rpcXml.get(), peer);
                                 strcat(rpcXml.get(), "^");
                                 strcat(rpcXml.get(), callId);
                                 strcat(rpcXml.get(), "^");
@@ -277,7 +281,8 @@ int IMSTransportSipCallback::OnMessagingEvent(const MessagingEvent* e)
                                 ims->incomingMsgQueue.Enqueue(rpcXml);
                             }
                             break;
-                        case gwConsts::customheader::RPC_MSG_TYPE_RES:
+                        case gwConsts::customheader::RPC_MSG_TYPE_METHOD_RET:
+                        case gwConsts::customheader::RPC_MSG_TYPE_SIGNAL_RET:
                             {
                                 // if it is a response message
                                 std::string reqKey(peer);

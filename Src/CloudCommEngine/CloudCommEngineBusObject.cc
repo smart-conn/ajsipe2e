@@ -22,6 +22,7 @@
 #include <qcc/Thread.h>
 #include <qcc/XmlElement.h>
 #include <qcc/StringSource.h>
+#include <qcc/StringUtil.h>
 
 #include "Common/CommonUtils.h"
 
@@ -124,20 +125,28 @@ QStatus CloudCommEngineBusObject::Init(BusAttachment& cloudCommBus, services::Ab
         return status;
     }
     intf->AddMethod(SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_CLOUDMETHODCALL.c_str(),
-        "savs", "avx", "addr,para,localSessionID,reply,cloudSessionID");
+        "savx", "avs", "addr,para,localSessionID,reply,cloudSessionID");
+    intf->AddMethod(SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_CLOUDSIGNALCALL.c_str(),
+        "ssavx", NULL, "senderAddr,receiverAddr,para,localSessionID");
     intf->AddMethod(SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_PUBLISH.c_str(),
         "s", NULL, "introspectionXML");
     intf->AddMethod(SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_DELETE.c_str(),
         "s", NULL, "introspectionXML");
+    intf->AddMethod(SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_UPDATESIGNALHANDLERINFO.c_str(),
+        "sssu", NULL, "peerAddr,peerBusNameObjPath,localBusName,localSessionId");
     intf->Activate();
     this->AddInterface(*intf, BusObject::ANNOUNCED);
     const MethodEntry methodEntries[] = {
         { intf->GetMember(SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_CLOUDMETHODCALL.c_str()), 
         static_cast<MessageReceiver::MethodHandler>(&CloudCommEngineBusObject::AJCloudMethodCall) },
+        { intf->GetMember(SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_CLOUDSIGNALCALL.c_str()), 
+        static_cast<MessageReceiver::MethodHandler>(&CloudCommEngineBusObject::AJCloudSignalCall) },
         { intf->GetMember(SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_PUBLISH.c_str()), 
         static_cast<MessageReceiver::MethodHandler>(&CloudCommEngineBusObject::AJPublishLocalServiceToCloud) },
         { intf->GetMember(SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_DELETE.c_str()), 
-        static_cast<MessageReceiver::MethodHandler>(&CloudCommEngineBusObject::AJDeleteLocalServiceFromCloud) }
+        static_cast<MessageReceiver::MethodHandler>(&CloudCommEngineBusObject::AJDeleteLocalServiceFromCloud) },
+        { intf->GetMember(SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_UPDATESIGNALHANDLERINFO.c_str()), 
+        static_cast<MessageReceiver::MethodHandler>(&CloudCommEngineBusObject::AJPublishLocalServiceToCloud) }
     };
     status = this->AddMethodHandlers(methodEntries, sizeof(methodEntries) / sizeof(methodEntries[0]));
     if (ER_OK != status) {
@@ -244,7 +253,7 @@ void CloudCommEngineBusObject::AJCloudMethodCall(const InterfaceDescription::Mem
     }
 
     //    The first arg is the called address
-    
+
     if (args[0].typeId != ALLJOYN_STRING || args[0].v_string.len <= 1) {
         status = ER_BAD_ARG_1;
         CHECK_STATUS_AND_REPLY("Error call address");
@@ -273,7 +282,7 @@ void CloudCommEngineBusObject::AJCloudMethodCall(const InterfaceDescription::Mem
     }
 */
 
-    // The second arg is the parameter array for this local method call 
+    // The second arg is the parameter array for this cloud method call 
     MsgArg* inArgsVariant = NULL;
     size_t numInArgs = 0;
     status = args[1].Get("av", &numInArgs, &inArgsVariant);
@@ -287,9 +296,9 @@ void CloudCommEngineBusObject::AJCloudMethodCall(const InterfaceDescription::Mem
     }
 
     // The third arg is the cloud session ID 
-    const char* localSessionID = NULL;
-    status = args[2].Get("s", &localSessionID);
-    if (ER_OK == status && localSessionID) {
+    long long localSessionID = 0;
+    status = args[2].Get("x", &localSessionID);
+    if (ER_OK == status) {
         // Store the local session ID, and map it to cloud session ID 
         // to be continued
     }
@@ -367,6 +376,50 @@ void CloudCommEngineBusObject::AJCloudMethodCall(const InterfaceDescription::Mem
     CloudMethodCallRunable* cmcRunable = new CloudMethodCallRunable(argList);
     status = cloudMethodCallThreadPool.Execute(cmcRunable);
     CHECK_STATUS_AND_REPLY("Error running the CloudMethodCall thread maybe because of resource constraint");
+}
+
+void CloudCommEngineBusObject::AJCloudSignalCall(const InterfaceDescription::Member* member, Message& msg)
+{
+    QStatus status = ER_OK;
+
+    // Retrieve all arguments of the method call 
+    size_t  numArgs = 0;
+    const MsgArg* args = 0;
+    msg->GetArgs(numArgs, args);
+    if (numArgs != 4) {
+        status = ER_BAD_ARG_COUNT;
+        CHECK_STATUS_AND_REPLY("Error argument count");
+    }
+
+    // The first arg is the sender address
+    String senderAddr(args[0].v_string.str);
+    // The second arg is the receiver address
+    String receiverAddr(args[1].v_string.str);
+    size_t slash = receiverAddr.find_first_of('/');
+    if (String::npos == slash) {
+        status = ER_FAIL;
+        CHECK_STATUS_AND_REPLY("The format of receiver address is not correct");
+    }
+    String peer = receiverAddr.substr(0, slash);
+    String peerAddr(senderAddr);
+    peerAddr += "`";
+    peerAddr += receiverAddr.substr(slash + 1, receiverAddr.size() - slash - 1);
+
+    // The third arg is the parameter array for this cloud signal call 
+    MsgArg* inArgsVariant = NULL;
+    size_t numInArgs = 0;
+    args[1].Get("av", &numInArgs, &inArgsVariant);
+    String argsStr("<args>\n");
+    for (size_t i = 0; i < numInArgs; i++) {
+        argsStr += ArgToXml(inArgsVariant[i].v_variant.val, 0);
+    }
+    argsStr +=  "</args>";
+    
+    int itStatus = ITSendCloudMessage(gwConsts::customheader::RPC_MSG_TYPE_SIGNAL_CALL, peer.c_str(), NULL, peerAddr.c_str(), argsStr.c_str(), NULL);
+    if (0 != itStatus) {
+        status = ER_FAIL;
+        CHECK_STATUS_AND_REPLY("Failed to send message to cloud");
+    }
 }
 
 // Delete dependency on Axis2, 20151019, LYH
@@ -469,6 +522,54 @@ void CloudCommEngineBusObject::AJDeleteLocalServiceFromCloud(const InterfaceDesc
     }
 }
 
+void CloudCommEngineBusObject::AJUpdateSignalHandlerInfoToCloud(const ajn::InterfaceDescription::Member* member, ajn::Message& msg)
+{
+    QStatus status = ER_OK;
+
+    // Retrieve all arguments of the method call 
+    size_t  numArgs = 0;
+    const MsgArg* args = 0;
+    msg->GetArgs(numArgs, args);
+    if (numArgs != 4) {
+        status = ER_BAD_ARG_COUNT;
+        CHECK_STATUS_AND_REPLY("Error argument count");
+    }
+
+    //  The first arg is the peer address: thierry_luo@nane.cn
+    if (args[0].typeId != ALLJOYN_STRING || args[0].v_string.len <= 1) {
+        status = ER_BAD_ARG_1;
+        CHECK_STATUS_AND_REPLY("Error call address");
+    }
+    String peerAddr(args[0].v_string.str);
+
+    // The second arg is the peer BusName and ObjPath: BusName/ObjPath
+    String peerBusNameObjPath(args[1].v_string.str);
+    while ('/' == peerBusNameObjPath[peerBusNameObjPath.length() - 1]) {
+        peerBusNameObjPath.erase(peerBusNameObjPath.length() - 1, 1);
+    }
+
+    // The third arg is the local BusName
+   String localBusName(args[2].v_string.str);
+   // The fourth arg is the local Session ID
+   unsigned int localSessionId = args[3].v_uint32;
+
+   String msgBuf = "<SignalHandlerInfo busName=\"";
+   msgBuf += localBusName;
+   msgBuf += "\"";
+   msgBuf += " sessionId=\"";
+   msgBuf += qcc::U32ToString(localSessionId, 10);
+   msgBuf += "\"></SignalHandlerInfo>";
+
+   int itStatus = ITSendCloudMessage(gwConsts::customheader::RPC_MSG_TYPE_UPDATE_SIGNAL_HANDLER, peerAddr.c_str(), NULL, peerBusNameObjPath.c_str(), msgBuf.c_str(), NULL);
+   if (0 != itStatus) {
+       QCC_LogError(ER_FAIL, ("Failed to send message to cloud"));
+       status = MethodReply(msg, (QStatus)itStatus);
+       if (ER_OK != status) {
+           QCC_LogError(status, ("Method Reply did not complete successfully"));
+       }
+   }
+}
+
 void CloudCommEngineBusObject::AJSubscribe(const ajn::InterfaceDescription::Member* member, ajn::Message& msg)
 {
     QStatus status = ER_OK;
@@ -530,7 +631,10 @@ CloudCommEngineBusObject::CloudMethodCallRunable::CloudMethodCallRunable(CloudMe
 
 CloudCommEngineBusObject::CloudMethodCallRunable::~CloudMethodCallRunable()
 {
-
+    if (arg) {
+        delete arg;
+        arg = NULL;
+    }
 }
 
 void CloudCommEngineBusObject::CloudMethodCallRunable::Run()
@@ -560,16 +664,16 @@ void CloudCommEngineBusObject::CloudMethodCallRunable::Run()
     }
     String peer = calledAddr.substr(0, slash);
     String addr = calledAddr.substr(slash + 1, calledAddr.size() - slash - 1);
-    String argsStr = String("<args>\n");
+    String argsStr("<args>\n");
     if (arg->inArgs && arg->inArgsNum > 0) {
         for (unsigned int i = 0; i < arg->inArgsNum; i++) {
             argsStr += ArgToXml(&arg->inArgs[i], 0);
         }
     }
-    argsStr +=  String("</args>");
+    argsStr +=  "</args>";
 
     char* resBuf = NULL;
-    int itStatus = ITSendCloudMessage(1, peer.c_str(), NULL, addr.c_str(), argsStr.c_str(), &resBuf);
+    int itStatus = ITSendCloudMessage(gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL, peer.c_str(), NULL, addr.c_str(), argsStr.c_str(), &resBuf);
     if (0 != itStatus) {
         if (resBuf) {
             ITReleaseBuf(resBuf);

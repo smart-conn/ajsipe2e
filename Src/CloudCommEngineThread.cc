@@ -280,7 +280,7 @@ void cleanup()
         delete s_cceBusObject;
         s_cceBusObject = NULL;
     }
-    if (s_pceProxyBusObject->IsValid()) {
+    if (s_pceProxyBusObject.unwrap() && s_pceProxyBusObject->IsValid()) {
         ManagedObj<ProxyBusObject> tmp;
         s_pceProxyBusObject = tmp;
     }

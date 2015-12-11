@@ -147,16 +147,49 @@ void CloudServiceAgentBusObject::CommonMethodHandler(const InterfaceDescription:
 
 QStatus CloudServiceAgentBusObject::Get(const char* ifcName, const char* propName, MsgArg& val)
 {
-    // TBD
     QStatus status = ER_OK;
+
+    // The method call 'GetPro' consists of two arguments and one return argument
+    MsgArg cloudCallArgs[2];
+    cloudCallArgs->Set("s", ifcName);
+    cloudCallArgs->Set("s", propName);
+    Message replyMsg(*context.bus);
+    status = cloudEngineProxyBusObject->MethodCall(gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
+        gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_CLOUDMETHODCALL.c_str(), 
+        cloudCallArgs, 2, replyMsg);
+
+    if (ER_OK != status) {
+        QCC_LogError(status, ("Error making the cloud method call"));
+        return status;
+    }
+
+    const MsgArg* replyVal = replyMsg->GetArg(0);
+    if (!replyVal) {
+        QCC_LogError(ER_FAIL, ("The reply message has not argument"));
+        return ER_FAIL;
+    }
+    val = *replyVal->v_variant.val;
 
     return status;
 }
 
 QStatus CloudServiceAgentBusObject::Set(const char* ifcName, const char* propName, MsgArg& val)
 {
-    // TBD
     QStatus status = ER_OK;
+
+    MsgArg cloudCallArgs[3];
+    cloudCallArgs[0].Set("s", ifcName);
+    cloudCallArgs[1].Set("s", propName);
+    cloudCallArgs[2] = MsgArg(ALLJOYN_VARIANT);
+    cloudCallArgs[2].v_variant.val = &val;
+
+    status = cloudEngineProxyBusObject->MethodCall(gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
+        gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_CLOUDMETHODCALL.c_str(), 
+        cloudCallArgs, 3);
+
+    if (ER_OK != status) {
+        QCC_LogError(status, ("Error making the cloud method call"));
+    }
 
     return status;
 }

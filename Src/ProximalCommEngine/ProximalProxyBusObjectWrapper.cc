@@ -189,7 +189,7 @@ void ProximalProxyBusObjectWrapper::CommonSignalHandler(const InterfaceDescripti
 
     // Now we try to find the SignalHandlerInfo using the key BusName/ObjPath
     // Get the Bus Name of the signal sender which is saved as the service name of the ProxyBusObject at the time of creation
-    const String& senderBusName = proxy->GetServiceName();
+    const String& senderBusName = proxy->GetServiceName(); // it's the same as msg->GetSender() ?
     String busNameObjPath(senderBusName);
 //     busNameObjPath += srcPath; // The Signal Handler Info is store with key as BusName (without ObjPath?)
 

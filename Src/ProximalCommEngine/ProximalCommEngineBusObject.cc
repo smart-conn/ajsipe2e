@@ -303,6 +303,8 @@ QStatus ProximalCommEngineBusObject::Init(BusAttachment& proximalCommBus, servic
         "ss", NULL, "serviceAddr,introspectionXML");
     intf->AddMethod(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_UNSUBSCRIBE.c_str(),
         "ss", NULL, "serviceAddr,introspectionXML");
+    intf->AddMethod(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_UPDATESIGNALHANDLERINFO.c_str(),
+        "sssu", NULL, "localBusNameObjPath,peerAddr,peerBusName,peerSessionId");
     intf->Activate();
     this->AddInterface(*intf, BusObject::ANNOUNCED);
     const MethodEntry methodEntries[] = {
@@ -313,7 +315,9 @@ QStatus ProximalCommEngineBusObject::Init(BusAttachment& proximalCommBus, servic
         { intf->GetMember(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_SUBSCRIBE.c_str()), 
         static_cast<MessageReceiver::MethodHandler>(&ProximalCommEngineBusObject::AJSubscribeCloudServiceToLocal) },
         { intf->GetMember(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_UNSUBSCRIBE.c_str()), 
-        static_cast<MessageReceiver::MethodHandler>(&ProximalCommEngineBusObject::AJUnsubscribeCloudServiceFromLocal) }
+        static_cast<MessageReceiver::MethodHandler>(&ProximalCommEngineBusObject::AJUnsubscribeCloudServiceFromLocal) },
+        { intf->GetMember(SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_UPDATESIGNALHANDLERINFO.c_str()), 
+            static_cast<MessageReceiver::MethodHandler>(&ProximalCommEngineBusObject::AJUpdateSignalHandlerInfoToLocal) },
     };
     status = this->AddMethodHandlers(methodEntries, sizeof(methodEntries) / sizeof(methodEntries[0]));
     if (ER_OK != status) {

@@ -53,7 +53,7 @@ extern "C"
         ITReadCloudMessage(char** msgBuf);
 
     SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
-        ITSendCloudMessage(int reqType,
+        ITSendCloudMessage(int msgType,
             const char* peer,
             const char* callId,
             const char* addr,

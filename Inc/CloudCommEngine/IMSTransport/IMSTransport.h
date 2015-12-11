@@ -121,13 +121,13 @@ public:
 
     /**
      *
-     * @param isRequest - 1 for request, 0 for response
+     * @param reqType - See RPC_MSG_TYPE_ENUM
      * @param peer - 
      * @param callId - if it's request and callId is NULL, then generate the CallID here
      * @param msgBuf - 
      * @param resMsgBuf - 
      */
-    IStatus SendCloudMessage(int reqType,
+    IStatus SendCloudMessage(int msgType,
         const char* peer,
         const char* callId,
         const char* addr,

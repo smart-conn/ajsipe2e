@@ -723,7 +723,7 @@ IStatus IMSTransport::ReadCloudMessage(char** msgBuf)
     return IC_OK;
 }
 
-IStatus IMSTransport::SendCloudMessage(int reqType, 
+IStatus IMSTransport::SendCloudMessage(int msgType, 
                                        const char* peer, 
                                        const char* callId, 
                                        const char* addr,
@@ -745,8 +745,8 @@ IStatus IMSTransport::SendCloudMessage(int reqType,
     strcpy(peerUri, "sip:");
     strcat(peerUri, peer);
     msgSession->setToUri(peerUri);
-    msgSession->addHeader(gwConsts::customheader::RPC_MSG_TYPE, qcc::I32ToString(reqType).c_str());
-    switch (reqType) {
+    msgSession->addHeader(gwConsts::customheader::RPC_MSG_TYPE, qcc::I32ToString(msgType).c_str());
+    switch (msgType) {
     case gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL:
     case gwConsts::customheader::RPC_MSG_TYPE_SIGNAL_CALL:
         {
@@ -768,7 +768,7 @@ IStatus IMSTransport::SendCloudMessage(int reqType,
             }
 
             // after sending the request out, the sending thread will be blocked to wait for the response for some time
-            if (reqType == gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL) {
+            if (msgType == gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL) {
                 // only method call will be hold waiting for the answer
                 boost::shared_ptr<SyncContext> syncCtx(new SyncContext());
                 syncCtx->content = NULL;

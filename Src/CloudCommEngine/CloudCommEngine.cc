@@ -164,10 +164,10 @@ ThreadReturn STDCALL MessageReceiverThreadFunc(void* arg)
         char* msgBuf = NULL;
         if (IMSTransport::GetInstance()->ReadCloudMessage(&msgBuf) && msgBuf) {
             QStatus status = ER_OK;
-            // There are maybe two types of incoming MESSAGE, one of which is Method Calls and the other Signal
+            // There are maybe two types of incoming MESSAGE, one of which is Method Calls and the other is Signal
             // Here we'll have to deal with these two situations
-            char* reqType = msgBuf;
-            char* tmp = strchr(reqType, '^');
+            char* msgType = msgBuf;
+            char* tmp = strchr(msgType, '^');
             if (!tmp) {
                 // the format is not correct
                 QCC_LogError(ER_FAIL, ("The notification message format is not correct"));
@@ -175,7 +175,7 @@ ThreadReturn STDCALL MessageReceiverThreadFunc(void* arg)
                 continue;
             }
             *tmp = '\0';
-            int reqTypeN = atoi(reqType);
+            int msgTypeN = atoi(msgType);
 
             char* peer = tmp + 1;;
             tmp = strchr(peer, '^');
@@ -187,14 +187,14 @@ ThreadReturn STDCALL MessageReceiverThreadFunc(void* arg)
             }
             *tmp = '\0';
 
-            if (reqTypeN <= gwConsts::customheader::RPC_MSG_TYPE_SIGNAL_RET) {
+            if (msgTypeN <= gwConsts::customheader::RPC_MSG_TYPE_SIGNAL_RET) {
                 // If the request is METHOD CALL or SIGNAL CALL
                 char* callId = tmp + 1;
                 tmp = strchr(callId, '^');
                 if (!tmp) {
                     // the format is not correct
                     QCC_LogError(ER_FAIL, ("The message format is not correct"));
-                    ITSendCloudMessage(reqTypeN+1, peer, callId, NULL, "", NULL);
+                    ITSendCloudMessage(msgTypeN+1, peer, callId, NULL, "", NULL);
                     ITReleaseBuf(msgBuf);
                     continue;
                 }
@@ -204,7 +204,7 @@ ThreadReturn STDCALL MessageReceiverThreadFunc(void* arg)
                 if (!tmp) {
                     // the format is not correct
                     QCC_LogError(ER_FAIL, ("The message format is not correct"));
-                    ITSendCloudMessage(reqTypeN+1, peer, callId, addr, "", NULL);
+                    ITSendCloudMessage(msgTypeN+1, peer, callId, addr, "", NULL);
                     ITReleaseBuf(msgBuf);
                     continue;
                 }
@@ -215,7 +215,7 @@ ThreadReturn STDCALL MessageReceiverThreadFunc(void* arg)
                 status = XmlElement::Parse(pc);
                 if (ER_OK != status) {
                     QCC_LogError(status, ("Error parsing the message xml content: %s", msgContent));
-                    ITSendCloudMessage(reqTypeN+1, peer, callId, addr, "", NULL);
+                    ITSendCloudMessage(msgTypeN+1, peer, callId, addr, "", NULL);
                     ITReleaseBuf(msgBuf);
                     continue;
                 }
@@ -223,7 +223,7 @@ ThreadReturn STDCALL MessageReceiverThreadFunc(void* arg)
                 if (!rootEle) {
                     // the format is not correct
                     QCC_LogError(ER_FAIL, ("The message format is not correct"));
-                    ITSendCloudMessage(reqTypeN+1, peer, callId, addr, "", NULL);
+                    ITSendCloudMessage(msgTypeN+1, peer, callId, addr, "", NULL);
                     ITReleaseBuf(msgBuf);
                     continue;
                 }
@@ -242,7 +242,7 @@ ThreadReturn STDCALL MessageReceiverThreadFunc(void* arg)
                     }
                 }
 
-                switch (reqTypeN) {
+                switch (msgTypeN) {
                 case gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL:
                     {
                         MsgArg args[3];
@@ -261,7 +261,7 @@ ThreadReturn STDCALL MessageReceiverThreadFunc(void* arg)
 
                         if (ER_OK != status) {
                             QCC_LogError(status, ("Error executing local method call"));
-                            ITSendCloudMessage(reqTypeN+1, peer, callId, addr, "", NULL);
+                            ITSendCloudMessage(msgTypeN+1, peer, callId, addr, "", NULL);
                             ITReleaseBuf(msgBuf);
                             continue;
                         }
@@ -277,14 +277,14 @@ ThreadReturn STDCALL MessageReceiverThreadFunc(void* arg)
                             }
                             argsStr += String("</args>");
 
-                            int itStatus = ITSendCloudMessage(reqTypeN+1, peer, callId, addr, argsStr.c_str(), NULL);
+                            int itStatus = ITSendCloudMessage(msgTypeN+1, peer, callId, addr, argsStr.c_str(), NULL);
                             if (0 != itStatus) {
                                 QCC_LogError(ER_FAIL, ("Failed to send message to cloud"));
                             }
                         } else {
                             // The reply message is not correct
                             // Reply with empty message
-                            ITSendCloudMessage(reqTypeN+1, peer, callId, addr, "", NULL);
+                            ITSendCloudMessage(msgTypeN+1, peer, callId, addr, "", NULL);
                         }
                     }
                     break;
@@ -334,7 +334,7 @@ ThreadReturn STDCALL MessageReceiverThreadFunc(void* arg)
                 }
 
 
-            } else if (reqTypeN == gwConsts::customheader::RPC_MSG_TYPE_UPDATE_SIGNAL_HANDLER) {
+            } else if (msgTypeN == gwConsts::customheader::RPC_MSG_TYPE_UPDATE_SIGNAL_HANDLER) {
                 // If the request type is UPDATE SIGNAL HANDLER
                 char* callId = tmp + 1;
                 tmp = strchr(callId, '^');

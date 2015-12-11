@@ -526,9 +526,9 @@ QStatus CloudServiceAgentBusObject::ParseInterface(const XmlElement* root)
                             if (ER_OK != status) {
                                 // log error
                                 break;
-                            } else if (currMember->memberType == MESSAGE_SIGNAL) {
-                                // not implemented
-                            }
+                            } 
+                        } else if (currMember->memberType == MESSAGE_SIGNAL) {
+                            // not implemented
                         }
                     }
                 }

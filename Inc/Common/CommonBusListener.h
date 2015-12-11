@@ -36,15 +36,19 @@ class CommonBusListener : public ajn::BusListener, public ajn::SessionPortListen
 
   public:
 
+      typedef void(*daemonDisconnectCB)(void* arg);
+      typedef void(*sessionJoinedCB)(void* arg, ajn::SessionPort sessionPort, ajn::SessionId id, const char* joiner);
+      typedef void(*sessionLostCB)(void* arg, ajn::SessionId sessionId, SessionLostReason reason);
+
     /**
      * Constructor of CommonBusListener
      * @param bus - used to set a session Listener
      * @param daemonDisconnectCB - used to set a callback for when the daemon is disconnected
      */
     CommonBusListener(ajn::BusAttachment* bus = NULL,
-        void(*daemonDisconnectCB)(void* arg) = NULL,
-        void(*sessionJoinedCB)(void* arg, ajn::SessionPort sessionPort, ajn::SessionId id, const char* joiner) = NULL,
-        void(*sessionLostCB)(void* arg, ajn::SessionId sessionId, SessionLostReason reason) = NULL,
+        daemonDisconnectCB dDCB = NULL,
+        sessionJoinedCB sJCB = NULL,
+        sessionLostCB sLCB = NULL,
         void* arg = NULL);
 
     /**

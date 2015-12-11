@@ -146,7 +146,7 @@ QStatus CloudCommEngineBusObject::Init(BusAttachment& cloudCommBus, services::Ab
         { intf->GetMember(SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_DELETE.c_str()), 
         static_cast<MessageReceiver::MethodHandler>(&CloudCommEngineBusObject::AJDeleteLocalServiceFromCloud) },
         { intf->GetMember(SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_UPDATESIGNALHANDLERINFO.c_str()), 
-        static_cast<MessageReceiver::MethodHandler>(&CloudCommEngineBusObject::AJPublishLocalServiceToCloud) }
+        static_cast<MessageReceiver::MethodHandler>(&CloudCommEngineBusObject::AJUpdateSignalHandlerInfoToCloud) }
     };
     status = this->AddMethodHandlers(methodEntries, sizeof(methodEntries) / sizeof(methodEntries[0]));
     if (ER_OK != status) {

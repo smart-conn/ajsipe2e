@@ -30,14 +30,14 @@ namespace sipe2e {
 namespace gateway {
 
 CommonBusListener::CommonBusListener(ajn::BusAttachment* bus /*= NULL*/, 
-                                     void(*daemonDisconnectCB)(void* arg) /*= NULL*/, 
-                                     void(*sessionJoinedCB)(void* arg, ajn::SessionPort sessionPort, ajn::SessionId id, const char* joiner) /*= NULL*/, 
-                                     void(*sessionLostCB)(void* arg, ajn::SessionId sessionId, SessionLostReason reason) /*= NULL*/,
-                                     void* arg)
+                                     daemonDisconnectCB dDCB /*= NULL*/,
+                                     sessionJoinedCB sJCB /*= NULL*/,
+                                     sessionLostCB sLCB /*= NULL*/,
+                                     void* arg /*= NULL*/)
     : BusListener(), SessionPortListener(), m_SessionPort(0), m_Bus(bus), 
-    m_DaemonDisconnectCB(daemonDisconnectCB),
-    m_sessionJoinedCB(sessionJoinedCB),
-    m_sessionLostCB(sessionLostCB),
+    m_DaemonDisconnectCB(dDCB),
+    m_sessionJoinedCB(sJCB),
+    m_sessionLostCB(sLCB),
     m_arg(arg)
 {
 

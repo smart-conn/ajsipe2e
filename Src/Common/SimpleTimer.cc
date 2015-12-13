@@ -17,7 +17,7 @@
 #include "Common/SimpleTimer.h"
 
 SimpleTimer::SimpleTimer()
-    : timerThread(boost::thread(boost::bind(&SimpleTimer::TimerThreadFunc, this))),
+    : timerThread(std::thread(std::bind(&SimpleTimer::TimerThreadFunc, this))),
     interval(0), timerCB(NULL), timerCBPara(NULL)
 {
 }
@@ -38,7 +38,8 @@ void SimpleTimer::Start(unsigned int intvl, TimerCallBack cb, void* cbPara)
 void SimpleTimer::Stop()
 {
     cond.notify_one();
-    timerThread.try_join_for(boost::chrono::milliseconds(interval));
+    timerThread.join();
+//     timerThread.try_join_for(boost::chrono::milliseconds(interval));
     interval = 0;
     timerCB = NULL;
     timerCBPara = NULL;
@@ -48,14 +49,12 @@ void SimpleTimer::TimerThreadFunc()
 {
     while (1) {
         if (interval == 0) {// the timer has not been initiated
-            boost::unique_lock<boost::mutex> lock(mtxStart);
+            std::unique_lock<std::mutex> lock(mtxStart);
             condStart.wait(lock); // wait until the timer is started
             continue;
         } else {
-            boost::unique_lock<boost::mutex> lock(mtx);
-            if (!cond.timed_wait(lock, boost::posix_time::milliseconds(interval))) {
-//             if (boost::cv_status::timeout == cond.wait_for(lock, boost::chrono::milliseconds(interval))) {
-                // if timed out, then execute the Timer CallBack
+            std::unique_lock<std::mutex> lock(mtx);
+            if (!cond.wait_for(lock, std::chrono::milliseconds(interval))) {
                 if (timerCB) {
                     timerCB(timerCBPara);
                 }

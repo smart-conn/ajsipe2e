@@ -28,21 +28,13 @@
 
 #include <alljoyn/about/AboutService.h>
 
-// Delete dependency on Axis2, 20151019, LYH
-/*
-#include <platforms/axutil_platform_auto_sense.h>
-#include <axiom.h>
-#include <axis2_util.h>
-#include <axiom_soap.h>
-#include <axis2_client.h>
-*/
-
 #include "CloudCommEngine/CloudCommEngineBusObject.h"
 #include "Common/GatewayStd.h"
 #include "Common/GatewayConstants.h"
 
 #include "CloudCommEngine/IMSTransport/IMSTransportExport.h"
 #include "CloudCommEngine/IMSTransport/IMSTransportConstants.h"
+#include "CloudCommEngine/IMSTransport/pidf.h"
 
 #define QCC_MODULE "SIPE2E"
 
@@ -58,21 +50,12 @@ using namespace gwConsts;
 
 typedef struct _CloudMethodCallThreadArg
 {
-    // Delete dependency on Axis2, 20151019, LYH
-//     axis2_stub_t* cloudStub;
-    // Delete the dependency on ServiceInfo, 20151021, LYH
-//     size_t inArgsNum, outArgsNum;
-//     char* inArgsSignature, * outArgsSignature;
     MsgArg* inArgs;
     unsigned int inArgsNum;
     String calledAddr;
     AsyncReplyContext* replyContext;
     CloudCommEngineBusObject* cceBusObject;
     _CloudMethodCallThreadArg()
-        : /*cloudStub(NULL),*/ // Delete dependency on Axis2, 20151019, LYH 
-        // Delete the dependency on ServiceInfo, 20151021, LYH
-//         inArgsNum(0), outArgsNum(0), 
-//         inArgsSignature(NULL), outArgsSignature(NULL), 
         inArgs(NULL), inArgsNum(0),
         replyContext(NULL), cceBusObject(NULL)
     {
@@ -80,15 +63,6 @@ typedef struct _CloudMethodCallThreadArg
     }
     ~_CloudMethodCallThreadArg()
     {
-        // Delete dependency on Axis2, 20151019, LYH
-//         cloudStub = NULL;
-        // Delete the dependency on ServiceInfo, 20151021, LYH
-//         if (inArgsSignature) {
-//             SIReleaseBuf(inArgsSignature);
-//         }
-//         if (outArgsSignature) {
-//             SIReleaseBuf(outArgsSignature);
-//         }
         if (inArgs) {
             delete[] inArgs;
             inArgs = NULL;
@@ -101,9 +75,11 @@ typedef struct _CloudMethodCallThreadArg
 
 
 CloudCommEngineBusObject::CloudCommEngineBusObject(qcc::String const& objectPath, uint32_t threadPoolSize)
-    : BusObject(objectPath.c_str())/*, axis2Env(NULL)*//* Delete dependency on Axis2, 20151019, LYH */
+    : BusObject(objectPath.c_str()),
     , cloudMethodCallThreadPool("CloudMethodCallThreadPool", threadPoolSize)
-    , aboutService(NULL)
+    , aboutService(NULL),
+    messageReceiverThread("MessageReceiverThread", CloudCommEngineBusObject::MessageReceiverThreadFunc),
+    notificationReceiverThread("NotificationReceiverThread", CloudCommEngineBusObject::NotificationReceiverThreadFunc)
 {
 
 }
@@ -170,18 +146,8 @@ QStatus CloudCommEngineBusObject::Init(BusAttachment& cloudCommBus, services::Ab
     }
     aboutService = &cloudCommAboutService;
 
-    /* Prepare the Axis2 environment */
-/*
-#ifdef _DEBUG
-    axis2Env = axutil_env_create_all("axis2.log", AXIS2_LOG_LEVEL_TRACE);
-#else
-    axis2Env = axutil_env_create_all("axis2.log", AXIS2_LOG_LEVEL_ERROR);
-#endif
-    if (!axis2Env) {
-        Cleanup();
-        return ER_FAIL;
-    }
-*/
+    messageReceiverThread.Start(this);
+    notificationReceiverThread.Start(this);
 
     return status;
 }
@@ -192,41 +158,9 @@ void CloudCommEngineBusObject::ResetProximalEngineProxyBusObject(qcc::ManagedObj
     proximalEngineProxyBusObject = obj;
 }
 
-// Delete dependency on Axis2, 20151019, LYH
-/*
-void CloudCommEngineBusObject::SetAxis2Env(axutil_env_t* env)
-{
-    axis2Env = env;
-}
-
-axutil_env_t* CloudCommEngineBusObject::GetAxis2Env()
-{
-    return axis2Env;
-}
-*/
-
-
 QStatus CloudCommEngineBusObject::Cleanup()
 {
     QStatus status = ER_OK;
-
-    // Delete dependency on Axis2, 20151019, LYH
-/*
-    std::map<qcc::String, axis2_stub_t*>::iterator itrStub = cloudStubs.begin();
-    while (itrStub != cloudStubs.end()) {
-        axis2_stub_t* cloudStub = itrStub->second;
-        if (cloudStub) {
-            axis2_stub_free(cloudStub, axis2Env);
-        }
-        itrStub++;
-    }
-
-    if (axis2Env) {
-//         axutil_env_free(axis2Env);
-        // DO NOT free the axis2 environment here, which is the responsibility of the main function
-        axis2Env = NULL;
-    }
-*/
 
     /* Prepare the About announcement object descriptions */
     vector<String> intfNames;
@@ -235,6 +169,11 @@ QStatus CloudCommEngineBusObject::Cleanup()
         status = aboutService->RemoveObjectDescription(SIPE2E_CLOUDCOMMENGINE_OBJECTPATH, intfNames);
         aboutService = NULL;
     }
+
+    ITStopReadCloudMessage();
+    messageReceiverThread.Join();
+    ITStopReadServiceNotification();
+    notificationReceiverThread.Join();
 
     return status;
 }
@@ -306,68 +245,7 @@ void CloudCommEngineBusObject::AJCloudMethodCall(const InterfaceDescription::Mem
     // Now call the cloud method by sending IMS message out
 
     // Firstly try to find the stub for this method call, if failed, create one stub for it
-    // Delete dependency on Axis2, 20151019, LYH
-/*
-    axis2_stub_t* cloudStub = NULL;
-    std::map<String, axis2_stub_t*>::iterator itrStub = cloudStubs.find(addr);
-    if (itrStub != cloudStubs.end()) {
-        cloudStub = itrStub->second;
-    } else {
-        String endpointUri("ims://");
-        endpointUri += addr;
-        cloudStub = axis2_stub_create_with_endpoint_uri_and_client_home(axis2Env, (const axis2_char_t*)endpointUri.c_str(),(const axis2_char_t*)gwConsts::AXIS2_DEPLOY_HOME);
-        if (!cloudStub) {
-            status = ER_OUT_OF_MEMORY;
-            CHECK_STATUS_AND_REPLY("Out of memory while creating client stub");
-        }
-        // now populate the axis service
-        axis2_svc_client_t* svcClient = axis2_stub_get_svc_client(cloudStub, axis2Env);
-        axis2_svc_t* svc = axis2_svc_client_get_svc(svcClient, axis2Env);
-        // creating the operations
-        axutil_qname_t* opQname = axutil_qname_create(axis2Env, "ggs", gwConsts::DEFAULT_NAMESPACE_URI, gwConsts::DEFAULT_NAMESPACE_PREFIX);
-        axis2_op_t* op = axis2_op_create_with_qname(axis2Env, opQname);
-        axis2_op_set_msg_exchange_pattern(op, axis2Env, AXIS2_MEP_URI_OUT_IN);
-        axis2_svc_add_op(svc, axis2Env, op);
-        axutil_qname_free(opQname, axis2Env);
-
-        cloudStubs.insert(std::pair<qcc::String, axis2_stub_t*>(addr, cloudStub));
-    }
-    if (!cloudStub) {
-        status = ER_FAIL;
-        CHECK_STATUS_AND_REPLY("No client stub available for executing cloud method call");
-    }
-    // Now prepare the input arguments node
-//     axiom_node_t* inputNode = BuildOmProgramatically(inArgsVariant, numInArgs);
-
-    // Issue a new thread to execute the actual cloud call
-    // Here we use Axis2 thread pool
     CloudMethodCallThreadArg* argList = new CloudMethodCallThreadArg();
-    argList->cloudStub = cloudStub;
-    argList->inArgsNum = numInArgs;
-    argList->outArgsNum = outArgsNum;
-    argList->inArgsSignature = inArgsSignature;
-    argList->outArgsSignature = outArgsSignature;
-    argList->inArgs = inArgs;
-    argList->cceBusObject = this;
-    argList->replyContext = new AsyncReplyContext(msg, member);
-    axutil_thread_t* workerThread = axutil_thread_pool_get_thread(axis2Env->thread_pool,
-        CloudMethodCallThreadFunc,
-        (void *)argList);
-    if (!workerThread) {
-        delete argList;
-        status = ER_FAIL;
-        CHECK_STATUS_AND_REPLY("Error while issuing a new thread for executing cloud method call");
-    }
-    axutil_thread_pool_thread_detach(axis2Env->thread_pool, workerThread);
-*/
-    CloudMethodCallThreadArg* argList = new CloudMethodCallThreadArg();
-    // Delete the dependency on ServiceInfo, 20151021, LYH
-/*
-    argList->inArgsNum = numInArgs;
-    argList->outArgsNum = outArgsNum;
-    argList->inArgsSignature = inArgsSignature;
-    argList->outArgsSignature = outArgsSignature;
-*/
     argList->inArgs = inArgs;
     argList->inArgsNum = numInArgs;
     argList->calledAddr = addr;
@@ -421,46 +299,6 @@ void CloudCommEngineBusObject::AJCloudSignalCall(const InterfaceDescription::Mem
         CHECK_STATUS_AND_REPLY("Failed to send message to cloud");
     }
 }
-
-// Delete dependency on Axis2, 20151019, LYH
-/*
-void* CloudCommEngineBusObject::CloudMethodCallThreadFunc(axutil_thread_t * thd, void *data)
-{
-    CloudMethodCallThreadArg* argList = (CloudMethodCallThreadArg*)data;
-    QStatus status = ER_OK;
-    if (!argList) {
-        QCC_LogError(ER_FAIL, ("No arg found while executing cloud method call thread"));
-        return NULL;
-    }
-    axis2_stub_t* cloudStub = argList->cloudStub;
-    CloudCommEngineBusObject* cceBusObject = argList->cceBusObject;
-    axutil_env_t* env = cceBusObject->GetAxis2Env();
-    AsyncReplyContext* replyContext = argList->replyContext;
-    // Marshal
-    axiom_node_t* inputNode = cceBusObject->BuildOmProgramatically(argList->inArgs, argList->inArgsNum);
-
-    axis2_svc_client_t* svcClient = axis2_stub_get_svc_client(cloudStub, env);
-    axutil_qname_t* opQname = axutil_qname_create(env, "ggs", gwConsts::DEFAULT_NAMESPACE_URI, gwConsts::DEFAULT_NAMESPACE_PREFIX);
-    axiom_node_t* retNode = axis2_svc_client_send_receive_with_op_qname(svcClient, env, opQname, inputNode);
-
-    // Reply with the content of the retNode
-    // Unmarshal
-    MsgArg cloudReplyArgs[2];
-    cceBusObject->ParseOmProgramatically(retNode, argList->outArgsNum, argList->outArgsSignature, &cloudReplyArgs[0]);
-    // The cloud session ID is not returned. To be continued.
-    cloudReplyArgs[1].Set("s", "");
-
-    status = cceBusObject->MethodReply(replyContext->msg, cloudReplyArgs, 2);
-    if (ER_OK != status) {
-        QCC_LogError(status, ("Method Reply did not complete successfully"));
-    }
-
-    axutil_qname_free(opQname, env);
-
-    delete argList;
-    return NULL;
-}
-*/
 
 void CloudCommEngineBusObject::AJPublishLocalServiceToCloud(const InterfaceDescription::Member* member, Message& msg)
 {
@@ -744,277 +582,354 @@ void CloudCommEngineBusObject::CloudMethodCallRunable::Run()
     }
 }
 
-// Delete dependency on Axis2, 20151019, LYH
-/*
-axiom_node_t* CloudCommEngineBusObject::BuildOmProgramatically(MsgArg* args, size_t argsNum)
+ThreadReturn CloudCommEngineBusObject::MessageReceiverThreadFunc(void* arg)
 {
-    if (!args) {
-        argsNum = 0;
-    }
-    axiom_node_t* retNode = NULL;
-    axiom_namespace_t* retNodeNs = axiom_namespace_create(axis2Env, DEFAULT_NAMESPACE_URI, DEFAULT_NAMESPACE_PREFIX);
-    axiom_element_t* retNodeRootEle = axiom_element_create(axis2Env, NULL, "ggs", retNodeNs, &retNode);
-
-    size_t argIndex = 0;
-    while (argIndex < argsNum) {
-        axiom_text_t *argText = NULL;
-        axiom_node_t *argTextNode = NULL;
-        axiom_node_t* argNode = NULL;
-        axiom_element_t* argNodeEle = axiom_element_create(axis2Env, retNode, "arg", retNodeNs, &argNode);
-        if (argNode) {
-            const MsgArg& arg = args[argIndex];
-            uint8_t v_byte = 0;
-            int16_t v_int16 = 0;
-            uint16_t v_uint16 = 0;
-            int32_t v_int32 = 0;
-            uint32_t v_uint32 = 0;
-            int64_t v_int64 = 0;
-            uint64_t v_uint64 = 0;
-            char buf[32];
-            switch (arg.typeId) {
-            case ALLJOYN_BOOLEAN:
-                {
-                    bool v_bool = arg.v_bool;
-                    argText = axiom_text_create(axis2Env, argNode, v_bool?"1":"0", &argTextNode);
-                }
-                break;
-            case ALLJOYN_DOUBLE:
-                {
-                    double v_double = arg.v_double;
-                    snprintf(buf, 32, "%f", v_double);
-                    argText = axiom_text_create(axis2Env, argNode, buf, &argTextNode);
-                }
-                break;
-            case ALLJOYN_BYTE:
-                {
-                    v_byte = arg.v_byte;
-                    snprintf(buf, 32, "%u", v_byte);
-                    argText = axiom_text_create(axis2Env, argNode, buf, &argTextNode);
-                }
-                break;
-            case ALLJOYN_UINT16:
-                {
-                    v_uint16 = arg.v_uint16;
-                    snprintf(buf, 32, "%u", v_uint16);
-                    argText = axiom_text_create(axis2Env, argNode, buf, &argTextNode);
-                }
-                break;
-            case ALLJOYN_INT16:
-                {
-                    v_int16 = arg.v_int16;
-                    snprintf(buf, 32, "%d", v_int16);
-                    argText = axiom_text_create(axis2Env, argNode, buf, &argTextNode);
-                }
-                break;
-            case ALLJOYN_INT32:
-                {
-                    v_int32 = arg.v_int32;
-                    snprintf(buf, 32, "%d", v_int32);
-                    argText = axiom_text_create(axis2Env, argNode, buf, &argTextNode);
-                }
-                break;
-            case ALLJOYN_UINT32:
-                {
-                    v_uint32 = arg.v_uint32;
-                    snprintf(buf, 32, "%u", v_uint32);
-                    argText = axiom_text_create(axis2Env, argNode, buf, &argTextNode);
-                }
-                break;
-            case ALLJOYN_INT64:
-                {
-                    v_int64 = arg.v_int64;
-                    snprintf(buf, 32, "%lld", v_int64);
-                    argText = axiom_text_create(axis2Env, argNode, buf, &argTextNode);
-                }
-                break;
-            case ALLJOYN_UINT64:
-                {
-                    v_uint64 = arg.v_uint64;
-                    snprintf(buf, 32, "%llu", v_uint64);
-                    argText = axiom_text_create(axis2Env, argNode, buf, &argTextNode);
-                }
-                break;
-            case ALLJOYN_STRING:
-                {
-                    const char *v_str = arg.v_string.str;
-                    argText = axiom_text_create(axis2Env, argNode, v_str, &argTextNode);
-                }
-                break;
-            case ALLJOYN_ARRAY:
-                {
-
-                }
-                break;
-            case ALLJOYN_STRUCT:
-                {
-
-                }
-                break;
-            case ALLJOYN_DICT_ENTRY: // all dictionaries are also arrays of dictionary entries, so this type may be unnecessary
-                {
-
-                }
-                break;
-            default:
-                {
-
-                }
-                break;
-            }
+    CloudCommEngineBusObject* cceBusObject = (CloudCommEngineBusObject*)arg;
+    char* msgBuf = NULL;
+    while (0 == ITReadCloudMessage(&msgBuf)) {
+        if (!cceBusObject->proximalEngineProxyBusObject.unwrap()) {
+            continue;
         }
-        argIndex++;
-    }
+        if (msgBuf) {
+            QStatus status = ER_OK;
+            // There are maybe two types of incoming MESSAGE, one of which is Method Calls and the other is Signal
+            // Here we'll have to deal with these two situations
+            char* msgType = msgBuf;
+            char* tmp = strchr(msgType, '^');
+            if (!tmp) {
+                // the format is not correct
+                QCC_LogError(ER_FAIL, ("The message format is not correct"));
+                ITReleaseBuf(msgBuf);
+                continue;
+            }
+            *tmp = '\0';
+            int msgTypeN = atoi(msgType);
 
-    return retNode;
-}
+            char* peer = tmp + 1;;
+            tmp = strchr(peer, '^');
+            if (!tmp) {
+                // the format is not correct
+                QCC_LogError(ER_FAIL, ("The message format is not correct"));
+                ITReleaseBuf(msgBuf);
+                continue;
+            }
+            *tmp = '\0';
 
-void CloudCommEngineBusObject::ParseOmProgramatically(axiom_node_t* node, size_t argsNum, char* argsSignature, MsgArg* args)
-{
-    QStatus status = ER_OK;
-    MsgArg* methodArgs = NULL;
-    args->Set("av", argsNum, methodArgs);
-    if (argsNum == 0 || argsSignature) {
-        return;
-    }
-    methodArgs = new MsgArg[argsNum];
+            if (msgTypeN <= gwConsts::customheader::RPC_MSG_TYPE_SIGNAL_RET) {
+                // If the request is METHOD CALL or SIGNAL CALL
+                char* callId = tmp + 1;
+                tmp = strchr(callId, '^');
+                if (!tmp) {
+                    // the format is not correct
+                    QCC_LogError(ER_FAIL, ("The message format is not correct"));
+                    ITSendCloudMessage(msgTypeN+1, peer, callId, NULL, "", NULL);
+                    ITReleaseBuf(msgBuf);
+                    continue;
+                }
+                *tmp = '\0';
+                char* addr = tmp + 1;
+                tmp = strchr(addr, '^');
+                if (!tmp) {
+                    // the format is not correct
+                    QCC_LogError(ER_FAIL, ("The message format is not correct"));
+                    ITSendCloudMessage(msgTypeN+1, peer, callId, addr, "", NULL);
+                    ITReleaseBuf(msgBuf);
+                    continue;
+                }
+                char* msgContent = tmp + 1;
 
-    char* stopStr = NULL;
-    unsigned int argIndex = 0;
-    char* argSignature = strtok(argsSignature, ",");
-    axiom_node_t* argNode = axiom_node_get_first_child(node, axis2Env);
-    while (argNode && argSignature) {
-        if (axiom_node_get_node_type(argNode, axis2Env) == AXIOM_ELEMENT) {
-            axiom_node_t* argContentNode = axiom_node_get_first_child(argNode, axis2Env);
-            if (argContentNode) {
-                switch (axiom_node_get_node_type(argContentNode, axis2Env)) {
-                case AXIOM_TEXT: // Basic parameter type
+                StringSource source(msgContent);
+                XmlParseContext pc(source);
+                status = XmlElement::Parse(pc);
+                if (ER_OK != status) {
+                    QCC_LogError(status, ("Error parsing the message xml content: %s", msgContent));
+                    ITSendCloudMessage(msgTypeN+1, peer, callId, addr, "", NULL);
+                    ITReleaseBuf(msgBuf);
+                    continue;
+                }
+                const XmlElement* rootEle = pc.GetRoot();
+                if (!rootEle) {
+                    // the format is not correct
+                    QCC_LogError(ER_FAIL, ("The message format is not correct"));
+                    ITSendCloudMessage(msgTypeN+1, peer, callId, addr, "", NULL);
+                    ITReleaseBuf(msgBuf);
+                    continue;
+                }
+
+                const std::vector<XmlElement*>& argsEles = rootEle->GetChildren();
+                size_t argsNum = argsEles.size();
+                MsgArg* argsArray = NULL;
+                if (argsNum > 0) {
+                    argsArray = new MsgArg[argsNum];
+                    for (size_t argIndx = 0; argIndx < argsNum; argIndx++) {
+                        MsgArg arg;
+                        XmlElement* argEle = argsEles[argIndx];
+                        if (argEle) {
+                            XmlToArg(argEle, argsArray[argIndx]);
+                        }
+                    }
+                }
+
+                switch (msgTypeN) {
+                case gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL:
                     {
-                        axiom_text_t* text = (axiom_text_t*)axiom_node_get_data_element(argContentNode, axis2Env);
-                        if (text) {
-                            const axis2_char_t* argStr = axiom_text_get_value(text, axis2Env);
-                            if (argStr) {
-                                if (argIndex < argsNum) {
-                                    switch (argSignature[0])
-                                    {
-                                    case ALLJOYN_BOOLEAN:
-                                        {
-                                            bool v_bool;
-                                            if (!axutil_strcmp(argStr, "true") || !axutil_strcmp(argStr, "1"))
-                                            {
-                                                v_bool = true;
-                                            }
-                                            else if (!axutil_strcmp(argStr, "false") || !axutil_strcmp(argStr, "0"))
-                                            {
-                                                v_bool = false;
-                                            }
-                                            else
-                                            {
-                                                QCC_LogError(ER_FAIL, ("Error unmarshaling boolean parameter"));
-                                                delete[] methodArgs;
-                                                return;
-                                            }
-                                            MsgArg* arg = new MsgArg(argSignature, v_bool);
-                                            methodArgs[argIndex].Set("v", arg);
-                                        }
-                                        break;
-                                    case ALLJOYN_DOUBLE:
-                                        {
-                                            double v_double = strtod(argStr, &stopStr);
-                                            MsgArg* arg = new MsgArg(argSignature, v_double);
-                                            methodArgs[argIndex].Set("v", arg);
-                                        }
-                                        break;
-                                    case ALLJOYN_BYTE:
-                                    case ALLJOYN_UINT16:
-                                    case ALLJOYN_INT16:
-                                    case ALLJOYN_INT32:
-                                        {
-                                            int32_t v_int = strtol(argStr, &stopStr, 10);
-                                            MsgArg* arg = new MsgArg(argSignature, v_int);
-                                            methodArgs[argIndex].Set("v", arg);
-                                        }
-                                        break;
-                                    case ALLJOYN_UINT32:
-                                        {
-                                            uint32_t v_int = strtoul(argStr, &stopStr, 10);
-                                            MsgArg* arg = new MsgArg(argSignature, v_int);
-                                            methodArgs[argIndex].Set("v", arg);
-                                        }
-                                        break;
-                                    case ALLJOYN_INT64:
-                                        {
-                                            int64_t v_int64 = strtoll(argStr, &stopStr, 10);
-                                            MsgArg* arg = new MsgArg(argSignature, v_int64);
-                                            methodArgs[argIndex].Set("v", arg);
-                                        }
-                                        break;
-                                    case ALLJOYN_UINT64:
-                                        {
-                                            int64_t v_int64 = strtoull(argStr, &stopStr, 10);
-                                            MsgArg* arg = new MsgArg(argSignature, v_int64);
-                                            methodArgs[argIndex].Set("v", arg);
-                                        }
-                                        break;
-                                    case ALLJOYN_STRING:
-                                        {
-                                            MsgArg* arg = new MsgArg(argSignature, argStr);
-                                            methodArgs[argIndex].Set("v", arg);
-                                        }
-                                        break;
-                                    default:
-                                        {
-                                            QCC_LogError(ER_FAIL, ("Parameter type not supported"));
-                                            delete[] methodArgs;
-                                            return;
-                                        }
-                                        break;
-                                    }
-                                }
-                            } else {
-                                QCC_LogError(ER_XML_MALFORMED, ("Error getting parameter node text"));
-                                delete[] methodArgs;
-                                return;
+                        MsgArg args[3];
+                        args[0].Set("s", addr);
+                        if (argsNum > 0) {
+                            args[1].Set("av", argsNum, argsArray);
+                        }
+                        args[2].Set("s", callId);
+
+                        BusAttachment& bus = (BusAttachment&)cceBusObject->GetBusAttachment();
+                        ajn::Message replyMsg(bus);
+                        // Calling the local method
+                        // TBD: Change it to MethodCallAsync or start a new task thread to execute the MethodCall
+                        status = cceBusObject->proximalEngineProxyBusObject->MethodCall(sipe2e::gateway::gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
+                            sipe2e::gateway::gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_LOCALMETHODCALL.c_str(),
+                            args, 3, replyMsg);
+
+                        if (ER_OK != status) {
+                            QCC_LogError(status, ("Error executing local method call"));
+                            ITSendCloudMessage(msgTypeN+1, peer, callId, addr, "", NULL);
+                            ITReleaseBuf(msgBuf);
+                            continue;
+                        }
+
+                        const MsgArg* replyArgsArray = replyMsg->GetArg(0);
+                        if (replyArgsArray) {
+                            MsgArg* outArgsVariant = NULL;
+                            size_t numOutArgs = 0;
+                            replyArgsArray->Get("av", &numOutArgs, &outArgsVariant);
+                            String argsStr = String("<args>\n");
+                            for (size_t outArgIndx = 0; outArgIndx < numOutArgs; outArgIndx++) {
+                                argsStr += ArgToXml(outArgsVariant[outArgIndx].v_variant.val, 0);
+                            }
+                            argsStr += String("</args>");
+
+                            int itStatus = ITSendCloudMessage(msgTypeN+1, peer, callId, addr, argsStr.c_str(), NULL);
+                            if (0 != itStatus) {
+                                QCC_LogError(ER_FAIL, ("Failed to send message to cloud"));
                             }
                         } else {
-                            QCC_LogError(ER_XML_MALFORMED, ("Error getting parameter node text"));
-                            delete[] methodArgs;
-                            return;
+                            // The reply message is not correct
+                            // Reply with empty message
+                            ITSendCloudMessage(msgTypeN+1, peer, callId, addr, "", NULL);
                         }
                     }
                     break;
-                case AXIOM_ELEMENT: // Composite parameter type, like array, struct and dictionary (map)
+                case gwConsts::customheader::RPC_MSG_TYPE_SIGNAL_CALL:
                     {
+                        MsgArg args[4];
 
+                        String senderReceiverAddr(addr);
+                        size_t dot = senderReceiverAddr.find_first_of('`');
+                        if (dot == String::npos) {
+                            QCC_LogError(ER_FAIL, ("The message format is not correct"));
+                            ITReleaseBuf(msgBuf);
+                            continue;
+                        }
+                        String senderAddr(peer);
+                        senderAddr += "/";
+                        senderAddr += senderReceiverAddr.substr(0, dot);
+                        String receiverAddr = senderReceiverAddr.substr(dot + 1, senderReceiverAddr.size() - dot - 1);
+
+                        args[0].Set("s", senderAddr);
+                        args[1].Set("s", receiverAddr);
+
+                        if (argsNum > 0) {
+                            args[2].Set("av", argsNum, argsArray);
+                        }
+                        args[3].Set("s", callId);
+                        // Signaling the local BusObject
+                        // TBD: Change it to MethodCallAsync or start a new task thread to execute the MethodCall
+                        status = cceBusObject->proximalEngineProxyBusObject->MethodCall(sipe2e::gateway::gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
+                            sipe2e::gateway::gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_LOCALSIGNALCALL.c_str(),
+                            args, 4);
+                        if (ER_OK != status) {
+                            QCC_LogError(status, ("Error executing local signal call"));
+                            ITReleaseBuf(msgBuf);
+                            continue;
+                        }
                     }
                     break;
                 default:
                     {
-                        QCC_LogError(ER_XML_MALFORMED, ("Parameter node type not supported"));
-                        delete[] methodArgs;
-                        return;
+                        // the format is not correct
+                        QCC_LogError(ER_FAIL, ("The message format is not correct"));
+                        ITReleaseBuf(msgBuf);
+                        continue;
                     }
                     break;
                 }
+
+
+            } else if (msgTypeN == gwConsts::customheader::RPC_MSG_TYPE_UPDATE_SIGNAL_HANDLER) {
+                // If the request type is UPDATE SIGNAL HANDLER
+                char* callId = tmp + 1;
+                tmp = strchr(callId, '^');
+                if (!tmp) {
+                    // the format is not correct
+                    QCC_LogError(ER_FAIL, ("The message format is not correct"));
+                    ITReleaseBuf(msgBuf);
+                    continue;
+                }
+                *tmp = '\0';
+                char* addr = tmp + 1;
+                tmp = strchr(addr, '^');
+                if (!tmp) {
+                    // the format is not correct
+                    QCC_LogError(ER_FAIL, ("The message format is not correct"));
+                    ITReleaseBuf(msgBuf);
+                    continue;
+                }
+                char* msgContent = tmp + 1;
+
+                MsgArg args[4];
+                args[0].Set("s", addr);
+                args[1].Set("s", peer);
+
+                StringSource source(msgContent);
+                XmlParseContext pc(source);
+                status = XmlElement::Parse(pc);
+                if (ER_OK != status) {
+                    QCC_LogError(status, ("Error parsing the xml content: %s", msgContent));
+                    ITReleaseBuf(msgBuf);
+                    continue;
+                }
+                const XmlElement* rootNode = pc.GetRoot();
+                if (rootNode == NULL) {
+                    QCC_LogError(ER_XML_MALFORMED, ("Can not get the root node of the xml content: %s", msgContent));
+                    ITReleaseBuf(msgBuf);
+                    continue;
+                }
+                if (rootNode->GetName() == "SignalHandlerInfo") {
+                    const String& peerBusName = rootNode->GetAttribute("busName");
+                    const String& peerSessionId = rootNode->GetAttribute("sessionId");
+                    args[2].Set("s", peerBusName.c_str());
+                    args[3].Set("u", qcc::StringToU32(peerSessionId, 10, 0));
+                } else {
+                    // the root node is not SignalHandlerInfo node, just ignore it
+                    QCC_DbgPrintf(("The root node is not SignalHandlerInfo."));
+                    ITReleaseBuf(msgBuf);
+                    continue;
+                }
+
+                // Updating
+                status = cceBusObject->proximalEngineProxyBusObject->MethodCall(sipe2e::gateway::gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
+                    sipe2e::gateway::gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_UPDATESIGNALHANDLERINFO.c_str(),
+                    args, 4);
+                if (ER_OK != status) {
+                    QCC_LogError(status, ("Error updating signal handler info to local"));
+                }
+
+            }
+            ITReleaseBuf(msgBuf);
+
+        }
+    }
+    return NULL;
+}
+
+
+ThreadReturn CloudCommEngineBusObject::NotificationReceiverThreadFunc(void* arg)
+{
+    CloudCommEngineBusObject* cceBusObject = (CloudCommEngineBusObject*)arg;
+    char* msgBuf = NULL;
+    while (0 == ITReadServiceNotification(&msgBuf)) {
+        if (!cceBusObject->proximalEngineProxyBusObject.unwrap()) {
+            continue;
+        }
+        if (msgBuf) {
+            QStatus status = ER_OK;
+            char* tmp = strchr(msgBuf, '^');
+            if (!tmp) {
+                // the format is not correct
+                QCC_LogError(ER_FAIL, ("The notification message format is not correct"));
+                continue;
+            }
+            *tmp = '\0';
+            char* peer = msgBuf;
+            char* subState = tmp + 1;
+            int nSubState = atoi(subState);
+            tmp = strchr(subState, '^');
+            if (!tmp) {
+                // the format is not correct
+                QCC_LogError(ER_FAIL, ("The notification message format is not correct"));
+                continue;
+            }
+            *tmp = '\0';
+            char* notificationContent = tmp + 1;
+
+            StringSource source(notificationContent);
+            XmlParseContext pc(source);
+            status = XmlElement::Parse(pc);
+            if (ER_OK != status) {
+                QCC_LogError(status, ("Error parsing the notification xml content: %s", notificationContent));
+                continue;
+            }
+            const XmlElement* rootNode = pc.GetRoot();
+            if (rootNode == NULL) {
+                QCC_LogError(ER_XML_MALFORMED, ("Can not get the root node of the notification xml content: %s", notificationContent));
+                continue;
+            }
+            if (rootNode->GetName() == "presence") {
+                const String& entity = rootNode->GetAttribute("entity");
+                size_t tmp = entity.find_first_of(':');
+                String entityAddr;
+                if (tmp != String::npos) {
+                    entityAddr = entity.substr(tmp + 1, entity.size() - tmp - 1);
+                } else {
+                    entityAddr = entity;
+                }
+                if (entityAddr != (const char*)peer) {
+                    // if the entity address is not the peer address, then the notification
+                    // is not from the correct peer address, just skip this notification
+                    QCC_LogError(ER_FAIL, ("The entity address (%s) is not equal to the peer address (%s)", entityAddr.c_str(), peer));
+                    continue;
+                }
+
+                ims::presence pidfPresence;
+                pidfPresence.Deserialize(rootNode);
+
+                // Note that the presence server will probably send all tuples to watchers,
+                // so we should iterate all tuples, and check if the basic status is open or closed
+                // to determine how to deal with it. If some service's (tuple's) status is closed,
+                // then unsubscribe the corresponding service from local environment
+                std::vector<ims::tuple>& tuples = pidfPresence.GetTuples();
+                for (size_t i = 0; i < tuples.size(); i++) {
+                    ims::tuple& _tuple = tuples[i];
+                    String& serviceIntrospectionXml = _tuple.GetService().GetIntrospectionXml();
+                    ims::status& _status = _tuple.GetStatus();
+                    if (nSubState && _status.GetBasicStatus() == ims::basic::open) {
+                        // if the status is open, then subscribe it
+                        MsgArg proximalCallArg("ss", peer, serviceIntrospectionXml.c_str());
+                        status = cceBusObject->proximalEngineProxyBusObject->MethodCall(gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
+                            gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_SUBSCRIBE.c_str(),
+                            &proximalCallArg, 2);
+                        if (ER_OK != status) {
+                            QCC_LogError(status, ("Error subscribing cloud service to local"));
+                        }
+                    } else {
+                        // if the status is closed, then unsubscribe it
+                        MsgArg proximalCallArg("ss", peer, serviceIntrospectionXml.c_str());
+                        status = cceBusObject->proximalEngineProxyBusObject->MethodCall(gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
+                            gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_UNSUBSCRIBE.c_str(),
+                            &proximalCallArg, 2);
+                        if (ER_OK != status) {
+                            QCC_LogError(status, ("Error unsubscribing cloud service from local"));
+                        }
+                    }
+                }
             } else {
-                QCC_LogError(ER_XML_MALFORMED, ("Error getting parameter node information"));
-                delete[] methodArgs;
-                return;
+                // the root node is not presence node, just ignore it
+                QCC_DbgPrintf(("The root node is not presence."));
+                continue;
             }
 
-            argIndex++;
-            argSignature = strtok(NULL, ",");
         }
-        argNode = axiom_node_get_next_sibling(argNode, axis2Env);
     }
-    status = args->Set("av", argsNum, methodArgs);
-    args->SetOwnershipFlags(MsgArg::OwnsArgs, true);
-    if (ER_OK != status) {
-        QCC_LogError(status, ("Error setting the arg value"));
-        return;
-    }
+    return NULL;
 }
-*/
-
 
 } // namespace gateway
 } // namespace sipe2e

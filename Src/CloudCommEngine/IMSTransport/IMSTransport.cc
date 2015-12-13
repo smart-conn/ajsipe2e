@@ -23,13 +23,13 @@
 #include "CloudCommEngine/IMSTransport/pidf.h"
 
 #include "Common/SimpleTimer.h"
+#include "Common/GuidUtil.h"
 
 #include <qcc/XmlElement.h>
 #include <qcc/StringSource.h>
 #include <qcc/StringUtil.h>
 
-#include <boost/lexical_cast.hpp>
-#include <boost/thread.hpp>
+#include <mutex>
 
 #include <SipStack.h>
 #include <SipSession.h>
@@ -67,7 +67,8 @@ IMSTransport::~IMSTransport()
 {
     if (regThread) {
         regCmdQueue.StopQueue();
-        regThread->try_join_for(boost::chrono::milliseconds(1000)); /// wait for the thread to end
+        regThread->join();
+//         regThread->try_join_for(boost::chrono::milliseconds(1000)); /// wait for the thread to end
     }
     if (timerHeartBeat) {
         timerHeartBeat->Stop();
@@ -90,7 +91,7 @@ IMSTransport::~IMSTransport()
         delete msgSession;
         msgSession = NULL;
     }
-    std::map<std::string, SubscriptionSession*>::iterator itrSubsession = subSessions.begin();
+    std::map<qcc::String, SubscriptionSession*>::iterator itrSubsession = subSessions.begin();
     while (itrSubsession != subSessions.end()) {
         SubscriptionSession* subSession = itrSubsession->second;
         if (subSession) {
@@ -101,14 +102,14 @@ IMSTransport::~IMSTransport()
             subSession = NULL;
         }
     }
-    std::map<std::string, PublicationSession*>::iterator itrPubsession = pubSessions.begin();
+    std::map<qcc::String, PublicationSession*>::iterator itrPubsession = pubSessions.begin();
     while (itrPubsession != pubSessions.end()) {
         PublicationSession* pubSession = itrPubsession->second;
         if (pubSession) {
             pubSession->unPublish();
             {
-                boost::unique_lock<boost::mutex> lock(mtxUnpublish);
-                if (condUnpublish.timed_wait(lock, boost::posix_time::milliseconds(gwConsts::PUBLICATION_DEFAULT_TIMEOUT))) {
+                std::unique_lock<std::mutex> lock(mtxUnpublish);
+                if (condUnpublish.wait_for(lock, std::chrono::milliseconds(gwConsts::PUBLICATION_DEFAULT_TIMEOUT))) {
                     break; // unregister successful
                 }
             }
@@ -121,8 +122,8 @@ IMSTransport::~IMSTransport()
         for (int i = 0; i < 5; i++) { // try to unregister for 5 times with 5 seconds timeout every time
             regSession->unRegister();
             {
-                boost::unique_lock<boost::mutex> lock(mtxUnregister);
-                if (condUnregister.timed_wait(lock, boost::posix_time::milliseconds(gwConsts::REGISTRATION_DEFAULT_TIMEOUT))) {
+                std::unique_lock<std::mutex> lock(mtxUnregister);
+                if (condUnregister.wait_for(lock, std::chrono::milliseconds(gwConsts::REGISTRATION_DEFAULT_TIMEOUT))) {
                     break; // unregister successful
                 }
             }
@@ -375,7 +376,7 @@ IStatus IMSTransport::Init()
      *   > some normal service, like MESSAGE, is responded with 401 Unauthorized
      */
     regCmdQueue.Enqueue(regExpires); // registration command
-    regThread = new boost::thread(IMSTransport::RegThreadFunc);
+    regThread = new std::thread(IMSTransport::RegThreadFunc);
 
     /**
      * TBD
@@ -397,11 +398,11 @@ IStatus IMSTransport::Subscribe(const char* remoteAccount)
     if (!remoteAccount) {
         return IC_BAD_ARG_1;
     }
-    std::map<std::string, bool>::iterator itrSub = subscriptions.find((std::string)remoteAccount);
+    std::map<qcc::String, bool>::iterator itrSub = subscriptions.find((qcc::String)remoteAccount);
     if (itrSub != subscriptions.end()) {
         itrSub->second = false;
     } else {
-        subscriptions.insert(std::pair<std::string, bool>((std::string)remoteAccount, false));
+        subscriptions.insert(std::pair<qcc::String, bool>((qcc::String)remoteAccount, false));
     }
     return IC_OK;
 }
@@ -413,7 +414,7 @@ IStatus IMSTransport::doSubscribe(const char* remoteAccount)
     }
     SubscriptionSession* subSession = NULL;
     bool isNewCreated = false;
-    std::map<std::string, SubscriptionSession*>::iterator itrSubsession = subSessions.find((std::string)remoteAccount);
+    std::map<qcc::String, SubscriptionSession*>::iterator itrSubsession = subSessions.find((qcc::String)remoteAccount);
     if (itrSubsession != subSessions.end()) {
         subSession = itrSubsession->second;
     }
@@ -425,16 +426,16 @@ IStatus IMSTransport::doSubscribe(const char* remoteAccount)
     }
     if (subSession->subscribe()) {
         // wait for the response of the SUBSCRIBE
-        boost::unique_lock<boost::mutex> lock(imsIns->mtxSubscribe);
+        std::unique_lock<std::mutex> lock(imsIns->mtxSubscribe);
 
         // Note: here we set a timer to wait for the response. This mechanism is not correct in case of
         // multi-thread environment where multi users call Subscribe at the same time.
         // Should be changed using the session Call-ID to differentiate multiple subscribe sessions
         // TBD
-        if (condSubscribe.timed_wait(lock, boost::posix_time::milliseconds(gwConsts::SUBSCRIPTION_DEFAULT_TIMEOUT))) {
+        if (condSubscribe.wait_for(lock, std::chrono::milliseconds(gwConsts::SUBSCRIPTION_DEFAULT_TIMEOUT))) {
             // if subscribing is correctly responded
             if (isNewCreated) {
-                subSessions.insert(std::pair<std::string, SubscriptionSession*>((std::string)remoteAccount, subSession));
+                subSessions.insert(std::pair<qcc::String, SubscriptionSession*>((qcc::String)remoteAccount, subSession));
             }
         } else {
             // if subscribing is not correctly responded or timed out (no response)
@@ -459,7 +460,7 @@ IStatus IMSTransport::Unsubscribe(const char* remoteAccount)
     }
 
     SubscriptionSession* subSession = NULL;
-    std::map<std::string, SubscriptionSession*>::iterator itrSubsession = subSessions.find((std::string)remoteAccount);
+    std::map<qcc::String, SubscriptionSession*>::iterator itrSubsession = subSessions.find((qcc::String)remoteAccount);
     if (itrSubsession != subSessions.end()) {
         SubscriptionSession* subSession = itrSubsession->second;
     } else {
@@ -467,17 +468,17 @@ IStatus IMSTransport::Unsubscribe(const char* remoteAccount)
         subSession = new SubscriptionSession(stack);
         subSession->setToUri(remoteAccount);
         subSession->addHeader("Event", "presence");
-        subSessions.insert(std::pair<std::string, SubscriptionSession*>((std::string)remoteAccount, subSession));
+        subSessions.insert(std::pair<qcc::String, SubscriptionSession*>((qcc::String)remoteAccount, subSession));
     }
     if (subSession) {
         if (subSession->unSubscribe()) {
-            boost::unique_lock<boost::mutex> lock(imsIns->mtxUnsubscribe);
+            std::unique_lock<std::mutex> lock(imsIns->mtxUnsubscribe);
 
             // Note: here we set a timer to wait for the response. This mechanism is not correct in case of
             // multi-thread environment where multi users call Subscribe at the same time.
             // Should be changed using the session Call-ID to differentiate multiple subscribe sessions
             // TBD
-            if (condUnsubscribe.timed_wait(lock, boost::posix_time::milliseconds(gwConsts::SUBSCRIPTION_DEFAULT_TIMEOUT))) {
+            if (condUnsubscribe.wait_for(lock, std::chrono::milliseconds(gwConsts::SUBSCRIPTION_DEFAULT_TIMEOUT))) {
                 delete subSession;
                 subSessions.erase(itrSubsession);
             } else {
@@ -589,7 +590,7 @@ IStatus IMSTransport::PublishService(const char* introspectionXml)
 
     PublicationSession* pubSession = NULL;
     bool isNewCreated = false;
-    std::map<std::string, PublicationSession*>::iterator itrPubsession = pubSessions.find((std::string)(const char*)serviceId.c_str());
+    std::map<qcc::String, PublicationSession*>::iterator itrPubsession = pubSessions.find((qcc::String)(const char*)serviceId.c_str());
     if (itrPubsession != pubSessions.end()) {
         pubSession = itrPubsession->second;
     }
@@ -602,11 +603,11 @@ IStatus IMSTransport::PublishService(const char* introspectionXml)
     }
     if (pubSession->publish(presenceXml.c_str(), presenceXml.size())) {
     // Wait for the response of the PUBLISH
-        boost::unique_lock<boost::mutex> lock(imsIns->mtxPublish);
-        if (condPublish.timed_wait(lock, boost::posix_time::milliseconds(gwConsts::PUBLICATION_DEFAULT_TIMEOUT))) {
+        std::unique_lock<std::mutex> lock(imsIns->mtxPublish);
+        if (condPublish.wait_for(lock, std::chrono::milliseconds(gwConsts::PUBLICATION_DEFAULT_TIMEOUT))) {
             // if publishing is correctly responded
             if (isNewCreated) {
-                pubSessions.insert(std::pair<std::string, PublicationSession*>((std::string)(const char*)serviceId.c_str(), pubSession));
+                pubSessions.insert(std::pair<qcc::String, PublicationSession*>((qcc::String)(const char*)serviceId.c_str(), pubSession));
             }
         } else {
             // if publishing is not correctly responded or timed out (no response)
@@ -659,13 +660,13 @@ IStatus IMSTransport::DeleteService(const char* introspectionXml)
     }
     const String& servicePath = rootNode->GetAttribute("name");
 
-    std::map<std::string, PublicationSession*>::iterator itrPubsession = pubSessions.find((std::string)(const char*)servicePath.c_str());
+    std::map<qcc::String, PublicationSession*>::iterator itrPubsession = pubSessions.find((qcc::String)(const char*)servicePath.c_str());
     if (itrPubsession != pubSessions.end()) {
         PublicationSession* pubSession = itrPubsession->second;
         if (pubSession) {
             if (pubSession->unPublish()) {
-                boost::unique_lock<boost::mutex> lock(imsIns->mtxUnpublish);
-                if (condUnpublish.timed_wait(lock, boost::posix_time::milliseconds(gwConsts::PUBLICATION_DEFAULT_TIMEOUT))) {
+                std::unique_lock<std::mutex> lock(imsIns->mtxUnpublish);
+                if (condUnpublish.wait_for(lock, std::chrono::milliseconds(gwConsts::PUBLICATION_DEFAULT_TIMEOUT))) {
                     delete pubSession;
                     pubSessions.erase(itrPubsession);
                 } else {
@@ -685,16 +686,21 @@ IStatus IMSTransport::DeleteService(const char* introspectionXml)
     return IC_OK;
 }
 
-boost::shared_array<char> IMSTransport::ReadServiceNotification()
+IStatus IMSTransport::ReadServiceNotification(char** msgBuf)
 {
-    boost::shared_array<char> notification;
-    if (incomingNotifyQueue.TryDequeue(notification)) {
+    if (!msgBuf) {
+        return IC_FAIL;
+    }
+    if (incomingNotifyQueue.TryDequeue(*msgBuf)) {
         // the queue is not empty and not stopped, meaning a correct notification returned
         
     } else {
         // the queue has been stopped
+        // The queue has been stopped
+        *msgBuf = NULL;
+        return IC_FAIL;
     }
-    return notification;
+    return IC_OK;
 }
 
 void IMSTransport::StopReadServiceNotification()
@@ -704,23 +710,22 @@ void IMSTransport::StopReadServiceNotification()
 
 IStatus IMSTransport::ReadCloudMessage(char** msgBuf)
 {
-#if 0
-    ::Sleep(1000);
-#endif
     if (!msgBuf) {
         return IC_FAIL;
     }
-    boost::shared_array<char> msg;
-    if (incomingMsgQueue.TryDequeue(msg)) {
-        size_t len = strlen(msg.get());
-        *msgBuf = new char[len + 1]; // will hopefully be deallocated in ReleaseBuf()
-        memcpy(*msgBuf, msg.get(), len + 1);
+    if (incomingMsgQueue.TryDequeue(*msgBuf)) {
+        // will hopefully be deallocated in ReleaseBuf()
     } else {
         // The queue has been stopped
         *msgBuf = NULL;
         return IC_FAIL;
     }
     return IC_OK;
+}
+
+void IMSTransport::StopReadCloudMessage()
+{
+    incomingMsgQueue.StopQueue();
 }
 
 IStatus IMSTransport::SendCloudMessage(int msgType, 
@@ -758,8 +763,8 @@ IStatus IMSTransport::SendCloudMessage(int msgType,
             if (!resMsgBuf) {
                 return IC_BAD_ARG_6;
             }
-            boost::uuids::uuid callIdTmp = callIdGenerator();
-            std::string callIdStr = boost::lexical_cast<std::string>(callIdTmp);
+            qcc::String callIdStr;
+            ajn::services::GuidUtil::GetInstance()->GenerateGUID(&callIdStr);
             msgSession->addHeader(gwConsts::customheader::RPC_CALL_ID, callIdStr.c_str());
             msgSession->addHeader(gwConsts::customheader::RPC_ADDR, addr);
             if (!msgSession->send(msgBuf, strlen(msgBuf))) {
@@ -770,25 +775,24 @@ IStatus IMSTransport::SendCloudMessage(int msgType,
             // after sending the request out, the sending thread will be blocked to wait for the response for some time
             if (msgType == gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL) {
                 // only method call will be hold waiting for the answer
-                boost::shared_ptr<SyncContext> syncCtx(new SyncContext());
+                std::shared_ptr<SyncContext> syncCtx(new SyncContext());
                 syncCtx->content = NULL;
                 {
-                    boost::lock_guard<boost::mutex> lock(mtxResponseDispatchTable);
+                    std::lock_guard<std::mutex> lock(mtxResponseDispatchTable);
 
-                    std::string reqKey(peer);
+                    String reqKey(peer);
                     reqKey += "^";
                     reqKey += callIdStr;
-                    responseDispatchTable.insert(std::pair<std::string, boost::shared_ptr<SyncContext>>(reqKey, syncCtx));
+                    responseDispatchTable.insert(std::pair<qcc::String, std::shared_ptr<SyncContext>>(reqKey, syncCtx));
                 }
                 {
-                    boost::unique_lock<boost::mutex> lock(syncCtx->mtx);
-                    if (syncCtx->con.timed_wait(lock, 
-                        boost::posix_time::milliseconds(gwConsts::RPC_REQ_TIMEOUT))) {
+                    std::unique_lock<std::mutex> lock(syncCtx->mtx);
+                    if (syncCtx->con.wait_for(lock, 
+                        std::chrono::milliseconds(gwConsts::RPC_REQ_TIMEOUT))) {
                         // if no timeout waiting for the response
                         if (syncCtx->content) {
-                            size_t len = strlen(syncCtx->content.get());
-                            *resMsgBuf = new char[len + 1]; // will hopefully be deallocated in ReleaseBuf()
-                            memcpy(*resMsgBuf, syncCtx->content.get(), len + 1);
+                            *resMsgBuf = syncCtx->content; // will hopefully be deallocated in ReleaseBuf()
+                            syncCtx->content = NULL;
                         }/* else {
                             return IC_FAIL;
                         }*/
@@ -846,10 +850,10 @@ void IMSTransport::RegThreadFunc()
 
 void IMSTransport::SubFunc(void* para)
 {
-    std::string subAccount;
+    qcc::String subAccount;
     IMSTransport* ims = (IMSTransport*)para;
     
-    std::map<std::string, bool>::iterator itrSub = ims->subscriptions.begin();
+    std::map<qcc::String, bool>::iterator itrSub = ims->subscriptions.begin();
     while (itrSub != ims->subscriptions.begin()) {
         if (!itrSub->second) {
             ims->doSubscribe(itrSub->first.c_str());
@@ -890,8 +894,8 @@ void IMSTransport::HeartBeatFunc(void* para)
     }
     // Wait for the response of the OPTIONS heartbeat
     {
-        boost::unique_lock<boost::mutex> lock(ims->mtxHeartBeat);
-        if (!ims->condHeartBeat.timed_wait(lock, boost::posix_time::milliseconds(gwConsts::SIPSTACK_HEARTBEAT_EXPIRES))) {
+        std::unique_lock<std::mutex> lock(ims->mtxHeartBeat);
+        if (!ims->condHeartBeat.wait_for(lock, std::chrono::milliseconds(gwConsts::SIPSTACK_HEARTBEAT_EXPIRES))) {
             // if timeout, the re-register the UAC
             ims->regCmdQueue.Enqueue(ims->regExpires);
             restartOpSession = true;

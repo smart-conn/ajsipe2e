@@ -151,8 +151,8 @@ QStatus CloudServiceAgentBusObject::Get(const char* ifcName, const char* propNam
 
     // The method call 'GetPro' consists of two arguments and one return argument
     MsgArg cloudCallArgs[2];
-    cloudCallArgs->Set("s", ifcName);
-    cloudCallArgs->Set("s", propName);
+    cloudCallArgs[0].Set("s", ifcName);
+    cloudCallArgs[1].Set("s", propName);
     Message replyMsg(*context.bus);
     status = cloudEngineProxyBusObject->MethodCall(gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
         gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_CLOUDMETHODCALL.c_str(), 

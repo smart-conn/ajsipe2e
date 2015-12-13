@@ -19,19 +19,16 @@
 #include <Common/GatewayExport.h>
 
 #include <Common/Status.h>
-#include <boost/shared_ptr.hpp>
-#include <boost/shared_array.hpp>
-
-#include <boost/uuid/uuid.hpp>            // uuid class
-#include <boost/uuid/uuid_generators.hpp> // generators
-#include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
 
 #include "Common/SyncQueue.h"
 
 #include <qcc/String.h>
 
-
+#include <mutex>
+#include <thread>
+#include <condition_variable>
 #include <map>
+#include <memory>
 
 class SipStack;
 class RegistrationSession;
@@ -39,8 +36,6 @@ class OptionsSession;
 class MessagingSession;
 class SubscriptionSession;
 class PublicationSession;
-
-class boost::thread;
 
 class SimpleTimer;
 
@@ -54,9 +49,18 @@ namespace gwConsts {
 class IMSTransportSipCallback;
 
 struct SyncContext {
-    boost::mutex mtx;
-    boost::condition_variable con;
-    boost::shared_array<char> content; 
+    std::mutex mtx;
+    std::condition_variable con;
+    char* content;
+    SyncContext() {
+        content = NULL;
+    }
+    ~SyncContext() {
+        if (content) {
+            delete[] content;
+            content = NULL;
+        }
+    }
 };
 
 /**
@@ -109,7 +113,7 @@ public:
     /**
      * Read the incoming NOTIFY message from incomingNotifyQueue, may be blocked
      */
-    boost::shared_array<char> ReadServiceNotification();
+    IStatus ReadServiceNotification(char** msgBuf);
 
     void StopReadServiceNotification();
 
@@ -118,6 +122,8 @@ public:
      * @param msgBuf - 
      */
     IStatus ReadCloudMessage(char** msgBuf);
+
+    void StopReadCloudMessage();
 
     /**
      *
@@ -198,21 +204,21 @@ private:
     /* */
     MessagingSession* msgSession;
     /* */
-    std::map<std::string, SubscriptionSession*> subSessions;
+    std::map<qcc::String, SubscriptionSession*> subSessions;
 
     /* All subscribed account information, if the subscription is successful, the value is true */
-    std::map<std::string, bool> subscriptions;
+    std::map<qcc::String, bool> subscriptions;
 
     /* The condition for waiting for the response of subscribing/unsubscribing */
-    boost::mutex mtxSubscribe, mtxUnsubscribe;
-    boost::condition_variable condSubscribe, condUnsubscribe;
+    std::mutex mtxSubscribe, mtxUnsubscribe;
+    std::condition_variable condSubscribe, condUnsubscribe;
 
     /* */
-    std::map<std::string, PublicationSession*> pubSessions;
+    std::map<qcc::String, PublicationSession*> pubSessions;
 
     /* The condition for waiting for the response of publishing/unpublishing */
-    boost::mutex mtxPublish, mtxUnpublish;
-    boost::condition_variable condPublish, condUnpublish;
+    std::mutex mtxPublish, mtxUnpublish;
+    std::condition_variable condPublish, condUnpublish;
 
     /**
      * The thread that will be started on initialization for registration task. 
@@ -222,7 +228,7 @@ private:
      *   > the heartbeat (OPTIONS) is not responded correctly (timed out or with 401 Unauthorized)
      *   > some normal service, like MESSAGE, is responded with 401 Unauthorized
      */
-    boost::thread* regThread;
+    std::thread* regThread;
 
     /**
      * This is the queue to pass the command to the registration thread abovementioned.
@@ -239,12 +245,12 @@ private:
     SimpleTimer* timerHeartBeat;
 
     /* The condition for waiting for the response of HeartBeat (OPTIONS) */
-    boost::mutex mtxHeartBeat;
-    boost::condition_variable condHeartBeat;
+    std::mutex mtxHeartBeat;
+    std::condition_variable condHeartBeat;
 
     /* The condition for waiting for the response of unregister command */
-    boost::mutex mtxUnregister;
-    boost::condition_variable condUnregister;
+    std::mutex mtxUnregister;
+    std::condition_variable condUnregister;
 
     /* */
     unsigned int regExpires; // in seconds
@@ -255,25 +261,22 @@ private:
      * to the waiting thread according to the CallID of the request-response pair.
      * The following map stores the information of CallID and its corresponding waiting thread
      */
-    std::map<std::string, boost::shared_ptr<SyncContext>> responseDispatchTable;
+    std::map<qcc::String, std::shared_ptr<SyncContext>> responseDispatchTable;
     /* Mutex for protecting responseDispatchTable */
-    boost::mutex mtxResponseDispatchTable;
+    std::mutex mtxResponseDispatchTable;
 
     /** 
      * The incoming messages queue (FIFO). There are one producer (IMS receiver) and
-     * multiple consumers (multi threads in the axis2_ims_receiver.dll)
+     * multiple consumers 
      */
-    SyncQueue<boost::shared_array<char>> incomingMsgQueue;
+    SyncQueue<char*> incomingMsgQueue;
 
     /**
      * The incoming queue (FIFO) storing service subscription notifications.
      * CloudCommEngine will generate a thread to read the notifications by
      * calling 
      */
-    SyncQueue<boost::shared_array<char>> incomingNotifyQueue;
-
-    /* uuid generator for generating CallId */
-    boost::uuids::random_generator callIdGenerator;
+    SyncQueue<char*> incomingNotifyQueue;
 };
 
 }

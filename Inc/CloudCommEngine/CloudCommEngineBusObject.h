@@ -22,6 +22,7 @@
 #include <vector>
 
 #include <qcc/ManagedObj.h>
+#include <qcc/Thread.h>
 #include <qcc/ThreadPool.h>
 
 #include <alljoyn/Status.h>
@@ -32,11 +33,6 @@
 
 struct axutil_env;
 typedef struct axutil_env axutil_env_t;
-// Delete dependency on Axis2, 20151019, LYH
-/*
-struct axis2_stub;
-typedef struct axis2_stub axis2_stub_t;
-*/
 struct axutil_thread_t;
 typedef struct axutil_thread_t axutil_thread_t;
 struct axiom_node;
@@ -143,6 +139,10 @@ public:
     void AJUnsubscribe(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
 
 private:
+
+    static qcc::ThreadReturn STDCALL MessageReceiverThreadFunc(void* arg);
+    static qcc::ThreadReturn STDCALL NotificationReceiverThreadFunc(void* arg);
+
     // Delete dependency on Axis2, 20151019, LYH
 //     static void* __stdcall CloudMethodCallThreadFunc(axutil_thread_t * thd, void *data);
 
@@ -180,11 +180,8 @@ protected:
 
     ajn::services::AboutService* aboutService;
 
-    // Delete dependency on Axis2, 20151019, LYH
-/*
-    axutil_env_t* axis2Env;
-    std::map<qcc::String, axis2_stub_t*> cloudStubs;
-*/
+    qcc::Thread messageReceiverThread, notificationReceiverThread;
+
 };
 
 } // namespace gateway

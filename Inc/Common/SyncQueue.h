@@ -17,7 +17,8 @@
 #define SYNCQUEUE_H_
 
 #include <queue>
-#include <boost/thread.hpp>  
+#include <mutex>
+#include <condition_variable>
 
 template <typename T>
 class SyncQueue
@@ -31,7 +32,7 @@ public:
     }
     void Enqueue(const T& data)
     {
-        boost::lock_guard<boost::mutex> lock(m_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
 
         if(EnqueueData)
         {
@@ -44,7 +45,7 @@ public:
 
     bool TryDequeue(T& result)
     {
-        boost::unique_lock<boost::mutex> lock(m_mutex);
+        std::unique_lock<std::mutex> lock(m_mutex);
 
         while (m_queue.empty() && (! RequestToEnd)) 
         { 
@@ -64,14 +65,14 @@ public:
 
     void StopQueue()
     {
-        boost::lock_guard<boost::mutex> lock(m_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
         RequestToEnd =  true;
         m_cond.notify_one();       
     }
 
     int Size()
     {
-        boost::lock_guard<boost::mutex> lock(m_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
         return m_queue.size();
 
     }
@@ -91,8 +92,8 @@ private:
 
 
     std::queue<T> m_queue;              // Use STL queue to store data
-    boost::mutex m_mutex;               // The mutex to synchronise on
-    boost::condition_variable m_cond;            // The condition to wait for
+    std::mutex m_mutex;               // The mutex to synchronise on
+    std::condition_variable m_cond;            // The condition to wait for
 
     bool RequestToEnd;
     bool EnqueueData;

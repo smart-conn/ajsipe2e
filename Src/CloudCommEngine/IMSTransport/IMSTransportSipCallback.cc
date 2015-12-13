@@ -189,7 +189,7 @@ int IMSTransportSipCallback::OnOptionsEvent(const OptionsEvent* e)
             const SipMessage* msg = e->getSipMessage();
             short resCode = ((SipMessage*)msg)->getResponseCode();
             if (resCode >= 200 && resCode < 300) {
-//                 boost::lock_guard<boost::mutex> lock(ims->mtxHeartBeat);
+//                 std::lock_guard<std::mutex> lock(ims->mtxHeartBeat);
                 ims->condHeartBeat.notify_one();
                 ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_REGISTERED;
             } else if (resCode >= 400) {
@@ -226,7 +226,7 @@ int IMSTransportSipCallback::OnMessagingEvent(const MessagingEvent* e)
                         // First, we should check it is a incoming request or a response for previous
                         // outgoing request. If it is a request, then we should get its From&CallID headers
                         // and make the content buffer like the format "lyh@nane.cn^CallID^Addr^request content"
-                        // and hand it over to Axis' IMS Receiver (axis_ims_receiver.dll). Here 'Addr' means
+                        // and hand it over to Axis' IMS Receiver . Here 'Addr' means
                         // the local called address, if it's AllJoyn, like 'BusName/ObjectPath/InterfaceName'
                         // If it is a response, then we should also get its From&CallID headers and try to 
                         // find the outgoing request worker thread corresponding to From&CallID information
@@ -264,16 +264,16 @@ int IMSTransportSipCallback::OnMessagingEvent(const MessagingEvent* e)
                                 if (!addr) {
                                     return -1;
                                 }
-                                boost::shared_array<char> rpcXml(new char[contentLen + 3 + gwConsts::MAX_SIP_ADDR_LEN + gwConsts::MAX_RPC_MSG_CALLID_LEN + 2]);
-                                strcpy(rpcXml.get(), msgType);
-                                strcat(rpcXml.get(), "^");
-                                strcat(rpcXml.get(), peer);
-                                strcat(rpcXml.get(), "^");
-                                strcat(rpcXml.get(), callId);
-                                strcat(rpcXml.get(), "^");
-                                strcat(rpcXml.get(), addr);
-                                strcat(rpcXml.get(), "^");
-                                size_t len = strlen(rpcXml.get());
+                                char* rpcXml = new char[contentLen + 3 + gwConsts::MAX_SIP_ADDR_LEN + gwConsts::MAX_RPC_MSG_CALLID_LEN + 2];
+                                strcpy(rpcXml, msgType);
+                                strcat(rpcXml, "^");
+                                strcat(rpcXml, peer);
+                                strcat(rpcXml, "^");
+                                strcat(rpcXml, callId);
+                                strcat(rpcXml, "^");
+                                strcat(rpcXml, addr);
+                                strcat(rpcXml, "^");
+                                size_t len = strlen(rpcXml);
                                 ((SipMessage*)msg)->getSipContent(&rpcXml[len], contentLen + 1);
                                 rpcXml[len + contentLen] = '\0';
 
@@ -285,21 +285,21 @@ int IMSTransportSipCallback::OnMessagingEvent(const MessagingEvent* e)
                         case gwConsts::customheader::RPC_MSG_TYPE_SIGNAL_RET:
                             {
                                 // if it is a response message
-                                std::string reqKey(peer);
+                                qcc::String reqKey(peer);
                                 reqKey += "^";
                                 reqKey += callId;
                                 {
-                                    boost::lock_guard<boost::mutex> lock(ims->mtxResponseDispatchTable);
-                                    std::map<std::string, boost::shared_ptr<SyncContext>>::iterator itr =
+                                    std::lock_guard<std::mutex> lock(ims->mtxResponseDispatchTable);
+                                    std::map<qcc::String, std::shared_ptr<SyncContext>>::iterator itr =
                                         ims->responseDispatchTable.find(reqKey);
                                     if (itr != ims->responseDispatchTable.end()) {
-                                        boost::shared_ptr<SyncContext> syncCtx = itr->second;
+                                        std::shared_ptr<SyncContext> syncCtx = itr->second;
                                         {
-                                            boost::lock_guard<boost::mutex> lock(syncCtx->mtx);
+                                            std::lock_guard<std::mutex> lock(syncCtx->mtx);
                                             // Prepare the response buffer and pass it to the sender worker thread
                                             if (contentLen > 0) {
-                                                boost::shared_array<char> rpcXml(new char[contentLen + 1]);
-                                                ((SipMessage*)msg)->getSipContent(rpcXml.get(), contentLen + 1);
+                                                char* rpcXml = new char[contentLen + 1];
+                                                ((SipMessage*)msg)->getSipContent(rpcXml, contentLen + 1);
                                                 syncCtx->content = rpcXml;
                                             }
                                             syncCtx->con.notify_one();
@@ -383,12 +383,12 @@ int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
                         }
 
                         unsigned int contentLen = ((SipMessage*)msg)->getSipContentLength();
-                        boost::shared_array<char> serviceXml(new char[contentLen + 1 + gwConsts::MAX_SIP_ADDR_LEN + 1]);
-                        strcpy(serviceXml.get(), peer);
-                        strcat(serviceXml.get(), "^");
-                        strcat(serviceXml.get(), subState);
-                        strcat(serviceXml.get(), "^");
-                        size_t len = strlen(serviceXml.get());
+                        char* serviceXml = new char[contentLen + 1 + gwConsts::MAX_SIP_ADDR_LEN + 1];
+                        strcpy(serviceXml, peer);
+                        strcat(serviceXml, "^");
+                        strcat(serviceXml, subState);
+                        strcat(serviceXml, "^");
+                        size_t len = strlen(serviceXml);
                         ((SipMessage*)msg)->getSipContent(&serviceXml[len], contentLen + 1);
                         serviceXml[len + contentLen] = '\0';
 
@@ -431,11 +431,11 @@ int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
                 case 404: // user not found or not registered, should re-try
                     {
                         if (peer) {
-                            std::map<std::string, bool>::iterator itrSub = ims->subscriptions.find((std::string)peer);
+                            std::map<qcc::String, bool>::iterator itrSub = ims->subscriptions.find((qcc::String)peer);
                             if (itrSub != ims->subscriptions.end()) {
                                 itrSub->second = false;
                             } else {
-                                ims->subscriptions.insert(std::pair<std::string, bool>((std::string)peer, false));
+                                ims->subscriptions.insert(std::pair<qcc::String, bool>((qcc::String)peer, false));
                             }
                         }
                     }
@@ -471,11 +471,11 @@ int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
                 case 404: // user not found or not registered, should re-try
                     {
                         if (peer) {
-                            std::map<std::string, bool>::iterator itrSub = ims->subscriptions.find((std::string)peer);
+                            std::map<qcc::String, bool>::iterator itrSub = ims->subscriptions.find((qcc::String)peer);
                             if (itrSub != ims->subscriptions.end()) {
                                 itrSub->second = true;
                             } else {
-                                ims->subscriptions.insert(std::pair<std::string, bool>((std::string)peer, true));
+                                ims->subscriptions.insert(std::pair<qcc::String, bool>((qcc::String)peer, true));
                             }
                         }
                     }

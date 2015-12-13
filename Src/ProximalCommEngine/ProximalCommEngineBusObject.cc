@@ -173,8 +173,13 @@ void ProximalCommEngineBusObject::LocalServiceAnnounceHandler::AnnounceHandlerTa
         itObjDesc != announceData.objectDescs.end(); ++itObjDesc) {
         String objPath = itObjDesc->first;
         /* Create the ProxyBusObject according to this object description */
-        _ProximalProxyBusObjectWrapper proxyWrapper(_ProxyBusObject::wrap(new ProxyBusObject(*ownerBusObject->proxyContext.bus, 
-            announceData.busName.c_str(), objPath.c_str(), sessionId, false)), ownerBusObject->proxyContext.bus, ownerBusObject->cloudEngineProxyBusObject, ownerBusObject);
+//         _ProximalProxyBusObjectWrapper proxyWrapper(_ProxyBusObject::wrap(new ProxyBusObject(*ownerBusObject->proxyContext.bus, 
+//             announceData.busName.c_str(), objPath.c_str(), sessionId, false)), ownerBusObject->proxyContext.bus, ownerBusObject->cloudEngineProxyBusObject, ownerBusObject);
+        const char* serviceName = announceData.busName.c_str();
+        const char* objPathName = objPath.c_str();
+        bool secure = false;
+        _ProxyBusObject _pbo(*ownerBusObject->proxyContext.bus, serviceName, objPathName, sessionId, secure);
+        _ProximalProxyBusObjectWrapper proxyWrapper(_pbo, ownerBusObject->proxyContext.bus, ownerBusObject->cloudEngineProxyBusObject, ownerBusObject);
         status = proxyWrapper->IntrospectProxyChildren();
         if (ER_OK != status) {
             QCC_LogError(status, ("Error while introspecting the remote BusObject"));

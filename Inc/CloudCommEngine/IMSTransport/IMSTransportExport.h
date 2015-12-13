@@ -50,7 +50,16 @@ extern "C"
         ITDeleteService(const char* introspectionXml);
 
     SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
+        ITReadServiceNotification(char** msgBuf);
+
+    SIPE2E_GATEWAY_EXTERN void SIPE2E_GATEWAY_CALL
+        ITStopReadServiceNotification();
+
+    SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
         ITReadCloudMessage(char** msgBuf);
+
+    SIPE2E_GATEWAY_EXTERN void SIPE2E_GATEWAY_CALL
+        ITStopReadCloudMessage();
 
     SIPE2E_GATEWAY_EXTERN int SIPE2E_GATEWAY_CALL
         ITSendCloudMessage(int msgType,
@@ -62,10 +71,6 @@ extern "C"
 
     SIPE2E_GATEWAY_EXTERN void SIPE2E_GATEWAY_CALL
         ITReleaseBuf(char* buf);
-#ifdef _DEBUG
-    SIPE2E_GATEWAY_EXTERN const char* SIPE2E_GATEWAY_CALL
-        ITTestServiceSerialize(char* buf);
-#endif
 #ifdef __cplusplus
 }
 #endif

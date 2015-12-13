@@ -127,9 +127,9 @@ class CommonBusListener : public ajn::BusListener, public ajn::SessionPortListen
     /**
      * Callback when daemon is disconnected
      */
-    void (*m_DaemonDisconnectCB)(void* arg);
-    void(*m_sessionJoinedCB)(void* arg, ajn::SessionPort sessionPort, ajn::SessionId id, const char* joiner);
-    void(*m_sessionLostCB)(void* arg, ajn::SessionId sessionId, SessionLostReason reason);
+    daemonDisconnectCB m_DaemonDisconnectCB;
+    sessionJoinedCB m_sessionJoinedCB;
+    sessionLostCB m_sessionLostCB;
 
     void* m_arg;
 };

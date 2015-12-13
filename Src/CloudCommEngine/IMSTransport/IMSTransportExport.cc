@@ -57,9 +57,24 @@ int SIPE2E_GATEWAY_CALL ITDeleteService(const char* introspectionXml)
     return IMSTransport::GetInstance()->DeleteService(introspectionXml);
 }
 
+int SIPE2E_GATEWAY_CALL ITReadServiceNotification(char** msgBuf)
+{
+    return IMSTransport::GetInstance()->ReadServiceNotification(msgBuf);
+}
+
 int SIPE2E_GATEWAY_CALL ITReadCloudMessage(char** msgBuf)
 {
     return IMSTransport::GetInstance()->ReadCloudMessage(msgBuf);
+}
+
+SIPE2E_GATEWAY_EXTERN void SIPE2E_GATEWAY_CALL ITStopReadServiceNotification()
+{
+    IMSTransport::GetInstance()->StopReadServiceNotification();
+}
+
+SIPE2E_GATEWAY_EXTERN void SIPE2E_GATEWAY_CALL ITStopReadCloudMessage()
+{
+    IMSTransport::GetInstance()->StopReadCloudMessage();
 }
 
 int SIPE2E_GATEWAY_CALL ITSendCloudMessage(int msgType, 
@@ -78,32 +93,3 @@ void SIPE2E_GATEWAY_CALL ITReleaseBuf(char* buf)
         delete[] buf;
     }
 }
-
-#ifdef _DEBUG
-const char* SIPE2E_GATEWAY_CALL ITTestServiceSerialize(char* buf)
-{
-    ims::service serviceIns;
-    serviceIns.SetIntrospectionXml((qcc::String)buf);
-/*
-    static std::string introspectionXml;
-    introspectionXml.clear();
-    serviceIns.Serialize(introspectionXml);
-    return introspectionXml.c_str();
-    */
-
-    ims::status _status;
-    _status.SetBasicStatus(ims::basic::open);
-    ims::tuple _tuple;
-    _tuple.SetId((qcc::String)"/BusName/RootObjPath");
-    _tuple.SetStatus(_status);
-    _tuple.SetService(serviceIns);
-
-    ims::presence _presence;
-    _presence.SetEntity((qcc::String)"pres:lyh@nane.cn");
-    _presence.AddTuple(_tuple);
-
-    static qcc::String presenceXml;
-    _presence.Serialize(presenceXml);
-    return presenceXml.c_str();
-}
-#endif

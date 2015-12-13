@@ -16,7 +16,9 @@
 #ifndef SIMPLETIMER_H_
 #define SIMPLETIMER_H_
 
-#include <boost/thread.hpp>
+#include <mutex>
+#include <thread>
+#include <condition_variable>
 
 typedef void (*TimerCallBack)(void* cbPara);
 
@@ -32,9 +34,9 @@ public:
 private:
     void TimerThreadFunc();
 private:
-    boost::mutex mtx,mtxStart;
-    boost::condition_variable cond, condStart;
-    boost::thread timerThread;
+    std::mutex mtx,mtxStart;
+    std::condition_variable cond, condStart;
+    std::thread timerThread;
 
     unsigned int interval;
     TimerCallBack timerCB;

@@ -57,8 +57,6 @@ static CloudCommEngineBusObject* s_cceBusObject = NULL;
 class CloudCommEngineAnnounceHandler;
 static CloudCommEngineAnnounceHandler* s_announceHandler = NULL;
 
-static ManagedObj<ProxyBusObject> s_pceProxyBusObject;
-
 static volatile sig_atomic_t s_interrupt = false;
 
 static volatile sig_atomic_t s_restart = false;
@@ -72,61 +70,6 @@ static void daemonDisconnectCB(void* arg)
 {
     s_restart = true;
 }
-
-typedef void (*AnnounceHandlerCallback)(qcc::String const& busName, unsigned short port);
-
-class CloudCommEngineAnnounceHandler : public ajn::services::AnnounceHandler {
-
-public:
-
-    CloudCommEngineAnnounceHandler(AnnounceHandlerCallback callback = 0)
-        : AnnounceHandler(), m_Callback(callback)
-    {
-    }
-
-    ~CloudCommEngineAnnounceHandler()
-    {
-    }
-
-
-    virtual void Announce(unsigned short version, unsigned short port, const char* busName, const ObjectDescriptions& objectDescs,
-        const AboutData& aboutData)
-    {
-        /* Only receive the announcement from ProximalCommEngine module */
-        if (gwConsts::SIPE2E_PROXIMALCOMMENGINE_SESSION_PORT == port) {
-            for (services::AnnounceHandler::ObjectDescriptions::const_iterator itObjDesc = objectDescs.begin();
-                itObjDesc != objectDescs.end(); ++itObjDesc) {
-                    String objPath = itObjDesc->first;
-                    size_t pos = objPath.find_last_of('/');
-                    if (String::npos != pos) {
-                        if (objPath.substr(pos + 1, objPath.length() - pos - 1) == gwConsts::SIPE2E_PROXIMALCOMMENGINE_NAME) {
-                            s_bus->EnableConcurrentCallbacks();
-                            SessionOpts opts(SessionOpts::TRAFFIC_MESSAGES, true, SessionOpts::PROXIMITY_ANY, TRANSPORT_ANY);
-                            SessionId sessionId;
-                            QStatus status = s_bus->JoinSession(busName, (SessionPort)port, s_busListener, sessionId, opts);
-                            if (ER_OK != status) {
-                                QCC_LogError(status, ("Error while trying to join the session with remote ProximalCommEngine"));
-                                continue;
-                            }
-                            const char* objPathStr = objPath.c_str();
-                            bool isSec = false;
-                            ManagedObj<ProxyBusObject> tmp(*s_bus, busName, objPathStr, sessionId, isSec);
-                            status = tmp->IntrospectRemoteObject();
-                            if (ER_OK != status) {
-                                QCC_LogError(status, ("Error while IntrospectRemoteObject the ProximalCommEngineBusObject"));
-                                continue;
-                            }
-                            s_cceBusObject->ResetProximalEngineProxyBusObject(tmp);
-                            s_pceProxyBusObject = tmp;
-                        }
-                    }
-            }
-        }
-    }
-private:
-
-    AnnounceHandlerCallback m_Callback;
-};
 
 
 void cleanup()
@@ -148,10 +91,6 @@ void cleanup()
         s_cceBusObject->Cleanup();
         delete s_cceBusObject;
         s_cceBusObject = NULL;
-    }
-    if (s_pceProxyBusObject->IsValid()) {
-        ManagedObj<ProxyBusObject> tmp;
-        s_pceProxyBusObject = tmp;
     }
     /* Destroying the AboutService must be after deletion of s_pceBusObject where AboutService will unregister the s_pceBusObject */
     if (s_cceAboutService) {
@@ -177,11 +116,6 @@ void cleanup()
         delete s_bus;
         s_bus = NULL;
     }
-
-    // Delete the dependency on Axis2, 20151019, LYH
-/*
-    cleanupAxisSystem();
-*/
 }
 
 
@@ -284,9 +218,19 @@ int main(int argc, char** argv, char** envArg)
 
     QStatus status = ER_OK;
 
-    start:
+start:
+    // Initialize the IMSTransport
+    if (0 != ITInitialize())
+    {
+        return ER_FAIL;
+    }
+
+    while (gwConsts::IMS_TRANSPORT_STATUS_REGISTERED != ITGetStatus()) {
+        qcc::Sleep(100);
+    }
+
     /* Prepare bus attachment */
-    s_bus = new BusAttachment(gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME.c_str(), true, 8);
+    s_bus = new BusAttachment(gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME.c_str(), true);
     if (!s_bus) {
         status = ER_OUT_OF_MEMORY;
         return status;
@@ -332,21 +276,10 @@ int main(int argc, char** argv, char** envArg)
     s_cceBusObject = new CloudCommEngineBusObject(gwConsts::SIPE2E_CLOUDCOMMENGINE_OBJECTPATH, gwConsts::CLOUD_METHOD_CALL_THREAD_POOL_SIZE);
     status = s_cceBusObject->Init(*s_bus, *s_cceAboutService);
     if (ER_OK != status) {
-        QCC_LogError(status, ("Error while initializing ProximalCommEngine"));
+        QCC_LogError(status, ("Error while initializing CloudCommEngine"));
         cleanup();
         return status;
     }
-
-    /* Register AnnounceHandler */
-    s_announceHandler = new CloudCommEngineAnnounceHandler();
-    const char* pceIntf = gwConsts::SIPE2E_PROXIMALCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str();
-    status = services::AnnouncementRegistrar::RegisterAnnounceHandler(*s_bus, *s_announceHandler, &pceIntf, 1);
-    if (ER_OK != status) {
-        QCC_LogError(status, ("Error while registering AnnounceHandler"));
-        cleanup();
-        return status;
-    }
-
 
     status = s_cceAboutService->Announce();
     if (ER_OK != status) {
@@ -355,28 +288,15 @@ int main(int argc, char** argv, char** envArg)
         return status;
     }
 
-    // Initialize the IMSTransport
-    if (0 != ITInitialize())
-    {
-        return ER_FAIL;
-    }
-
 
     while (s_interrupt == false) {
-/*
-#ifdef _WIN32
-        ::Sleep(100);
-#else
-        usleep(100 * 1000);
-#endif
-*/
-
         qcc::Sleep(100);
     }
 
+    cleanup();
+
     ITShutdown();
 
-    cleanup();
 
     return 0;
 }

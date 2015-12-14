@@ -30,6 +30,9 @@
 #include <alljoyn/BusObject.h>
 #include <alljoyn/ProxyBusObject.h>
 #include <alljoyn/InterfaceDescription.h>
+#include <alljoyn/about/AnnounceHandler.h>
+
+#include "Common/GatewayStd.h"
 
 struct axutil_env;
 typedef struct axutil_env axutil_env_t;
@@ -55,29 +58,98 @@ namespace gateway {
 
 struct _CloudMethodCallThreadArg;
 typedef struct _CloudMethodCallThreadArg CloudMethodCallThreadArg;
+struct _LocalMethodCallThreadArg;
+typedef struct _LocalMethodCallThreadArg LocalMethodCallThreadArg;
+
+class CloudServiceAgentBusObject;
+class ProximalProxyBusObjectWrapper;
+typedef qcc::ManagedObj<ProximalProxyBusObjectWrapper> _ProximalProxyBusObjectWrapper;
 
 /**
  * CloudCommEngineBusObject class. Base class to provide cloud communication functionality
  */
 class CloudCommEngineBusObject : public ajn::BusObject
 {
+    friend class CloudServiceAgentBusObject;
+    friend class ProximalProxyBusObjectWrapper;
 public:
     CloudCommEngineBusObject(qcc::String const& objectPath, uint32_t threadPoolSize);
     virtual ~CloudCommEngineBusObject();
 
+    typedef struct  
+    {
+        qcc::String addr;
+        qcc::String busName;
+        unsigned int sessionId;
+    } SignalHandlerInfo;
+
+        /**
+     *    This AnnounceHandler is receiving all announcements from local objects, and then create
+     * ProxyBusObjects for every service (app/device)
+     */
+    class LocalServiceAnnounceHandler : public ajn::services::AnnounceHandler
+    {
+        friend class CloudCommEngineBusObject;
+
+        class AnnounceHandlerTask : public qcc::Runnable
+        {
+            friend class CloudCommEngineBusObject;
+        public:
+            AnnounceHandlerTask(CloudCommEngineBusObject* owner);
+            virtual ~AnnounceHandlerTask();
+
+            /**
+             * Set the AnnounceContent data
+             * @param -    
+             */
+            void SetAnnounceContent(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs,
+                const AboutData& aboutData);
+
+            /**
+              * This method is called by the ThreadPool when the Runnable object is
+              * dispatched to a thread.  A client of the thread pool is expected to
+              * define a method in a derived class that does useful work when Run() is
+              * called.
+              */
+            virtual void Run(void);
+
+        private:
+            /* The parent BusObject that owns this AnnounceHandler instance */
+            CloudCommEngineBusObject* ownerBusObject;
+            /* The announcement content to be precessed by this task */
+            AnnounceContent announceData;
+        };
+
+    public:
+        LocalServiceAnnounceHandler(CloudCommEngineBusObject* owner);
+        ~LocalServiceAnnounceHandler();
+
+        /**
+         * Receiving all announcements from local apps/devices/services, and create ProxyBusObjects for them
+         * 
+         * @param[in] version of the AboutService.
+         * @param[in] port used by the AboutService
+         * @param[in] busName unique bus name of the service
+         * @param[in] objectDescs map of ObjectDescriptions using qcc::String as key std::vector<qcc::String>   as value, describing interfaces
+         * @param[in] aboutData map of AboutData using qcc::String as key and ajn::MsgArg as value
+         */
+        virtual void Announce(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs,
+            const AboutData& aboutData);
+
+    protected:
+        /* The parent BusObject that owns this AnnounceHandler instance */
+        CloudCommEngineBusObject* ownerBusObject;
+        /* The ThreadPool that manages the pinging bus/joining sessions/creating ProxyBusObjects tasks */
+        qcc::ThreadPool taskPool;
+    };
+
+
 public:
     /**
-     * @param proximalCommBus -     the BusAttachment that connects ProximalCommEngine and CloudCommEngine
+     * @param cloudCommBus -     the BusAttachment that connects CloudCommEngine and CloudCommEngine
      */
     QStatus Init(ajn::BusAttachment& cloudCommBus, ajn::services::AboutService& cloudCommAboutService);
 
-    void ResetProximalEngineProxyBusObject(qcc::ManagedObj<ajn::ProxyBusObject> obj);
-
-    // Delete dependency on Axis2, 20151019, LYH
-/*
-    void SetAxis2Env(axutil_env_t* env);
-    axutil_env_t* GetAxis2Env();
-*/
     /**
      * Clean up the AllJoyn execution context
      * @param -    
@@ -88,42 +160,6 @@ public:
     /************************************************************************/
     /* interface implementation for AllJoyn network */
     /************************************************************************/
-
-    /**
-    * Callback when local object call a method on some cloud interface
-     * @param member - the member (method) of the interface that was executed
-     * @param msg - the Message of the method
-     */
-    void AJCloudMethodCall(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
-
-    /**
-    * Callback when local object call a method on some cloud interface
-     * @param member - the member (method) of the interface that was executed
-     * @param msg - the Message of the method
-     */
-    void AJCloudSignalCall(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
-
-    /**
-     * Callback when publishing some local service to cloud
-     * @param member - the member (method) of the interface that was executed
-     * @param msg - the Message of the method
-     */
-    void AJPublishLocalServiceToCloud(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
-
-    /**
-     * Callback when deleting some local service from cloud
-     * @param member - the member (method) of the interface that was executed
-     * @param msg - the Message of the method
-     */
-    void AJDeleteLocalServiceFromCloud(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
-
-    /**
-     * Callback when updating local signal handler info to Cloud or Far Peer
-     * @param member - the member (method) of the interface that was executed
-     * @param msg - the Message of the method
-     */
-    void AJUpdateSignalHandlerInfoToCloud(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
-
 
     /**
      * Callback when deleting some local service from cloud
@@ -139,26 +175,43 @@ public:
     void AJUnsubscribe(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
 
 private:
+    QStatus SubscribeCloudServiceToLocal(const qcc::String& serviceAddr, const qcc::String& serviceIntrospectionXml);
+
+    QStatus UnsubscribeCloudServiceFromLocal(const qcc::String& serviceAddr, const qcc::String& serviceIntrospectionXml);
+
+    QStatus LocalMethodCall(const qcc::String& addr, size_t inArgsNum, const ajn::MsgArg* inArgsArray, const qcc::String& cloudSessionId, 
+        size_t& outArgsNum, const ajn::MsgArg*& outArgsArray, unsigned int& localSessionId);
+
+    QStatus LocalSignalCall(const qcc::String& senderAddr, const qcc::String& receiverAddr,
+        size_t inArgsNum, const ajn::MsgArg* inArgsArray, const qcc::String& cloudSessionId);
+
+    QStatus UpdateSignalHandlerInfoToLocal(const qcc::String& localBusNameObjPath, const qcc::String& peerAddr, 
+        const qcc::String& peerBusName, unsigned int peerSessionId);
+
+    QStatus CloudMethodCall(const qcc::String& addr, size_t inArgsNum, const ajn::MsgArg* inArgsArray, unsigned int localSessionId, 
+        CloudServiceAgentBusObject* agent, ajn::Message msg);
+
+    QStatus CloudSignalCall(const qcc::String& senderAddr, const qcc::String& receiverAddr,
+        size_t inArgsNum, const ajn::MsgArg* inArgsArray, unsigned int localSessionId);
+
+    QStatus PublishLocalServiceToCloud(const qcc::String& serviceIntrospectionXml);
+
+    QStatus DeleteLocalServiceFromCloud(const qcc::String& serviceIntrospectionXml);
+
+    QStatus UpdateSignalHandlerInfoToCloud(const qcc::String& peerAddr, const qcc::String& peerBusNameObjPath, 
+        const qcc::String& localBusName, unsigned int localSessionId);
+
+private:
+    /**
+     * @internal
+     * Save the ProxyBusObject and all its children to the map 'proxyBusObjects'
+     * @param proxy - the ProxyBusObject that will be saved, including its children 
+     * @param busName -  the name of the bus that owns the remote BusObject
+     */
+    void SaveProxyBusObject(_ProximalProxyBusObjectWrapper proxyWrapper);
 
     static qcc::ThreadReturn STDCALL MessageReceiverThreadFunc(void* arg);
     static qcc::ThreadReturn STDCALL NotificationReceiverThreadFunc(void* arg);
-
-    // Delete dependency on Axis2, 20151019, LYH
-//     static void* __stdcall CloudMethodCallThreadFunc(axutil_thread_t * thd, void *data);
-
-    /**
-     * Build XML content 
-     * @param inArgsVariant - arguments of incoming method call
-     * @param inArgsVariant - number of arguments of incoming method call
-     */
-    // Delete dependency on Axis2, 20151019, LYH
-//     axiom_node_t* BuildOmProgramatically(ajn::MsgArg* args, size_t argsNum);
-    /**
-     * Parse the XML content and generate the reply args
-     * @param - 
-     */
-    // Delete dependency on Axis2, 20151019, LYH
-//     void ParseOmProgramatically(axiom_node_t* node, size_t argsNum, char* argsSignature, ajn::MsgArg* args);
 
 protected:
 
@@ -171,16 +224,54 @@ protected:
         CloudMethodCallThreadArg* arg;
     };
 
-    qcc::ThreadPool cloudMethodCallThreadPool;
+    class LocalMethodCallRunable : public qcc::Runnable {
+    public:
+        LocalMethodCallRunable(LocalMethodCallThreadArg* _arg);
+        virtual ~LocalMethodCallRunable();
+        virtual void Run(void);
+    protected:
+        LocalMethodCallThreadArg* arg;
+    };
 
-    /**
-     *    The CloudCommEngine BusObject, that is for re-marshaling the calls and forward to cloud
-     */
-    qcc::ManagedObj<ajn::ProxyBusObject> proximalEngineProxyBusObject;
+    qcc::ThreadPool methodCallThreadPool;
 
     ajn::services::AboutService* aboutService;
 
     qcc::Thread messageReceiverThread, notificationReceiverThread;
+
+protected:
+    /**
+     *    All ProxyBusObjects for handling incoming calls towards proximal AllJoyn service
+     * The key is the string "BusName/ObjectPath"
+     *
+     * Once an announcement from a proximal device is received, corresponding ProxyBusObject should be
+     * created to later execute the calls on behalf of calls from cloud
+     * 
+     * Be noted that, this map not only contains top-level ProxyBusObjects but also all children, not like
+     * the map cloudBusObjects which only contains top-level BusObjects.
+     * So, while session is lost or cleanup the ProxyBusObject and all its children should be removed and 
+     * deleted. However, when a ProxyBusObject is deleted, all children will be deleted in the destructor. 
+     * So, here when we try to cleanup the ProxyBusObjects map, we need to only retrieve the top-level 
+     * ProxyBusObject and delete it. That's all needed to be done.
+     */
+    std::map<qcc::String, _ProximalProxyBusObjectWrapper> proxyBusObjects;
+
+    /* The AllJoyn context for all ProxyBusObjects to access local services */
+    AllJoynContext proxyContext;
+
+    /**
+     *    All BusObjects for exposing cloud services to proximal AllJoyn network on behalf of cloud service providers
+     * The key is the cloud service address, e.g. weather_server_A@nane.cn, lyh@nane.cn
+     *
+     * Be noted that, this map only contains top-level BusObjects, but not their children BusOjbects. Actually, the
+     * top-level BusObjects are empty with no interfaces exposed. 
+     */
+    std::map<qcc::String, CloudServiceAgentBusObject*> cloudBusObjects;
+
+    /**
+     * This map will stores all remote signal handlers information, with local BusName as the key, and a list of SignalHanderInfo as value
+     */
+    std::map<qcc::String, std::map<qcc::String, std::vector<SignalHandlerInfo>>> signalHandlersInfo;
 
 };
 

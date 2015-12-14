@@ -32,9 +32,9 @@ typedef qcc::ManagedObj<ProximalProxyBusObjectWrapper> _ProximalProxyBusObjectWr
 
 class ProximalProxyBusObjectWrapper : public ajn::MessageReceiver
 {
-    friend class ProximalCommEngineBusObject;
+    friend class CloudCommEngineBusObject;
 public:
-    ProximalProxyBusObjectWrapper(ajn::_ProxyBusObject _proxy, ajn::BusAttachment* bus, qcc::ManagedObj<ajn::ProxyBusObject> cloudEnginePBO, ProximalCommEngineBusObject* owner);
+    ProximalProxyBusObjectWrapper(ajn::_ProxyBusObject _proxy, ajn::BusAttachment* bus, CloudCommEngineBusObject* owner);
     virtual ~ProximalProxyBusObjectWrapper();
 
     QStatus IntrospectProxyChildren();
@@ -52,8 +52,7 @@ private:
     ajn::_ProxyBusObject proxy;
     ajn::BusAttachment* proxyBus;
     std::vector<_ProximalProxyBusObjectWrapper> children;
-    qcc::ManagedObj<ajn::ProxyBusObject> cloudEngineProxyBusObject;
-    ProximalCommEngineBusObject* ownerBusObject;
+    CloudCommEngineBusObject* ownerBusObject;
 };
 
 }

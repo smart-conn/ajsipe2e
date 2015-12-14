@@ -26,8 +26,8 @@
 #include <alljoyn/AllJoynStd.h>
 #include <alljoyn/BusAttachment.h>
 
-#include "ProximalCommEngine/ProximalProxyBusObjectWrapper.h"
-#include "ProximalCommEngine/ProximalCommEngineBusObject.h"
+#include "CloudCommEngine/ProximalProxyBusObjectWrapper.h"
+#include "CloudCommEngine/CloudCommEngineBusObject.h"
 
 #define QCC_MODULE "SIPE2E"
 
@@ -38,8 +38,8 @@ namespace sipe2e {
 namespace gateway {
 
 
-ProximalProxyBusObjectWrapper::ProximalProxyBusObjectWrapper(_ProxyBusObject _proxy, BusAttachment* bus, qcc::ManagedObj<ajn::ProxyBusObject> cloudEnginePBO, ProximalCommEngineBusObject* owner)
-    : proxy(_proxy), proxyBus(bus), cloudEngineProxyBusObject(cloudEnginePBO), ownerBusObject(owner)
+ProximalProxyBusObjectWrapper::ProximalProxyBusObjectWrapper(_ProxyBusObject _proxy, BusAttachment* bus, CloudCommEngineBusObject* owner)
+    : proxy(_proxy), proxyBus(bus), ownerBusObject(owner)
 {
 
 }
@@ -76,7 +76,7 @@ QStatus ProximalProxyBusObjectWrapper::IntrospectProxyChildren()
         String const& objectPath = (*proxyBusObjectChildren[i])->GetPath();
         QCC_DbgPrintf(("ObjectPath is: %s", objectPath.c_str()));
 #endif
-        _ProximalProxyBusObjectWrapper proxyWrapper(*proxyBusObjectChildren[i], proxyBus, cloudEngineProxyBusObject, ownerBusObject);
+        _ProximalProxyBusObjectWrapper proxyWrapper(*proxyBusObjectChildren[i], proxyBus, ownerBusObject);
         children.push_back(proxyWrapper);
         status = proxyWrapper->IntrospectProxyChildren();
         delete proxyBusObjectChildren[i]; //  delete this? please see the implementation of ProxyBusObject::GetManagedChildren()
@@ -171,12 +171,6 @@ void ProximalProxyBusObjectWrapper::CommonSignalHandler(const InterfaceDescripti
     QStatus status = ER_OK;
 
     if (!ownerBusObject) {
-        QCC_LogError(ER_FAIL, ("No ProximalCommEngine present"));
-        return;
-    }
-    /* Make sure the cloud communication engine is present */
-    if (!cloudEngineProxyBusObject.unwrap() || !cloudEngineProxyBusObject->IsValid()) {
-        /* The CloudCommEngine is not present, so the calls cannot be forwarded */
         QCC_LogError(ER_FAIL, ("No CloudCommEngine present"));
         return;
     }
@@ -193,20 +187,20 @@ void ProximalProxyBusObjectWrapper::CommonSignalHandler(const InterfaceDescripti
     String busNameObjPath(senderBusName);
 //     busNameObjPath += srcPath; // The Signal Handler Info is store with key as BusName (without ObjPath?)
 
-    std::map<qcc::String, std::map<qcc::String, std::vector<ProximalCommEngineBusObject::SignalHandlerInfo>>>::iterator itShiMap = ownerBusObject->signalHandlersInfo.find(busNameObjPath);
+    std::map<qcc::String, std::map<qcc::String, std::vector<CloudCommEngineBusObject::SignalHandlerInfo>>>::iterator itShiMap = ownerBusObject->signalHandlersInfo.find(busNameObjPath);
     if (itShiMap == ownerBusObject->signalHandlersInfo.end()) {
         // Could not find the Signal Handler Info for this signal, just ignore it
         QCC_LogError(ER_FAIL, ("No Signal Handler Info found"));
         return;
     }
-    std::map<qcc::String, std::vector<ProximalCommEngineBusObject::SignalHandlerInfo>>& shiMap = itShiMap->second;
-    std::map<qcc::String, std::vector<ProximalCommEngineBusObject::SignalHandlerInfo>>::iterator itShi = shiMap.begin();
+    std::map<qcc::String, std::vector<CloudCommEngineBusObject::SignalHandlerInfo>>& shiMap = itShiMap->second;
+    std::map<qcc::String, std::vector<CloudCommEngineBusObject::SignalHandlerInfo>>::iterator itShi = shiMap.begin();
     while (itShi != shiMap.end()) {
         const String& peerAddr = itShi->first;
-        std::vector<ProximalCommEngineBusObject::SignalHandlerInfo>& shiVec = itShi->second;
+        std::vector<CloudCommEngineBusObject::SignalHandlerInfo>& shiVec = itShi->second;
         // send signals to all possible interested peers
         for (size_t i = 0; i < shiVec.size(); i++) {
-            ProximalCommEngineBusObject::SignalHandlerInfo& shi = shiVec[i];
+            CloudCommEngineBusObject::SignalHandlerInfo& shi = shiVec[i];
             MsgArg cloudCallArgs[4];
             busNameObjPath += srcPath;
             busNameObjPath += "/";
@@ -224,9 +218,7 @@ void ProximalProxyBusObjectWrapper::CommonSignalHandler(const InterfaceDescripti
             cloudCallArgs[3].Set("x", shi.sessionId);
 
             // Send out the signal
-            status = cloudEngineProxyBusObject->MethodCall(gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
-                gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_CLOUDSIGNALCALL.c_str(),
-                cloudCallArgs, 4);
+            status = ownerBusObject->CloudSignalCall(busNameObjPath, receiverAddr, numArgs, args, shi.sessionId);
             if (ER_OK != status) {
                 QCC_LogError(status, ("Error sending signal to cloud"));
             }

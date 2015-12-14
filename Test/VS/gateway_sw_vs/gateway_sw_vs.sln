@@ -8,13 +8,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CloudCommEngine", "CloudCom
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IMSTransport", "IMSTransport\IMSTransport.vcxproj", "{7B4E5FA7-A47F-4EAE-8088-97AC841B26E8}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ProximalCommEngine", "ProximalCommEngine\ProximalCommEngine.vcxproj", "{0C951C13-BFC7-45E9-9872-8526A0E8EE78}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ProximalCloudCommEngine", "ProximalCloudCommEngine\ProximalCloudCommEngine.vcxproj", "{E0DD56E1-1B76-4984-8036-8B254BFF4D45}"
-	ProjectSection(ProjectDependencies) = postProject
-		{7B4E5FA7-A47F-4EAE-8088-97AC841B26E8} = {7B4E5FA7-A47F-4EAE-8088-97AC841B26E8}
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -29,14 +22,6 @@ Global
 		{7B4E5FA7-A47F-4EAE-8088-97AC841B26E8}.Debug|Win32.Build.0 = Debug|Win32
 		{7B4E5FA7-A47F-4EAE-8088-97AC841B26E8}.Release|Win32.ActiveCfg = Release|Win32
 		{7B4E5FA7-A47F-4EAE-8088-97AC841B26E8}.Release|Win32.Build.0 = Release|Win32
-		{0C951C13-BFC7-45E9-9872-8526A0E8EE78}.Debug|Win32.ActiveCfg = Debug|Win32
-		{0C951C13-BFC7-45E9-9872-8526A0E8EE78}.Debug|Win32.Build.0 = Debug|Win32
-		{0C951C13-BFC7-45E9-9872-8526A0E8EE78}.Release|Win32.ActiveCfg = Release|Win32
-		{0C951C13-BFC7-45E9-9872-8526A0E8EE78}.Release|Win32.Build.0 = Release|Win32
-		{E0DD56E1-1B76-4984-8036-8B254BFF4D45}.Debug|Win32.ActiveCfg = Debug|Win32
-		{E0DD56E1-1B76-4984-8036-8B254BFF4D45}.Debug|Win32.Build.0 = Debug|Win32
-		{E0DD56E1-1B76-4984-8036-8B254BFF4D45}.Release|Win32.ActiveCfg = Release|Win32
-		{E0DD56E1-1B76-4984-8036-8B254BFF4D45}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

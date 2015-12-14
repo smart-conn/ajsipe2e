@@ -30,12 +30,11 @@
 
 #include "Common/GatewayConstants.h"
 #include "Common/GatewayStd.h"
+#include "CloudCommEngine/CloudCommEngineBusObject.h"
 
 namespace sipe2e {
 
 namespace gateway {
-
-class ProximalCommEngineBusObject;
 
 /**
     *    CloudServiceAgentBusObject class
@@ -43,14 +42,14 @@ class ProximalCommEngineBusObject;
     * Every Agent BusObject is created while subscribing a remote service (either cloud service
     * or service provided by devices in other proximal networks).
     * Every Agent BusObject is on its specific BusAttachment which is different from the one
-    * of ProximalCommEngineBusObject instance.
+    * of CloudCommEngineBusObject instance.
     */
 class CloudServiceAgentBusObject : public ajn::BusObject
 {
-    friend class ProximalCommEngineBusObject;
-
+    friend class CloudCommEngineBusObject;
+    friend class CloudCommEngineBusObject::CloudMethodCallRunable;
 public:
-    CloudServiceAgentBusObject(qcc::String const& objectPath, qcc::ManagedObj<ajn::ProxyBusObject> cloudEnginePBO, ProximalCommEngineBusObject* owner);
+    CloudServiceAgentBusObject(qcc::String const& objectPath, CloudCommEngineBusObject* owner);
     virtual ~CloudServiceAgentBusObject();
 
 public:
@@ -95,23 +94,15 @@ protected:
     /**
      * Override the virtual method from its parent ProxyBusObject to handle all signals' Get
      * 
-     * @param ifcName    Identifies the interface that the property is defined on
-     * @param propName  Identifies the the property to get
-     * @param[out] val        Returns the property value. The type of this value is the actual value
-     *                   type.
-     * @return #ER_BUS_NO_SUCH_PROPERTY (Should be changed by user implementation of BusObject)
      */
-    virtual QStatus Get(const char* ifcName, const char* propName, ajn::MsgArg& val);
+    virtual void GetProp(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
     /**
      * Override the virtual method from its parent ProxyBusObject to handle all signals' Set
      * 
-     * @param ifcName    Identifies the interface that the property is defined on
-     * @param propName  Identifies the the property to set
-     * @param val        The property value to set. The type of this value is the actual value
-     *                   type.
-     * @return #ER_BUS_NO_SUCH_PROPERTY (Should be changed by user implementation of BusObject)
      */
-    virtual QStatus Set(const char* ifcName, const char* propName, ajn::MsgArg& val);
+    virtual void SetProp(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
+
+    virtual void GetAllProps(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
 
 private:
     /**
@@ -133,28 +124,15 @@ private:
     QStatus ParseInterface(const qcc::XmlElement* root);
 
 
-    /**
-     * @internal
-     * Method return handler used to process asynchronous cloud method call (CloudServiceAgentBusObject::CommonMethodHandler).
-     *
-     * @param msg     Method return message
-     * @param context Opaque context passed from method_call to method_return
-     */
-     void CloudMethodCallReplyHandler(ajn::Message& msg, void* context);
-
 protected:
     /* The AllJoyn execution environment */
     AllJoynContext context;
     /* The supported interfaces' names */
     std::vector<qcc::String> interfaces;
-    /**
-        *    The CloudCommEngine BusObject, that is for re-marshaling the calls and forward to cloud
-        */
-    qcc::ManagedObj<ajn::ProxyBusObject> cloudEngineProxyBusObject;
     /* All the children BusObjects */
     std::vector<CloudServiceAgentBusObject*> children;
     /* The parent BusObject that owns this agent */
-    ProximalCommEngineBusObject* ownerBusObject;
+    CloudCommEngineBusObject* ownerBusObject;
 
 };
 

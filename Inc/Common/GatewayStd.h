@@ -63,16 +63,10 @@ typedef struct _AnnounceContent {
     ajn::services::AnnounceHandler::AboutData aboutData; // map of AboutData describing properties of app/device/services
 } AnnounceContent;
 
+/*
 typedef struct _AsyncReplyContext {
     ajn::Message msg;
     ajn::InterfaceDescription::Member* member;
-/*
-    _AsyncReplyContext() 
-        : msg(*(new ajn::BusAttachment(""))), member(NULL)
-    {
-        / * Just for compilation, never call this default constructor * /
-    }
-*/
     _AsyncReplyContext(ajn::Message& _msg, const ajn::InterfaceDescription::Member* _member)
         : msg(_msg), member(new ajn::InterfaceDescription::Member(*_member))
     {
@@ -85,6 +79,7 @@ typedef struct _AsyncReplyContext {
         }
     }
 } AsyncReplyContext;
+*/
 
 }
 

@@ -100,6 +100,7 @@ public:
 
     /**
      * Publish local services to the IMS network (presence server)
+     * TBD: this will block the caller
      * @param -    
      */
     IStatus PublishService(const char* introspectionXml);

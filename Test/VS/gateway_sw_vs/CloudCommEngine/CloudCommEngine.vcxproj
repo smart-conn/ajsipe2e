@@ -53,7 +53,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;QCC_OS_GROUP_WINDOWS;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ALLJOYN_SDK_HOME)\inc;$(ALLJOYN_SDK_HOME)\inc\alljoyn;$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SRC_HOME)\core\alljoyn\common\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ALLJOYN_SDK_HOME)\inc;$(ALLJOYN_SDK_HOME)\inc\alljoyn;$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SRC_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_HOME)\core\alljoyn\alljoyn_core\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/vmm /vmg %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -72,7 +72,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;QCC_OS_GROUP_WINDOWS;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ALLJOYN_SDK_HOME)\inc;$(ALLJOYN_SDK_HOME)\inc\alljoyn;$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SRC_HOME)\core\alljoyn\common\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ALLJOYN_SDK_HOME)\inc;$(ALLJOYN_SDK_HOME)\inc\alljoyn;$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SRC_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_HOME)\core\alljoyn\alljoyn_core\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/vmm /vmg %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -87,15 +87,19 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\Src\CloudCommEngine\CloudCommEngine.cc" />
     <ClCompile Include="..\..\..\..\Src\CloudCommEngine\CloudCommEngineBusObject.cc" />
+    <ClCompile Include="..\..\..\..\Src\CloudCommEngine\CloudServiceAgentBusObject.cc" />
+    <ClCompile Include="..\..\..\..\Src\CloudCommEngine\ProximalProxyBusObjectWrapper.cc" />
     <ClCompile Include="..\..\..\..\Src\Common\CommonBusListener.cc" />
     <ClCompile Include="..\..\..\..\Src\Common\CommonUtils.cc" />
     <ClCompile Include="..\..\..\..\Src\Common\GuidUtil.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\Inc\CloudCommEngine\CloudCommEngineBusObject.h" />
+    <ClInclude Include="..\..\..\..\Inc\CloudCommEngine\CloudServiceAgentBusObject.h" />
     <ClInclude Include="..\..\..\..\Inc\CloudCommEngine\IMSTransport\ContentType.h" />
     <ClInclude Include="..\..\..\..\Inc\CloudCommEngine\IMSTransport\IMSTransportConstants.h" />
     <ClInclude Include="..\..\..\..\Inc\CloudCommEngine\IMSTransport\IMSTransportExport.h" />
+    <ClInclude Include="..\..\..\..\Inc\CloudCommEngine\ProximalProxyBusObjectWrapper.h" />
     <ClInclude Include="..\..\..\..\Inc\Common\CommonBusListener.h" />
     <ClInclude Include="..\..\..\..\Inc\Common\CommonUtils.h" />
     <ClInclude Include="..\..\..\..\Inc\Common\GatewayConstants.h" />

@@ -17,9 +17,9 @@
 #include "Common/SimpleTimer.h"
 
 SimpleTimer::SimpleTimer()
-    : timerThread(std::thread(std::bind(&SimpleTimer::TimerThreadFunc, this))),
-    interval(0), timerCB(NULL), timerCBPara(NULL)
+    : interval(0), timerCB(NULL), timerCBPara(NULL)
 {
+    timerThread = std::thread(std::bind(&SimpleTimer::TimerThreadFunc, this));
 }
 
 SimpleTimer::~SimpleTimer()

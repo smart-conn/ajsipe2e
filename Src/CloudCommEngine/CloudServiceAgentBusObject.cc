@@ -22,8 +22,8 @@
 
 #include "Common/CommonUtils.h"
 #include "Common/GatewayStd.h"
-#include "ProximalCommEngine/CloudServiceAgentBusObject.h"
-#include "ProximalCommEngine/ProximalCommEngineBusObject.h"
+#include "CloudCommEngine/CloudServiceAgentBusObject.h"
+#include "CloudCommEngine/CloudCommEngineBusObject.h"
 
 #include <alljoyn/AllJoynStd.h>
 #include <alljoyn/DBusStd.h>
@@ -70,8 +70,8 @@ bool GetDescription(const XmlElement* elem, String& description)
 }
 
 
-CloudServiceAgentBusObject::CloudServiceAgentBusObject(::String const& objectPath, ManagedObj<ProxyBusObject> cloudEnginePBO, ProximalCommEngineBusObject* owner)
-    : BusObject(objectPath.c_str()), cloudEngineProxyBusObject(cloudEnginePBO), ownerBusObject(owner)
+CloudServiceAgentBusObject::CloudServiceAgentBusObject(::String const& objectPath, CloudCommEngineBusObject* owner)
+    : BusObject(objectPath.c_str()), ownerBusObject(owner)
 {
 
 }
@@ -84,17 +84,6 @@ CloudServiceAgentBusObject::~CloudServiceAgentBusObject()
 void CloudServiceAgentBusObject::CommonMethodHandler(const InterfaceDescription::Member* member, Message& msg)
 {
     QStatus status = ER_OK;
-
-    /* Make sure the cloud communication engine is present */
-    if (!cloudEngineProxyBusObject.unwrap() || !cloudEngineProxyBusObject->IsValid()) {
-        /* The CloudCommEngine is not present, so the calls cannot be forwarded */
-        status = MethodReply(msg, ER_FAIL);
-        QCC_DbgPrintf(("No CloudCommEngine present"));
-        if (ER_OK != status) {
-            QCC_LogError(status, ("Method call did not complete successfully"));
-        }
-        return;
-    }
 
     /* Retrieve all arguments of the method call */
     size_t  numArgs = 0;
@@ -109,14 +98,14 @@ void CloudServiceAgentBusObject::CommonMethodHandler(const InterfaceDescription:
     *    The first arg: thierry_luo@nane.cn/BusName/ObjectPath/InterfaceName/MethodName
     * 
      */
-    String objPath(this->GetPath());
-    if (objPath[objPath.length() - 1] != '/') {
-        objPath += "/";
+    String calledAddr(this->GetPath());
+    if (calledAddr[calledAddr.length() - 1] != '/') {
+        calledAddr += "/";
     }
-    objPath += member->iface->GetName();
-    objPath += "/";
-    objPath += member->name;
-    status = cloudCallArgs[0].Set("s", objPath.c_str());
+    calledAddr += member->iface->GetName();
+    calledAddr += "/";
+    calledAddr += member->name;
+    status = cloudCallArgs[0].Set("s", calledAddr.c_str());
     CHECK_STATUS_AND_REPLY("Error setting the arg value");
 
     /**
@@ -130,70 +119,90 @@ void CloudServiceAgentBusObject::CommonMethodHandler(const InterfaceDescription:
     CHECK_STATUS_AND_REPLY("Error setting the arg value");
 
     /**
-      * Now we're ready to send out the cloud call by calling CloudCommEngine::AJCloudMethodCall
-      * Be noted that, since all calls to this BusObject are handled in this common handler, in case of blocking,
-      * we should make the call CloudCommEngine::AJCloudMethodCall asynchronously, and reply the call
-      * in the asynchronous MessageReceiver::ReplyHandler.
+      * Now we're ready to send out the cloud call by calling CloudCommEngine::CloudMethodCall
+      * Be noted that, since all calls to this BusObject are handled in this common handler, from
+      * performance's perspective, in CloudMethodCall() implentation, multi-thread feature should
+      * be implemented.
       */
-    AsyncReplyContext* replyContext = new AsyncReplyContext(msg, member);
-    status = cloudEngineProxyBusObject->MethodCallAsync(gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
-        gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_CLOUDMETHODCALL.c_str(), 
-        const_cast<MessageReceiver*>(static_cast<const MessageReceiver* const>(this)), 
-        static_cast<MessageReceiver::ReplyHandler>(&CloudServiceAgentBusObject::CloudMethodCallReplyHandler),
-        cloudCallArgs, 3, (void*)replyContext);
+    status = ownerBusObject->CloudMethodCall(calledAddr, numArgs, args, msg->GetSessionId(), this, msg);
     CHECK_STATUS_AND_REPLY("Error making the cloud method call");
 }
 
 
-QStatus CloudServiceAgentBusObject::Get(const char* ifcName, const char* propName, MsgArg& val)
+void CloudServiceAgentBusObject::GetProp(const InterfaceDescription::Member* member, Message& msg)
 {
     QStatus status = ER_OK;
 
-    // The method call 'GetPro' consists of two arguments and one return argument
-    MsgArg cloudCallArgs[2];
-    cloudCallArgs[0].Set("s", ifcName);
-    cloudCallArgs[1].Set("s", propName);
-    Message replyMsg(*context.bus);
-    status = cloudEngineProxyBusObject->MethodCall(gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
-        gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_CLOUDMETHODCALL.c_str(), 
-        cloudCallArgs, 2, replyMsg);
+    // The method call 'Get' consists of two arguments and one return argument
+    /* Retrieve all arguments of the method call */
+    size_t  numArgs = 0;
+    const MsgArg* args = 0;
+    msg->GetArgs(numArgs, args);
 
-    if (ER_OK != status) {
-        QCC_LogError(status, ("Error making the cloud method call"));
-        return status;
+    // The first arg: thierry_luo@nane.cn/BusName/ObjectPath/InterfaceName/MethodName
+    String calledAddr(this->GetPath());
+    if (calledAddr[calledAddr.length() - 1] != '/') {
+        calledAddr += "/";
     }
+    calledAddr += args[0].v_string.str;
+    calledAddr += "/";
+    calledAddr += "Get";
 
-    const MsgArg* replyVal = replyMsg->GetArg(0);
-    if (!replyVal) {
-        QCC_LogError(ER_FAIL, ("The reply message has not argument"));
-        return ER_FAIL;
-    }
-    val = *replyVal->v_variant.val;
 
-    return status;
+    status = ownerBusObject->CloudMethodCall(calledAddr, numArgs, args, msg->GetSessionId(), this, msg);
+
+    CHECK_STATUS_AND_REPLY("Error making the cloud method call");
 }
 
-QStatus CloudServiceAgentBusObject::Set(const char* ifcName, const char* propName, MsgArg& val)
+void CloudServiceAgentBusObject::SetProp(const InterfaceDescription::Member* member, Message& msg)
 {
     QStatus status = ER_OK;
 
-    MsgArg cloudCallArgs[3];
-    cloudCallArgs[0].Set("s", ifcName);
-    cloudCallArgs[1].Set("s", propName);
-    cloudCallArgs[2] = MsgArg(ALLJOYN_VARIANT);
-    cloudCallArgs[2].v_variant.val = &val;
+    // The method call 'Get' consists of two arguments and one return argument
+    /* Retrieve all arguments of the method call */
+    size_t  numArgs = 0;
+    const MsgArg* args = 0;
+    msg->GetArgs(numArgs, args);
 
-    status = cloudEngineProxyBusObject->MethodCall(gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
-        gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_CLOUDMETHODCALL.c_str(), 
-        cloudCallArgs, 3);
-
-    if (ER_OK != status) {
-        QCC_LogError(status, ("Error making the cloud method call"));
+    // The first arg: thierry_luo@nane.cn/BusName/ObjectPath/InterfaceName/MethodName
+    String calledAddr(this->GetPath());
+    if (calledAddr[calledAddr.length() - 1] != '/') {
+        calledAddr += "/";
     }
+    calledAddr += args[0].v_string.str;
+    calledAddr += "/";
+    calledAddr += "Set";
 
-    return status;
+
+    status = ownerBusObject->CloudMethodCall(calledAddr, numArgs, args, msg->GetSessionId(), this, msg);
+
+    CHECK_STATUS_AND_REPLY("Error making the cloud method call");
 }
 
+void CloudServiceAgentBusObject::GetAllProps(const InterfaceDescription::Member* member, Message& msg)
+{
+    QStatus status = ER_OK;
+
+    // The method call 'Get' consists of two arguments and one return argument
+    /* Retrieve all arguments of the method call */
+    size_t  numArgs = 0;
+    const MsgArg* args = 0;
+    msg->GetArgs(numArgs, args);
+
+    // The first arg: thierry_luo@nane.cn/BusName/ObjectPath/InterfaceName/MethodName
+    String calledAddr(this->GetPath());
+    if (calledAddr[calledAddr.length() - 1] != '/') {
+        calledAddr += "/";
+    }
+    calledAddr += args[0].v_string.str;
+    calledAddr += "/";
+    calledAddr += "GetAll";
+
+
+    status = ownerBusObject->CloudMethodCall(calledAddr, numArgs, args, msg->GetSessionId(), this, msg);
+
+    CHECK_STATUS_AND_REPLY("Error making the cloud method call");
+}
 
 QStatus CloudServiceAgentBusObject::ParseXml(const char* xml, services::AboutPropertyStoreImpl& propertyStore)
 {
@@ -222,7 +231,7 @@ QStatus CloudServiceAgentBusObject::ParseXml(const char* xml, services::AboutPro
                         }
                         childObjPath += relativePath;
                         if (!relativePath.empty() && IsLegalObjectPath(childObjPath.c_str())) {
-                            CloudServiceAgentBusObject* newChild = new CloudServiceAgentBusObject(childObjPath, cloudEngineProxyBusObject, ownerBusObject);
+                            CloudServiceAgentBusObject* newChild = new CloudServiceAgentBusObject(childObjPath, ownerBusObject);
                             status = newChild->ParseNode(elem);
                             if (ER_OK != status) {
                                 QCC_LogError(status, ("Error while parsing Node in the introspection XML"));
@@ -293,7 +302,7 @@ QStatus CloudServiceAgentBusObject::ParseNode(const XmlElement* root)
             }
             childObjPath += relativePath;
             if (!relativePath.empty() && IsLegalObjectPath(childObjPath.c_str())) {
-                CloudServiceAgentBusObject* newChild = new CloudServiceAgentBusObject(childObjPath, cloudEngineProxyBusObject, ownerBusObject);
+                CloudServiceAgentBusObject* newChild = new CloudServiceAgentBusObject(childObjPath, ownerBusObject);
                 status = newChild->ParseNode(elem);
                 if (ER_OK != status) {
                     //this->AddChild(newChild); // AddChild will happen in the RegisterObject() process
@@ -542,56 +551,6 @@ QStatus CloudServiceAgentBusObject::ParseInterface(const XmlElement* root)
     return status;
 }
 
-void CloudServiceAgentBusObject::CloudMethodCallReplyHandler(Message& msg, void* context)
-{
-    if (!context) {
-        QCC_LogError(ER_BAD_ARG_2, ("No context available in the CloudMethodCall ReplyHandler"));
-        return;
-    }
-    QStatus status = ER_OK;
-
-    AsyncReplyContext* replyContext = reinterpret_cast<AsyncReplyContext*>(context);
-
-    size_t numArgs = 0;
-    const MsgArg* args = NULL;
-    msg->GetArgs(numArgs, args);
-    if (2 <= numArgs) {
-        MsgArg* outArgsVariant = NULL;
-        size_t numOutArgs = 0;
-        //         status = MarshalUtils::UnmarshalAllJoynArrayArgs(args[0], outArgs, numOutArgs);
-        status = args[0].Get("av", &numOutArgs, &outArgsVariant);
-        if (ER_OK != status) {
-            QCC_LogError(status, ("Error unmarshaling the array args"));
-            status = MethodReply(replyContext->msg, status);
-            if (ER_OK != status) {
-                QCC_LogError(status, ("Method Reply did not complete successfully"));
-                return;
-            }
-        }
-        MsgArg* outArgs = new MsgArg[numOutArgs];
-        for (size_t i = 0; i < numOutArgs; i++) {
-            outArgs[i] = *outArgsVariant[i].v_variant.val;
-        }
-        /* Reply to the local caller */
-        status = MethodReply(replyContext->msg, outArgs, numOutArgs);
-        if (ER_OK != status) {
-            QCC_LogError(status, ("Method call did not complete successfully"));
-            return;
-        }
-
-        const char* cloudSessionID = NULL;
-        status = args[1].Get("s", &cloudSessionID);
-        if (ER_OK == status && cloudSessionID) {
-            /* Store the cloud session ID, and map it to local session ID */
-            // to be continued
-        }
-
-    } else {
-        /* something wrong while retrieving the args from the reply message */
-        QCC_LogError(ER_BAD_ARG_COUNT, ("Error reply argument count of cloud method call"));
-    }
-}
-
 
 QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, services::AboutPropertyStoreImpl* propertyStore)
 {
@@ -747,7 +706,7 @@ void CloudServiceAgentBusObject::LocalSessionJoined(void* arg, ajn::SessionPort 
         return;
     }
     CloudServiceAgentBusObject* parentCSABO = (CloudServiceAgentBusObject*)arg;
-    if (!parentCSABO || !parentCSABO->ownerBusObject || !parentCSABO->ownerBusObject->cloudEngineProxyBusObject.unwrap()) {
+    if (!parentCSABO || !parentCSABO->ownerBusObject) {
         QCC_LogError(ER_FAIL, ("The CloudServiceAgentBusObject is not ready"));
         return;
     }
@@ -760,16 +719,8 @@ void CloudServiceAgentBusObject::LocalSessionJoined(void* arg, ajn::SessionPort 
     }
     String peerBusNameObjPath = peerAddr.substr(slash + 1, peerAddr.length() - slash - 1);
     peerAddr.erase(slash, peerAddr.length() - slash);
-
-    MsgArg args[4];
-    args[0].Set("s", peerAddr.c_str());
-    args[1].Set("s", peerBusNameObjPath.c_str());
-    args[2].Set("s", joiner);
-    args[3].Set("u", id);
    
-    QStatus status = parentCSABO->ownerBusObject->cloudEngineProxyBusObject->MethodCall(gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE.c_str(),
-        gwConsts::SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_UPDATESIGNALHANDLERINFO.c_str(),
-        args, 4);
+    QStatus status = parentCSABO->ownerBusObject->UpdateSignalHandlerInfoToCloud(peerAddr, peerBusNameObjPath, joiner, id);
     CHECK_STATUS_AND_LOG("Error updating signal handler info to cloud");
 }
 

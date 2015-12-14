@@ -353,7 +353,7 @@ int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
                         // the notification. How?
 
                         // Secondly try to get the content and subscribe the service described
-                        // in the content to local by calling ProximalCommEngine::AJSubscribeCloudServiceToLocal
+                        // in the content to local by calling CloudCommEngine::SubscribeCloudServiceToLocal
 
                         // Get the peer address
                         char* peer = ((SipMessage*)msg)->getSipHeaderValue("f");
@@ -392,9 +392,9 @@ int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
                         ((SipMessage*)msg)->getSipContent(&serviceXml[len], contentLen + 1);
                         serviceXml[len + contentLen] = '\0';
 
-                        // Trying to call ProximalCommEngine::AJSubscribeCloudServiceToLocal
+                        // Trying to call CloudCommEngine::SubscribeCloudServiceToLocal
                         // Just push the notify content in the FIFO and the CloudCommEngine will pop out
-                        // the content and call ProximalCommEngine::AJSubscribeCloudServiceToLocal
+                        // the content and call CloudCommEngine::SubscribeCloudServiceToLocal
                         ims->incomingNotifyQueue.Enqueue(serviceXml);
                     }
                 } else { // No content type available, just ignore it

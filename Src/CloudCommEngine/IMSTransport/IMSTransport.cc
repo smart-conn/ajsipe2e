@@ -71,12 +71,12 @@ IMSTransport::~IMSTransport()
 //         regThread->try_join_for(boost::chrono::milliseconds(1000)); /// wait for the thread to end
     }
     if (timerHeartBeat) {
-        timerHeartBeat->Stop();
+//         timerHeartBeat->Stop();
         delete timerHeartBeat;
         timerHeartBeat = NULL;
     }
     if (timerSub) {
-        timerSub->Stop();
+//         timerSub->Stop();
         delete timerSub;
         timerSub = NULL;
     }
@@ -133,8 +133,8 @@ IMSTransport::~IMSTransport()
         imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
     }
     if (stack) {
-        stack->deInitialize();
         stack->stop();
+        stack->deInitialize();
         delete stack;
         stack = NULL;
     }
@@ -869,7 +869,7 @@ void IMSTransport::HeartBeatFunc(void* para)
     if (!ims) {
         return;
     }
-    // If the scscf is not present which means REGISTER is not successfull, should retry to REGISTER
+    // If the scscf is not present which means REGISTER is not successful, should retry to REGISTER
     if (ims->scscf.empty()) {
         ims->regCmdQueue.Enqueue(ims->regExpires);
         restartOpSession = true;

@@ -87,6 +87,7 @@
     <ClCompile Include="..\..\..\..\Src\CloudCommEngine\IMSTransport\IMSTransportSipCallback.cc" />
     <ClCompile Include="..\..\..\..\Src\CloudCommEngine\IMSTransport\pidf.cc" />
     <ClCompile Include="..\..\..\..\Src\Common\GuidUtil.cc" />
+    <ClCompile Include="..\..\..\..\Src\Common\sha256.cc" />
     <ClCompile Include="..\..\..\..\Src\Common\SimpleTimer.cc" />
   </ItemGroup>
   <ItemGroup>
@@ -97,6 +98,7 @@
     <ClInclude Include="..\..\..\..\Inc\CloudCommEngine\IMSTransport\IMSTransportSipCallback.h" />
     <ClInclude Include="..\..\..\..\Inc\CloudCommEngine\IMSTransport\pidf.h" />
     <ClInclude Include="..\..\..\..\Inc\Common\GuidUtil.h" />
+    <ClInclude Include="..\..\..\..\Inc\Common\sha256.h" />
     <ClInclude Include="..\..\..\..\Inc\Common\SimpleTimer.h" />
     <ClInclude Include="..\..\..\..\Inc\Common\SyncQueue.h" />
   </ItemGroup>

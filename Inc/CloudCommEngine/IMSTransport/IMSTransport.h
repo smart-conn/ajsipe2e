@@ -214,8 +214,18 @@ private:
     std::mutex mtxSubscribe, mtxUnsubscribe;
     std::condition_variable condSubscribe, condUnsubscribe;
 
-    /* */
-    std::map<qcc::String, PublicationSession*> pubSessions;
+    /* 
+     * Key: appId@deviceId@sha256, where sha256 is the sha signature of the introspection xml string
+     * Value: the publish session and the introspection xml string
+     */
+    typedef struct _PublicationInfo {
+        PublicationSession* pubSession;
+        qcc::String introspectionXml;
+        _PublicationInfo() {
+            pubSession = NULL;
+        }
+    } PublicationInfo;
+    std::map<qcc::String, PublicationInfo> pubSessions;
 
     /* The condition for waiting for the response of publishing/unpublishing */
     std::mutex mtxPublish, mtxUnpublish;

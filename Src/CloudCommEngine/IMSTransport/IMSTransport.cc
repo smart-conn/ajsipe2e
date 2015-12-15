@@ -24,6 +24,7 @@
 
 #include "Common/SimpleTimer.h"
 #include "Common/GuidUtil.h"
+#include "Common/sha256.h"
 
 #include <qcc/XmlElement.h>
 #include <qcc/StringSource.h>
@@ -102,9 +103,9 @@ IMSTransport::~IMSTransport()
             subSession = NULL;
         }
     }
-    std::map<qcc::String, PublicationSession*>::iterator itrPubsession = pubSessions.begin();
+    std::map<qcc::String, PublicationInfo>::iterator itrPubsession = pubSessions.begin();
     while (itrPubsession != pubSessions.end()) {
-        PublicationSession* pubSession = itrPubsession->second;
+        PublicationSession* pubSession = itrPubsession->second.pubSession;
         if (pubSession) {
             pubSession->unPublish();
             {
@@ -118,6 +119,7 @@ IMSTransport::~IMSTransport()
         }
         itrPubsession++;
     }
+    pubSessions.clear();
     if (regSession) {
         for (int i = 0; i < 5; i++) { // try to unregister for 5 times with 5 seconds timeout every time
             regSession->unRegister();
@@ -198,94 +200,6 @@ IStatus IMSTransport::Init()
     if (NULL == tmpRet) {// indicating an error, like the max length exceeded
         return IC_SYSTEM;
     }
-
-/*
-    xmlDocPtr doc = xmlParseFile(confFile);
-    if (doc == NULL) {
-        return IC_CONF_FILE_NOT_FOUND;
-    }
-    xmlNodePtr rootNode = xmlDocGetRootElement(doc);
-    if (rootNode == NULL) {
-        return IC_CONF_XML_PARSING;
-    }
-    xmlNodePtr childNode = rootNode->xmlChildrenNode;
-    while (childNode != NULL) {
-        if ((!xmlStrcmp(childNode->name, (const xmlChar*)"Transport"))) {
-            xmlNodePtr transportChildNode = childNode->xmlChildrenNode;
-            while (transportChildNode != NULL) {
-                if ((!xmlStrcmp(transportChildNode->name, (const xmlChar*)"IMS"))) {
-                    xmlNodePtr imsChildNode = transportChildNode->xmlChildrenNode;
-                    while (imsChildNode != NULL) {
-                        if ((!xmlStrcmp(imsChildNode->name, (const xmlChar*)"Realm"))) {
-                            xmlChar* realmXmlChar = xmlNodeGetContent(imsChildNode);
-                            if (realmXmlChar) {
-                                realm = (const char*)realmXmlChar;
-                            }
-                        } else if ((!xmlStrcmp(imsChildNode->name, (const xmlChar*)"IMPI"))) {
-                            xmlChar* impiXmlChar = xmlNodeGetContent(imsChildNode);
-                            if (impiXmlChar) {
-                                impi = (const char*)impiXmlChar;
-                            } else {
-                                return IC_CONF_XML_PARSING;
-                            }
-                        } else if ((!xmlStrcmp(imsChildNode->name, (const xmlChar*)"IMPU"))) {
-                            xmlChar* impuXmlChar = xmlNodeGetContent(imsChildNode);
-                            if (impuXmlChar) {
-                                impu = (const char*)impuXmlChar;
-                            } else {
-                                return IC_CONF_XML_PARSING;
-                            }
-                        } else if ((!xmlStrcmp(imsChildNode->name, (const xmlChar*)"Password"))) {
-                            xmlChar* passwordXmlChar = xmlNodeGetContent(imsChildNode);
-                            if (passwordXmlChar) {
-                                password = (const char*)passwordXmlChar;
-                            }
-                        } else if ((!xmlStrcmp(imsChildNode->name, (const xmlChar*)"pCSCF"))) {
-                            xmlChar* pcscfXmlChar = xmlGetProp(imsChildNode, (const xmlChar*)"domain");
-                            if (pcscfXmlChar) {
-                                pcscf = (const char*)pcscfXmlChar;
-                            } else {
-                                return IC_CONF_XML_PARSING;
-                            }
-
-                            xmlChar* pcscfPortXmlChar = xmlGetProp(imsChildNode, (const xmlChar*)"port");
-                            if (pcscfPortXmlChar) {
-                                pcscfPort = atoi((const char*)pcscfPortXmlChar);
-                            } else {
-                                return IC_CONF_XML_PARSING;
-                            }
-
-                            xmlChar* pcscfTransportXmlChar = xmlGetProp(imsChildNode, (const xmlChar*)"transport");
-                            if (pcscfTransportXmlChar) {
-                                pcscfTransport = (const char*)pcscfTransportXmlChar;
-                            } else {
-                                return IC_CONF_XML_PARSING;
-                            }
-
-                            xmlChar* pcscfIpversionXmlChar = xmlGetProp(imsChildNode, (const xmlChar*)"transport");
-                            if (pcscfIpversionXmlChar) {
-                                pcscfIpversion = (const char*)pcscfIpversionXmlChar;
-                            } else {
-                                return IC_CONF_XML_PARSING;
-                            }
-
-                        } else if ((!xmlStrcmp(imsChildNode->name, (const xmlChar*)"Expires"))) {
-                            xmlChar* expiresXmlChar = xmlNodeGetContent(imsChildNode);
-                            if (expiresXmlChar) {
-                                regExpires = atoi((const char*)expiresXmlChar);
-                            }
-                        }
-                        imsChildNode = imsChildNode->next;
-                    }
-                    break;
-                }
-                transportChildNode = transportChildNode->next;
-            }
-            break;
-        }
-        childNode = childNode->next;
-    }
-*/
 
     String confFileContent;
     FILE* confFileHandle = fopen(confFile, "r");
@@ -510,20 +424,6 @@ IStatus IMSTransport::PublishService(const char* introspectionXml)
     if (!introspectionXml) {
         return IC_BAD_ARG_1;
     }
-/*
-    xmlDocPtr doc = xmlParseMemory(introspectionXml, strlen(introspectionXml));
-    if (doc == NULL) {
-        return IC_INTROSPECTION_XML_PARSING;
-    }
-    xmlNodePtr rootNode = xmlDocGetRootElement(doc);
-    if (rootNode == NULL) {
-        return IC_INTROSPECTION_XML_PARSING;
-    }
-    xmlChar* servicePath = xmlGetProp(rootNode, (const xmlChar*)"name");
-    if (!servicePath) {
-        return IC_INTROSPECTION_XML_PARSING;
-    }
-    */
     StringSource source(introspectionXml);
     XmlParseContext pc(source);
     if (ER_OK != XmlElement::Parse(pc)) {
@@ -560,7 +460,21 @@ IStatus IMSTransport::PublishService(const char* introspectionXml)
             break;
         }
     }
-    String serviceId = appId + "@" + deviceId;
+
+    
+    String serviceId = appId + "@" + deviceId + "@";
+    serviceId += sha256(introspectionXml).c_str();
+
+    PublicationSession* pubSession = NULL;
+    bool isNewCreated = false;
+    std::map<qcc::String, PublicationInfo>::iterator itrPubsession = pubSessions.find(serviceId);
+    if (itrPubsession != pubSessions.end()) {
+        pubSession = itrPubsession->second.pubSession;
+        if (itrPubsession->second.introspectionXml == introspectionXml) {
+            // publish the exactly same service, just ignore it
+            return IC_OK;
+        }
+    }
 
     ims::service _service;
     _service.SetIntrospectionXml((String)introspectionXml);
@@ -585,15 +499,9 @@ IStatus IMSTransport::PublishService(const char* introspectionXml)
     _presence.SetEntity(entity);
     free(impiCopy);
 
-     String presenceXml;
+    String presenceXml;
     _presence.Serialize(presenceXml);
 
-    PublicationSession* pubSession = NULL;
-    bool isNewCreated = false;
-    std::map<qcc::String, PublicationSession*>::iterator itrPubsession = pubSessions.find((qcc::String)(const char*)serviceId.c_str());
-    if (itrPubsession != pubSessions.end()) {
-        pubSession = itrPubsession->second;
-    }
     if (!pubSession) {
         pubSession = new PublicationSession(stack);
         pubSession->addHeader("Event", "presence");
@@ -607,7 +515,15 @@ IStatus IMSTransport::PublishService(const char* introspectionXml)
         if (condPublish.wait_for(lock, std::chrono::milliseconds(gwConsts::PUBLICATION_DEFAULT_TIMEOUT))) {
             // if publishing is correctly responded
             if (isNewCreated) {
-                pubSessions.insert(std::pair<qcc::String, PublicationSession*>((qcc::String)(const char*)serviceId.c_str(), pubSession));
+                if (itrPubsession != pubSessions.end()) {
+                    itrPubsession->second.pubSession = pubSession;
+                    itrPubsession->second.introspectionXml = introspectionXml;
+                } else {
+                    PublicationInfo pi;
+                    pi.pubSession = pubSession;
+                    pi.introspectionXml = introspectionXml;
+                    pubSessions.insert(std::pair<qcc::String, PublicationInfo>(serviceId, pi));
+                }
             }
         } else {
             // if publishing is not correctly responded or timed out (no response)
@@ -635,20 +551,6 @@ IStatus IMSTransport::DeleteService(const char* introspectionXml)
     if (!introspectionXml) {
         return IC_BAD_ARG_1;
     }
-/*
-    xmlDocPtr doc = xmlParseMemory(introspectionXml, strlen(introspectionXml));
-    if (doc == NULL) {
-        return IC_INTROSPECTION_XML_PARSING;
-    }
-    xmlNodePtr rootNode = xmlDocGetRootElement(doc);
-    if (rootNode == NULL) {
-        return IC_INTROSPECTION_XML_PARSING;
-    }
-    xmlChar* servicePath = xmlGetProp(rootNode, (const xmlChar*)"name");
-    if (!servicePath) {
-        return IC_INTROSPECTION_XML_PARSING;
-    }
-*/
     StringSource source(introspectionXml);
     XmlParseContext pc(source);
     if (ER_OK != XmlElement::Parse(pc)) {
@@ -660,9 +562,9 @@ IStatus IMSTransport::DeleteService(const char* introspectionXml)
     }
     const String& servicePath = rootNode->GetAttribute("name");
 
-    std::map<qcc::String, PublicationSession*>::iterator itrPubsession = pubSessions.find((qcc::String)(const char*)servicePath.c_str());
+    std::map<qcc::String, PublicationInfo>::iterator itrPubsession = pubSessions.find(servicePath);
     if (itrPubsession != pubSessions.end()) {
-        PublicationSession* pubSession = itrPubsession->second;
+        PublicationSession* pubSession = itrPubsession->second.pubSession;
         if (pubSession) {
             if (pubSession->unPublish()) {
                 std::unique_lock<std::mutex> lock(imsIns->mtxUnpublish);

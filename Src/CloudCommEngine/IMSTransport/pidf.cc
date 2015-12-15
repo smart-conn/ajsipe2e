@@ -79,32 +79,6 @@ void service::Serialize(String& serviceXml)
         serviceXml.clear();
     }
 
-/*
-    xmlDocPtr doc = xmlParseMemory(introspectionXml.c_str(), introspectionXml.size());
-    if (doc == NULL) {
-        serviceXml.clear();
-        return;
-    }
-    xmlNodePtr rootNode = xmlDocGetRootElement(doc);
-    if (rootNode == NULL) {
-        serviceXml.clear();
-        return;
-    }
-    if (!xmlStrcmp(rootNode->name, (const xmlChar*)"service")) {
-        xmlNsPtr iotcloudNs = xmlNewNs(rootNode, (const xmlChar*)gwConsts::DEFAULT_NAMESPACE_URI, NULL/ *(const xmlChar*)gwConsts::DEFAULT_NAMESPACE_PREFIX* /);
-        if (iotcloudNs == NULL) {
-            serviceXml.clear();
-            return;
-        }
-        xmlSetNs(rootNode, iotcloudNs);
-        xmlBufferPtr buf = xmlBufferCreate();
-        xmlNodeDump(buf, doc, rootNode, 0, 0);
-
-        serviceXml = (const char*)xmlBufferContent(buf);
-    } else {
-        serviceXml.clear();
-    }
-*/
 }
 
 
@@ -151,20 +125,6 @@ void status::Deserialize(const XmlElement* statusNode)
             basicField = basic::closed;
         }
     }
-/*
-    xmlNodePtr basicNode = statusNode->children;
-    if (basicNode == NULL) {
-        return;
-    }
-    xmlChar* basicStatusText = xmlNodeGetContent(basicNode);
-    if (basicStatusText) {
-        if (!xmlStrcmp(basicStatusText, (const xmlChar*)"open")) {
-            basicField = basic::open;
-        } else {
-            basicField = basic::closed;
-        }
-    }
-*/
 }
 
 
@@ -241,21 +201,6 @@ void tuple::Deserialize(const XmlElement* tupleNode)
             serviceField.SetIntrospectionXml(tupleChild->Generate());
         }
     }
-/*
-    xmlChar* id = xmlGetProp(tupleNode, (const xmlChar*)"id");
-    if (id) {
-        idField = (const char*)id;
-    }
-    xmlNodePtr tupleChildNode = tupleNode->children;
-    while (tupleChildNode != NULL) {
-        if (!xmlStrcmp(tupleChildNode->name, (const xmlChar*)"status")) {
-            statusField.Deserialize(tupleChildNode);
-        } else if (!xmlStrcmp(tupleChildNode->name, (const xmlChar*)"service")) {
-            serviceField.SetIntrospectionXml((String)(const char*)tupleChildNode->content);
-        }
-        tupleChildNode = tupleChildNode->next;
-    }
-*/
 }
 
 
@@ -309,19 +254,6 @@ void presence::Deserialize(const XmlElement* presenceNode)
         _tuple.Deserialize(presenceChildren[i]);
         tupleField.push_back(_tuple);
     }
-/*
-    xmlChar* entity = xmlGetProp(presenceNode, (const xmlChar*)"entity");
-    if (entity) {
-        entityField = (const char*)entity;
-    }
-    xmlNodePtr tupleNode = presenceNode->children;
-    while (tupleNode != NULL) {
-        tuple _tuple;
-        _tuple.Deserialize(tupleNode);
-        tupleField.push_back(_tuple);
-        tupleNode = tupleNode->next;
-    }
-*/
 }
 
 void presence::Deserialize(const String& presenceXml)
@@ -335,13 +267,6 @@ void presence::Deserialize(const String& presenceXml)
         return;
     }
     const XmlElement* rootNode = pc.GetRoot();
-/*
-    xmlDocPtr doc = xmlParseMemory(presenceXmlBuf, strlen(presenceXmlBuf));
-    if (doc == NULL) {
-        return;
-    }
-    xmlNodePtr rootNode = xmlDocGetRootElement(doc);
-*/
     presence::Deserialize(rootNode);
 }
 

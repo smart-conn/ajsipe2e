@@ -103,8 +103,8 @@ IMSTransport::~IMSTransport()
             subSession = NULL;
         }
     }
-    std::map<qcc::String, PublicationInfo>::iterator itrPubsession = pubSessions.begin();
-    while (itrPubsession != pubSessions.end()) {
+    std::map<qcc::String, PublicationInfo>::iterator itrPubsession = publications.begin();
+    while (itrPubsession != publications.end()) {
         PublicationSession* pubSession = itrPubsession->second.pubSession;
         if (pubSession) {
             pubSession->unPublish();
@@ -119,7 +119,7 @@ IMSTransport::~IMSTransport()
         }
         itrPubsession++;
     }
-    pubSessions.clear();
+    publications.clear();
     if (regSession) {
         for (int i = 0; i < 5; i++) { // try to unregister for 5 times with 5 seconds timeout every time
             regSession->unRegister();
@@ -254,6 +254,19 @@ IStatus IMSTransport::Init()
         }
     }
     
+    // subscriptions
+    const XmlElement* subscriptionsNode = rootNode->GetChild((String)"Subscriptions");
+    if (subscriptionsNode) {
+        std::vector<const XmlElement*>& subscriptionNodes = subscriptionsNode->GetChildren((String)"Subscription");
+        for (size_t subIndx = 0; subIndx < subscriptionNodes.size(); subIndx++) {
+            const XmlElement* subscriptionNode = subscriptionNodes[subIndx];
+            if (subscriptionNode) {
+                const String& subAccount = subscriptionNode->GetContent();
+                subscriptions.insert(std::make_pair(subAccount, false));
+            }
+        }
+    }
+
     sipCB = new IMSTransportSipCallback();
     stack = new SipStack(sipCB, realm.c_str(), impi.c_str(), impu.c_str());
     if (password.size() > 0) {
@@ -349,8 +362,9 @@ IStatus IMSTransport::doSubscribe(const char* remoteAccount)
         if (condSubscribe.wait_for(lock, std::chrono::milliseconds(gwConsts::SUBSCRIPTION_DEFAULT_TIMEOUT))) {
             // if subscribing is correctly responded
             if (isNewCreated) {
-                subSessions.insert(std::pair<qcc::String, SubscriptionSession*>((qcc::String)remoteAccount, subSession));
+                subSessions.insert(std::make_pair((qcc::String)remoteAccount, subSession));
             }
+            subscriptions.insert(std::make_pair((qcc::String)remoteAccount, true));
         } else {
             // if subscribing is not correctly responded or timed out (no response)
             if (isNewCreated) {
@@ -467,8 +481,8 @@ IStatus IMSTransport::PublishService(const char* introspectionXml)
 
     PublicationSession* pubSession = NULL;
     bool isNewCreated = false;
-    std::map<qcc::String, PublicationInfo>::iterator itrPubsession = pubSessions.find(serviceId);
-    if (itrPubsession != pubSessions.end()) {
+    std::map<qcc::String, PublicationInfo>::iterator itrPubsession = publications.find(serviceId);
+    if (itrPubsession != publications.end()) {
         pubSession = itrPubsession->second.pubSession;
         if (itrPubsession->second.introspectionXml == introspectionXml) {
             // publish the exactly same service, just ignore it
@@ -515,14 +529,14 @@ IStatus IMSTransport::PublishService(const char* introspectionXml)
         if (condPublish.wait_for(lock, std::chrono::milliseconds(gwConsts::PUBLICATION_DEFAULT_TIMEOUT))) {
             // if publishing is correctly responded
             if (isNewCreated) {
-                if (itrPubsession != pubSessions.end()) {
+                if (itrPubsession != publications.end()) {
                     itrPubsession->second.pubSession = pubSession;
                     itrPubsession->second.introspectionXml = introspectionXml;
                 } else {
                     PublicationInfo pi;
                     pi.pubSession = pubSession;
                     pi.introspectionXml = introspectionXml;
-                    pubSessions.insert(std::pair<qcc::String, PublicationInfo>(serviceId, pi));
+                    publications.insert(std::pair<qcc::String, PublicationInfo>(serviceId, pi));
                 }
             }
         } else {
@@ -562,15 +576,15 @@ IStatus IMSTransport::DeleteService(const char* introspectionXml)
     }
     const String& servicePath = rootNode->GetAttribute("name");
 
-    std::map<qcc::String, PublicationInfo>::iterator itrPubsession = pubSessions.find(servicePath);
-    if (itrPubsession != pubSessions.end()) {
+    std::map<qcc::String, PublicationInfo>::iterator itrPubsession = publications.find(servicePath);
+    if (itrPubsession != publications.end()) {
         PublicationSession* pubSession = itrPubsession->second.pubSession;
         if (pubSession) {
             if (pubSession->unPublish()) {
                 std::unique_lock<std::mutex> lock(imsIns->mtxUnpublish);
                 if (condUnpublish.wait_for(lock, std::chrono::milliseconds(gwConsts::PUBLICATION_DEFAULT_TIMEOUT))) {
                     delete pubSession;
-                    pubSessions.erase(itrPubsession);
+                    publications.erase(itrPubsession);
                 } else {
                     return IC_TRANSPORT_IMS_PUB_FAILED;
                 }
@@ -756,7 +770,7 @@ void IMSTransport::SubFunc(void* para)
     IMSTransport* ims = (IMSTransport*)para;
     
     std::map<qcc::String, bool>::iterator itrSub = ims->subscriptions.begin();
-    while (itrSub != ims->subscriptions.begin()) {
+    while (itrSub != ims->subscriptions.end()) {
         if (!itrSub->second) {
             ims->doSubscribe(itrSub->first.c_str());
         }

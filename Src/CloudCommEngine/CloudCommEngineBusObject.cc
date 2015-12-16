@@ -161,7 +161,9 @@ void CloudCommEngineBusObject::LocalServiceAnnounceHandler::AnnounceHandlerTask:
 
     /* If the session is successfully joined then saved the session ID and create the ProxyBusObjects for all announced Objects */
     String introspectionXml("<service name=\"");
-    introspectionXml += announceData.busName;
+    String normalizedBusName;
+    IllegalStringToObjPathString(announceData.busName, normalizedBusName);
+    introspectionXml += normalizedBusName;
     introspectionXml += "\">\n";
     /* Save the announcement data to XML */
     introspectionXml += "<about>\n";
@@ -202,7 +204,7 @@ void CloudCommEngineBusObject::LocalServiceAnnounceHandler::AnnounceHandlerTask:
         itObjDesc != announceData.objectDescs.end(); ++itObjDesc) {
             String objPath = itObjDesc->first;
             /* Create the ProxyBusObject according to this object description */
-            const char* serviceName = announceData.busName.c_str();
+            const char* serviceName = normalizedBusName.c_str();
             const char* objPathName = objPath.c_str();
             bool secure = false;
             _ProxyBusObject _pbo(*ownerBusObject->proxyContext.bus, serviceName, objPathName, sessionId, secure);
@@ -250,7 +252,21 @@ CloudCommEngineBusObject::LocalServiceAnnounceHandler::~LocalServiceAnnounceHand
 
 void CloudCommEngineBusObject::LocalServiceAnnounceHandler::Announce(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs, const AboutData& aboutData)
 {
-
+    /* 
+      * Since we'll have to ping the bus, and try to join the session when receiving announcements, and 
+      * pinging and joining actions are synchronous calls that may block. So, here we  use ThreadPool
+      * to issue a new task to process the announcement and keep the incoming announcements are 
+      * not blocked by later processing.
+      *
+      * Here we may receive the announcements from self (ProximalCommEngine), so we have to
+      * filter out and ignore the announcements from self
+      */
+    if (port == gwConsts::SIPE2E_CLOUDCOMMENGINE_SESSION_PORT)
+        return;
+    Ptr<AnnounceHandlerTask> task(new AnnounceHandlerTask(ownerBusObject));
+    task->SetAnnounceContent(version, port, busName, objectDescs, aboutData);
+    taskPool.WaitForAvailableThread();
+    taskPool.Execute(task);
 }
 
 
@@ -486,7 +502,9 @@ void CloudCommEngineBusObject::CloudMethodCallRunable::Run()
         }
         return;
     }
-    String peer = calledAddr.substr(0, slash);
+    String normalizedPeer = calledAddr.substr(0, slash);
+    String peer;
+    ObjPathStringToIllegalString(normalizedPeer, peer);
     String addr = calledAddr.substr(slash + 1, calledAddr.size() - slash - 1);
     String argsStr("<args>\n");
     if (arg->inArgs && arg->inArgsNum > 0) {
@@ -956,11 +974,14 @@ QStatus CloudCommEngineBusObject::SubscribeCloudServiceToLocal(const qcc::String
 {
     QStatus status = ER_OK;
 
+    qcc::String normalizedServiceAddr;
+    IllegalStringToObjPathString(serviceAddr, normalizedServiceAddr);
+
     String agentObjPath;
-    if (serviceAddr[0] != '/') {
-        agentObjPath = "/" + serviceAddr;
+    if (normalizedServiceAddr[0] != '/') {
+        agentObjPath = "/" + normalizedServiceAddr;
     } else {
-        agentObjPath = serviceAddr;
+        agentObjPath = normalizedServiceAddr;
     }
     String serviceRootPath = GetServiceRootPath(serviceIntrospectionXml);
     if (!serviceRootPath.empty()) {
@@ -986,6 +1007,7 @@ QStatus CloudCommEngineBusObject::SubscribeCloudServiceToLocal(const qcc::String
     /* Create the new Agent BusObject and parse it through the introspection XML string */
     CloudServiceAgentBusObject* agentBusObject = new CloudServiceAgentBusObject(agentObjPath, this);
     services::AboutPropertyStoreImpl* propertyStore = new services::AboutPropertyStoreImpl();
+/*
     status = agentBusObject->ParseXml(serviceIntrospectionXml.c_str(), *propertyStore);
     if (ER_OK != status) {
         QCC_LogError(status, ("Error while trying to ParseXml to prepare CloudServiceAgentBusObject"));
@@ -994,9 +1016,10 @@ QStatus CloudCommEngineBusObject::SubscribeCloudServiceToLocal(const qcc::String
         agentBusObject = NULL;
         return status;
     }
+*/
 
     /* Prepare the Agent Service BusObject environment */
-    status = agentBusObject->PrepareAgent(NULL, propertyStore);
+    status = agentBusObject->PrepareAgent(NULL, propertyStore, serviceIntrospectionXml);
     if (ER_OK != status) {
         QCC_LogError(status, ("Error while preparing CloudServiceAgentBusObject"));
         agentBusObject->Cleanup(true);
@@ -1021,11 +1044,14 @@ QStatus CloudCommEngineBusObject::UnsubscribeCloudServiceFromLocal(const qcc::St
 {
     QStatus status = ER_OK;
 
+    qcc::String normalizedServiceAddr;
+    IllegalStringToObjPathString(serviceAddr, normalizedServiceAddr);
+
     String agentObjPath;
-    if (serviceAddr[0] != '/') {
-        agentObjPath = "/" + serviceAddr;
+    if (normalizedServiceAddr[0] != '/') {
+        agentObjPath = "/" + normalizedServiceAddr;
     } else {
-        agentObjPath = serviceAddr;
+        agentObjPath = normalizedServiceAddr;
     }
     String serviceRootPath = GetServiceRootPath(serviceIntrospectionXml);
     if (!serviceRootPath.empty()) {
@@ -1089,7 +1115,7 @@ QStatus CloudCommEngineBusObject::LocalMethodCall(const qcc::String& addr, size_
      * Here we try to find the ProxyBusObject, and hopefully it should be in proxyBusObjects map. If not found, what
      * should we do? Just simply respond with errors, or find some ways to fix it?
      */
-    _ProximalProxyBusObjectWrapper proxyWrapper = _ProximalProxyBusObjectWrapper::wrap(NULL);
+    _ProximalProxyBusObjectWrapper proxyWrapper;
     map<String, _ProximalProxyBusObjectWrapper>::const_iterator proxyWrapperIt = proxyBusObjects.find(busNameAndObjPath);
 
     if (proxyBusObjects.end() == proxyWrapperIt) {
@@ -1149,13 +1175,17 @@ QStatus CloudCommEngineBusObject::LocalSignalCall(const qcc::String& senderAddr,
         QCC_LogError(status, ("The format of sender address is not correct"));
         return status;
     }
+    String senderAccount = senderAddr.substr(0, firstSlash);
+    String normalizedSenderAccount;
+    IllegalStringToObjPathString(senderAccount, normalizedSenderAccount);
+
     size_t secondSlash = senderAddr.find_first_of('/', firstSlash + 1);
     if (String::npos == secondSlash) {
         status = ER_FAIL;
         QCC_LogError(status, ("The format of sender address is not correct"));
         return status;
     }
-    String rootAgentBusObjectPath = senderAddr.substr(0, secondSlash);
+    String rootAgentBusObjectPath = normalizedSenderAccount + senderAddr.substr(firstSlash, secondSlash - firstSlash);
     std::map<qcc::String, CloudServiceAgentBusObject*>::iterator itCBO = cloudBusObjects.find(rootAgentBusObjectPath);
     if (itCBO == cloudBusObjects.end() || !itCBO->second) {
         status = ER_FAIL;
@@ -1197,7 +1227,9 @@ QStatus CloudCommEngineBusObject::LocalSignalCall(const qcc::String& senderAddr,
         QCC_LogError(status, ("The format of receiver address is not correct"));
         return status;
     }
-    String receiverBusName = receiverAddr.substr(0, firstSlash);
+    String normalizedReceiverBusName = receiverAddr.substr(0, firstSlash);
+    String receiverBusName;
+    ObjPathStringToIllegalString(normalizedReceiverBusName, receiverBusName);
     SessionId receiverSessionId = StringToU32(receiverAddr.substr(firstSlash + 1, receiverAddr.size() - firstSlash - 1), 10);
 
     status = rootAgent->Signal(receiverBusName.c_str(), receiverSessionId, *signalMember, inArgsArray, inArgsNum);
@@ -1224,7 +1256,7 @@ QStatus CloudCommEngineBusObject::UpdateSignalHandlerInfoToLocal(const qcc::Stri
         std::map<qcc::String, std::vector<SignalHandlerInfo>> shiMap;
         signalHandlersInfo.insert(std::make_pair(localBusName, shiMap));
     }
-    std::map<qcc::String, std::vector<SignalHandlerInfo>>& currShiMap = signalHandlersInfo[localBusNameObjPath];
+    std::map<qcc::String, std::vector<SignalHandlerInfo>>& currShiMap = signalHandlersInfo[localBusName];
     std::map<qcc::String, std::vector<SignalHandlerInfo>>::iterator itSHI = currShiMap.find(peerAddr);
     if (itSHI == currShiMap.end()) {
         std::vector<SignalHandlerInfo> shiVec;
@@ -1343,6 +1375,8 @@ QStatus CloudCommEngineBusObject::UpdateSignalHandlerInfoToCloud(const qcc::Stri
 {
     QStatus status = ER_OK;
 
+    String peer;
+    ObjPathStringToIllegalString(peerAddr, peer);
     // The second arg is the peer BusName and ObjPath: BusName/ObjPath
     String peerBusName(peerBusNameObjPath);
     while ('/' == peerBusName[peerBusName.length() - 1]) {
@@ -1350,13 +1384,15 @@ QStatus CloudCommEngineBusObject::UpdateSignalHandlerInfoToCloud(const qcc::Stri
     }
 
    String msgBuf = "<SignalHandlerInfo busName=\"";
-   msgBuf += localBusName;
+   String normalizedLocalBusName;
+   IllegalStringToObjPathString(localBusName, normalizedLocalBusName);
+   msgBuf += normalizedLocalBusName;
    msgBuf += "\"";
    msgBuf += " sessionId=\"";
    msgBuf += qcc::U32ToString(localSessionId, 10);
    msgBuf += "\"></SignalHandlerInfo>";
 
-   int itStatus = ITSendCloudMessage(gwConsts::customheader::RPC_MSG_TYPE_UPDATE_SIGNAL_HANDLER, peerAddr.c_str(), NULL, peerBusNameObjPath.c_str(), msgBuf.c_str(), NULL);
+   int itStatus = ITSendCloudMessage(gwConsts::customheader::RPC_MSG_TYPE_UPDATE_SIGNAL_HANDLER, peer.c_str(), NULL, peerBusName.c_str(), msgBuf.c_str(), NULL);
    if (0 != itStatus) {
        status = ER_FAIL;
        QCC_LogError(status, ("Failed to send message to cloud"));

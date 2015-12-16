@@ -58,6 +58,10 @@ qcc::String ArgToXml(const ajn::MsgArg* args, size_t indent);
  */
 QStatus XmlToArg(const qcc::XmlElement* argEle, ajn::MsgArg& arg);
 
+void IllegalStringToObjPathString(const qcc::String& inStr, qcc::String& outStr);
+
+void ObjPathStringToIllegalString(const qcc::String& inStr, qcc::String& outStr);
+
 } // namespace gateway
 
 } // namespace sipe2e

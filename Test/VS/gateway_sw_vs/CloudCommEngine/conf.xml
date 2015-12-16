@@ -5,7 +5,7 @@
             <IMPI>wangnan@nane.cn</IMPI>
             <IMPU>sip:wangnan@nane.cn</IMPU>
             <Password>wangnan</Password>
-            <pCSCF domain="pcscf.nane.cn" port="4060" transport="udp" ipversion="ipv4" />
+            <pCSCF domain="pcscf.nane.cn" port="4060" transport="tcp" ipversion="ipv4" />
             <Expires>300</Expires>
         </IMS>
     </Transport>

@@ -648,6 +648,41 @@ QStatus XmlToArg(const XmlElement* argEle, MsgArg& arg)
     return status;
 }
 
+void IllegalStringToObjPathString(const qcc::String& inStr, qcc::String& outStr)
+{
+    outStr.clear();
+    for (size_t i = 0; i < inStr.size(); i++) {
+        if (inStr[i] != '/') {
+            outStr += qcc::U32ToString(inStr[i], 16);
+        } else {
+            outStr += "/";
+        }
+    }
+}
+
+void ObjPathStringToIllegalString(const qcc::String& inStr, qcc::String& outStr)
+{
+    outStr.clear();
+    char buf[3];
+    buf[2] = '\0';
+    size_t in = 0;
+    for (size_t i = 0; i < inStr.size(); i++) {
+        if (inStr[i] != '/') {
+            buf[in] = inStr[i];
+            if (in & 1) {
+                char c = qcc::StringToU32(qcc::String(buf), 16);
+                outStr.push_back(c);
+                in = 0;
+                continue;
+            }
+            in++;
+        } else {
+            outStr.push_back('/');
+            in = 0;
+        }
+    }
+}
+
 
 
 

@@ -149,6 +149,12 @@ private:
     static void RegThreadFunc();
 
     /**
+     * Publication routine, periodically checking the map '
+     * @param - 
+     */
+    static void PubFunc(void* para);
+
+    /**
      * Subscription routine, periodically checking the map 'subscriptions'.
      * If there is some account that is not subscribed, then just send subscription
      * @param - parameters for subscription routine
@@ -225,7 +231,7 @@ private:
             pubSession = NULL;
         }
     } PublicationInfo;
-    std::map<qcc::String, PublicationInfo> pubSessions;
+    std::map<qcc::String, PublicationInfo> publications;
 
     /* The condition for waiting for the response of publishing/unpublishing */
     std::mutex mtxPublish, mtxUnpublish;

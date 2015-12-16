@@ -95,8 +95,10 @@ void CloudServiceAgentBusObject::CommonMethodHandler(const InterfaceDescription:
     MsgArg cloudCallArgs[3];
 
     /**
-    *    The first arg: thierry_luo@nane.cn/BusName/ObjectPath/InterfaceName/MethodName
-    * 
+     *  The first arg: thierry_luo@nane.cn/BusName/ObjectPath/InterfaceName/MethodName
+     *  the first two parts of the path will be converted to ascii string since there are maybe illegal
+     *  characters in account name or BusName, like '@', or any characters that are not numeric
+     *  or alphabetic
      */
     String calledAddr(this->GetPath());
     if (calledAddr[calledAddr.length() - 1] != '/') {
@@ -226,12 +228,17 @@ QStatus CloudServiceAgentBusObject::ParseXml(const char* xml, services::AboutPro
                     if (elemName == "node") {
                         const String& relativePath = elem->GetAttribute("name");
                         String childObjPath = this->GetPath();
-                        if (0 || childObjPath.size() > 1) {
+                        if (childObjPath.size() > 1 && relativePath[0] != '/') {
                             childObjPath += '/';
                         }
                         childObjPath += relativePath;
                         if (!relativePath.empty() && IsLegalObjectPath(childObjPath.c_str())) {
                             CloudServiceAgentBusObject* newChild = new CloudServiceAgentBusObject(childObjPath, ownerBusObject);
+                            status = newChild->PrepareAgent(&context, NULL, String(""));
+                            if (ER_OK != status) {
+                                QCC_LogError(status, ("Error while preparing the Agent of child BusObject"));
+                                return status;
+                            }
                             status = newChild->ParseNode(elem);
                             if (ER_OK != status) {
                                 QCC_LogError(status, ("Error while parsing Node in the introspection XML"));
@@ -246,7 +253,7 @@ QStatus CloudServiceAgentBusObject::ParseXml(const char* xml, services::AboutPro
 
                     } else if (elemName == "interface") {
                         status = ParseInterface(elem);
-                        if (ER_OK != status) {
+                        if (ER_OK != status && ER_BUS_IFACE_ALREADY_EXISTS != status) {
                             QCC_LogError(status, ("Error while parsing Interface in the introspection XML"));
                             return status;
                         }
@@ -262,7 +269,10 @@ QStatus CloudServiceAgentBusObject::ParseXml(const char* xml, services::AboutPro
                     }
                 }
             } else if (root->GetName() == "interface") {
-                return ParseInterface(root);
+                status = ParseInterface(root);
+                if (ER_BUS_IFACE_ALREADY_EXISTS == status) {
+                    status = ER_OK;
+                }
             } else if (root->GetName() == "node") {
                 return ParseNode(root);
             }
@@ -294,15 +304,23 @@ QStatus CloudServiceAgentBusObject::ParseNode(const XmlElement* root)
         const String& elemName = elem->GetName();
         if (elemName == "interface") {
             status = ParseInterface(elem);
+            if (ER_BUS_IFACE_ALREADY_EXISTS == status) {
+                status = ER_OK;
+            }
         } else if (elemName == "node") {
             const String& relativePath = elem->GetAttribute("name");
             String childObjPath = this->GetPath();
-            if (0 || childObjPath.size() > 1) {
+            if (childObjPath.size() > 1 && relativePath[0] != '/') {
                 childObjPath += '/';
             }
             childObjPath += relativePath;
             if (!relativePath.empty() && IsLegalObjectPath(childObjPath.c_str())) {
                 CloudServiceAgentBusObject* newChild = new CloudServiceAgentBusObject(childObjPath, ownerBusObject);
+                status = newChild->PrepareAgent(&context, NULL, String(""));
+                if (ER_OK != status) {
+                    QCC_LogError(status, ("Error while preparing the Agent of child BusObject"));
+                    return status;
+                }
                 status = newChild->ParseNode(elem);
                 if (ER_OK != status) {
                     //this->AddChild(newChild); // AddChild will happen in the RegisterObject() process
@@ -552,7 +570,7 @@ QStatus CloudServiceAgentBusObject::ParseInterface(const XmlElement* root)
 }
 
 
-QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, services::AboutPropertyStoreImpl* propertyStore)
+QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, services::AboutPropertyStoreImpl* propertyStore, const qcc::String& serviceIntrospectionXml)
 {
     QStatus status = ER_OK;
 
@@ -623,6 +641,16 @@ QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, servi
         return status;
     }
 
+    if (!_context) {
+        status = ParseXml(serviceIntrospectionXml.c_str(), *propertyStore);
+        if (ER_OK != status) {
+            QCC_LogError(status, ("Error while trying to ParseXml to prepare CloudServiceAgentBusObject"));
+            Cleanup(true);
+            return status;
+        }
+    }
+
+
     /* Add the object description to About */
     status = context.about->AddObjectDescription(String(this->GetPath()), interfaces);
     if (status != ER_OK) {
@@ -630,15 +658,17 @@ QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, servi
         return status;
     }
     /* Prepare the context for all children objects */
+/*
     for (size_t i = 0; i < children.size(); i++) {
         CloudServiceAgentBusObject* child = children[i];
         if (child) {
-            status = child->PrepareAgent(&context, propertyStore);
+            status = child->PrepareAgent(&context, propertyStore, serviceIntrospectionXml);
             if (ER_OK != status) {
                 break;
             }
         }
     }
+*/
 
     return status;
 }

@@ -74,7 +74,7 @@ public:
         * @param _bus - the BusAttachment that the Agent BusObject is registers on. if it's NULL, 
         *                           then 
         */
-    QStatus PrepareAgent(AllJoynContext* _context, ajn::services::AboutPropertyStoreImpl* propertyStore);
+    QStatus PrepareAgent(AllJoynContext* _context, ajn::services::AboutPropertyStoreImpl* propertyStore, const qcc::String& serviceIntrospectionXml);
 
     /**
         * Announce the BusObject and all its children

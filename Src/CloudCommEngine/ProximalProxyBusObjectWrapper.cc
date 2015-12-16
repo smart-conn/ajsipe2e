@@ -37,6 +37,11 @@ using namespace qcc;
 namespace sipe2e {
 namespace gateway {
 
+ProximalProxyBusObjectWrapper::ProximalProxyBusObjectWrapper()
+    : proxyBus(NULL), ownerBusObject(NULL)
+{
+
+}
 
 ProximalProxyBusObjectWrapper::ProximalProxyBusObjectWrapper(_ProxyBusObject _proxy, BusAttachment* bus, CloudCommEngineBusObject* owner)
     : proxy(_proxy), proxyBus(bus), ownerBusObject(owner)
@@ -46,8 +51,10 @@ ProximalProxyBusObjectWrapper::ProximalProxyBusObjectWrapper(_ProxyBusObject _pr
 
 ProximalProxyBusObjectWrapper::~ProximalProxyBusObjectWrapper()
 {
-    proxyBus->UnregisterAllHandlers(this);
-    proxyBus = NULL;
+    if (proxyBus) {
+        proxyBus->UnregisterAllHandlers(this);
+        proxyBus = NULL;
+    }
     ownerBusObject = NULL;
 }
 
@@ -201,21 +208,21 @@ void ProximalProxyBusObjectWrapper::CommonSignalHandler(const InterfaceDescripti
         // send signals to all possible interested peers
         for (size_t i = 0; i < shiVec.size(); i++) {
             CloudCommEngineBusObject::SignalHandlerInfo& shi = shiVec[i];
-            MsgArg cloudCallArgs[4];
+//             MsgArg cloudCallArgs[4];
             busNameObjPath += srcPath;
             busNameObjPath += "/";
             busNameObjPath += member->iface->GetName();
             busNameObjPath += "/";
             busNameObjPath += member->name;
-            cloudCallArgs[0].Set("s", busNameObjPath.c_str());
+//             cloudCallArgs[0].Set("s", busNameObjPath.c_str());
             String receiverAddr(peerAddr);
             receiverAddr += "/";
             receiverAddr += shi.busName;
             receiverAddr += "/";
             receiverAddr += qcc::U32ToString(shi.sessionId);
-            cloudCallArgs[1].Set("s", receiverAddr.c_str());
-            cloudCallArgs[2].Set("av", numArgs, args);
-            cloudCallArgs[3].Set("x", shi.sessionId);
+//             cloudCallArgs[1].Set("s", receiverAddr.c_str());
+//             cloudCallArgs[2].Set("av", numArgs, args);
+//             cloudCallArgs[3].Set("x", shi.sessionId);
 
             // Send out the signal
             status = ownerBusObject->CloudSignalCall(busNameObjPath, receiverAddr, numArgs, args, shi.sessionId);

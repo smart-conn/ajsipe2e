@@ -34,6 +34,7 @@ class ProximalProxyBusObjectWrapper : public ajn::MessageReceiver
 {
     friend class CloudCommEngineBusObject;
 public:
+    ProximalProxyBusObjectWrapper();
     ProximalProxyBusObjectWrapper(ajn::_ProxyBusObject _proxy, ajn::BusAttachment* bus, CloudCommEngineBusObject* owner);
     virtual ~ProximalProxyBusObjectWrapper();
 

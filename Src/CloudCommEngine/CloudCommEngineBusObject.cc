@@ -151,6 +151,23 @@ void CloudCommEngineBusObject::LocalServiceAnnounceHandler::AnnounceHandlerTask:
     status = ownerBusObject->proxyContext.bus->Ping(announceData.busName.c_str(), PING_BUS_TIMEOUT);
     CHECK_STATUS_AND_LOG("Pinging the bus of the remote object failed");
 */
+    // First we try to look into the first ObjectDescription and find that if the Object is CloudServiceAgentBusObject,
+    // and if yes, we'll not publish this to cloud
+    services::AnnounceHandler::ObjectDescriptions::const_iterator itFirstObjDesc = announceData.objectDescs.begin();
+    if (itFirstObjDesc != announceData.objectDescs.end()) {
+        String objPath = itFirstObjDesc->first;
+        size_t firstSlash = objPath.find_first_of('/', 1); // the first character is '/', so we search from the second character
+        if (firstSlash != String::npos) {
+            String firstPartObjPath = objPath.substr(0, firstSlash);
+            ObjPathStringToIllegalString(firstPartObjPath, objPath);
+            if (objPath.find_first_of('@') != String::npos && objPath.find_first_of('.') != String::npos) {
+                // if the object path is like thierry_lou@nane.cn
+                return;
+            }
+        }
+    } else {
+        return;
+    }
 
     /* Then try to join the session at the given port */
     SessionOpts opts(SessionOpts::TRAFFIC_MESSAGES, true, SessionOpts::PROXIMITY_ANY, TRANSPORT_ANY);
@@ -202,9 +219,9 @@ void CloudCommEngineBusObject::LocalServiceAnnounceHandler::AnnounceHandlerTask:
 
     for (services::AnnounceHandler::ObjectDescriptions::const_iterator itObjDesc = announceData.objectDescs.begin();
         itObjDesc != announceData.objectDescs.end(); ++itObjDesc) {
-            String objPath = itObjDesc->first;
+            const String& objPath = itObjDesc->first;
             /* Create the ProxyBusObject according to this object description */
-            const char* serviceName = normalizedBusName.c_str();
+            const char* serviceName = announceData.busName.c_str();
             const char* objPathName = objPath.c_str();
             bool secure = false;
             _ProxyBusObject _pbo(*ownerBusObject->proxyContext.bus, serviceName, objPathName, sessionId, secure);
@@ -632,7 +649,9 @@ void CloudCommEngineBusObject::LocalMethodCallRunable::Run(void)
 
 void CloudCommEngineBusObject::SaveProxyBusObject(_ProximalProxyBusObjectWrapper proxyWrapper)
 {
-    String busNameAndObjPath = proxyWrapper->proxy->GetServiceName() /*+ "/"*/ + proxyWrapper->proxy->GetPath();
+    String normalizedBusName;
+    IllegalStringToObjPathString(proxyWrapper->proxy->GetServiceName(), normalizedBusName);
+    String busNameAndObjPath = normalizedBusName /*+ "/"*/ + proxyWrapper->proxy->GetPath();
     proxyBusObjects.insert(pair<String, _ProximalProxyBusObjectWrapper>(busNameAndObjPath, proxyWrapper));
     for (size_t i = 0; i < proxyWrapper->children.size(); i++) {
         _ProximalProxyBusObjectWrapper child = proxyWrapper->children[i];

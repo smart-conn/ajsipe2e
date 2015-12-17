@@ -28,6 +28,7 @@
 
 #include "CloudCommEngine/ProximalProxyBusObjectWrapper.h"
 #include "CloudCommEngine/CloudCommEngineBusObject.h"
+#include "Common/CommonUtils.h"
 
 #define QCC_MODULE "SIPE2E"
 
@@ -191,7 +192,8 @@ void ProximalProxyBusObjectWrapper::CommonSignalHandler(const InterfaceDescripti
     // Now we try to find the SignalHandlerInfo using the key BusName/ObjPath
     // Get the Bus Name of the signal sender which is saved as the service name of the ProxyBusObject at the time of creation
     const String& senderBusName = proxy->GetServiceName(); // it's the same as msg->GetSender() ?
-    String busNameObjPath(senderBusName);
+    String busNameObjPath;
+    IllegalStringToObjPathString(senderBusName, busNameObjPath);
 //     busNameObjPath += srcPath; // The Signal Handler Info is store with key as BusName (without ObjPath?)
 
     std::map<qcc::String, std::map<qcc::String, std::vector<CloudCommEngineBusObject::SignalHandlerInfo>>>::iterator itShiMap = ownerBusObject->signalHandlersInfo.find(busNameObjPath);

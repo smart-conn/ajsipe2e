@@ -23,6 +23,7 @@
 #include "Common/SyncQueue.h"
 
 #include <qcc/String.h>
+#include <qcc/Timer.h>
 
 #include <mutex>
 #include <thread>
@@ -37,7 +38,6 @@ class MessagingSession;
 class SubscriptionSession;
 class PublicationSession;
 
-class SimpleTimer;
 
 namespace sipe2e {
 namespace gateway {
@@ -154,12 +154,40 @@ private:
      */
     static void PubFunc(void* para);
 
+    class SubTimerAlarmListener : public qcc::AlarmListener
+    {
+    public:
+        virtual ~SubTimerAlarmListener(){};
+
+        /**
+         * @param alarm  The alarm that was triggered.
+         * @param status The reason the alarm was triggered. This will be either:
+         *               #ER_OK               The normal case.
+         *               #ER_TIMER_EXITING    The timer thread is exiting.
+         */
+        virtual void AlarmTriggered(const qcc::Alarm& alarm, QStatus reason);
+    };
     /**
      * Subscription routine, periodically checking the map 'subscriptions'.
      * If there is some account that is not subscribed, then just send subscription
      * @param - parameters for subscription routine
      */
     static void SubFunc(void* para);
+
+    class HeartBeatTimerAlarmListener : public qcc::AlarmListener
+    {
+    public:
+        virtual ~HeartBeatTimerAlarmListener(){};
+
+        /**
+         * @param alarm  The alarm that was triggered.
+         * @param status The reason the alarm was triggered. This will be either:
+         *               #ER_OK               The normal case.
+         *               #ER_TIMER_EXITING    The timer thread is exiting.
+         */
+        virtual void AlarmTriggered(const qcc::Alarm& alarm, QStatus reason);
+    };
+
 
     /**
      * Heartbeat routine, generally sending OPTIONS periodically
@@ -256,10 +284,10 @@ private:
     /**
      * TBD
      */
-    SimpleTimer* timerSub;
+    qcc::Timer timerSub;
 
     /* */
-    SimpleTimer* timerHeartBeat;
+    qcc::Timer timerHeartBeat;
 
     /* The condition for waiting for the response of HeartBeat (OPTIONS) */
     std::mutex mtxHeartBeat;

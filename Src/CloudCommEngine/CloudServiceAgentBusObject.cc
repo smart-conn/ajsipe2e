@@ -101,24 +101,25 @@ void CloudServiceAgentBusObject::CommonMethodHandler(const InterfaceDescription:
      *  or alphabetic
      */
     String calledAddr(this->GetPath());
+    calledAddr.erase(0, 1); // since the first character is definitely '/'
     if (calledAddr[calledAddr.length() - 1] != '/') {
         calledAddr += "/";
     }
     calledAddr += member->iface->GetName();
     calledAddr += "/";
     calledAddr += member->name;
-    status = cloudCallArgs[0].Set("s", calledAddr.c_str());
-    CHECK_STATUS_AND_REPLY("Error setting the arg value");
+//     status = cloudCallArgs[0].Set("s", calledAddr.c_str());
+//     CHECK_STATUS_AND_REPLY("Error setting the arg value");
 
     /**
      * The second arg is the parameters vector, every element of which a MsgArg (variant argument)
      */
-    status = cloudCallArgs[1].Set("av", numArgs, args);
+//     status = cloudCallArgs[1].Set("av", numArgs, args);
 //     status = MarshalUtils::MarshalAllJoynArrayArgs(args, numArgs, cloudCallArgs[1]);
-    CHECK_STATUS_AND_REPLY("Error marshaling array args");
+//     CHECK_STATUS_AND_REPLY("Error marshaling array args");
     /* The third arg is the local session ID */
-    status = cloudCallArgs[2].Set("x", msg->GetSessionId());
-    CHECK_STATUS_AND_REPLY("Error setting the arg value");
+//     status = cloudCallArgs[2].Set("x", msg->GetSessionId());
+//     CHECK_STATUS_AND_REPLY("Error setting the arg value");
 
     /**
       * Now we're ready to send out the cloud call by calling CloudCommEngine::CloudMethodCall
@@ -143,6 +144,7 @@ void CloudServiceAgentBusObject::GetProp(const InterfaceDescription::Member* mem
 
     // The first arg: thierry_luo@nane.cn/BusName/ObjectPath/InterfaceName/MethodName
     String calledAddr(this->GetPath());
+    calledAddr.erase(0, 1); // since the first character is definitely '/'
     if (calledAddr[calledAddr.length() - 1] != '/') {
         calledAddr += "/";
     }
@@ -168,6 +170,7 @@ void CloudServiceAgentBusObject::SetProp(const InterfaceDescription::Member* mem
 
     // The first arg: thierry_luo@nane.cn/BusName/ObjectPath/InterfaceName/MethodName
     String calledAddr(this->GetPath());
+    calledAddr.erase(0, 1); // since the first character is definitely '/'
     if (calledAddr[calledAddr.length() - 1] != '/') {
         calledAddr += "/";
     }
@@ -193,6 +196,7 @@ void CloudServiceAgentBusObject::GetAllProps(const InterfaceDescription::Member*
 
     // The first arg: thierry_luo@nane.cn/BusName/ObjectPath/InterfaceName/MethodName
     String calledAddr(this->GetPath());
+    calledAddr.erase(0, 1); // since the first character is definitely '/'
     if (calledAddr[calledAddr.length() - 1] != '/') {
         calledAddr += "/";
     }
@@ -742,7 +746,8 @@ void CloudServiceAgentBusObject::LocalSessionJoined(void* arg, ajn::SessionPort 
     }
     const char* objPath = parentCSABO->GetPath(); // This is only the path of the root AgentBusObject, like: thierry_luo@nane.cn/BusName (in most cases the root path is /BusName)
     String peerAddr(objPath);
-    size_t slash = peerAddr.find_first_of('/');
+    peerAddr.erase(0, 1); // since the first character is definitely '/'
+    size_t slash = peerAddr.find_first_of('/', 0);
     if (slash == String::npos) {
         QCC_LogError(ER_FAIL, ("The format of ObjPath of CloudServiceAgentBusObject is not correct"));
         return;

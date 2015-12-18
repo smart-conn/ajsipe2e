@@ -59,7 +59,8 @@ IMSTransport::IMSTransport()
     : stack(NULL), sipCB(NULL), imsTransportStatus(gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED),
     realm(gwConsts::DEFAULT_REALM), pcscfPort(gwConsts::DEFAULT_PCSCF_PORT),
     regSession(NULL), opSession(NULL), msgSession(NULL),
-    regThread(NULL), timerHeartBeat(NULL), regExpires(gwConsts::REGISTRATION_DEFAULT_EXPIRES)
+    regThread(NULL), timerHeartBeat(String("HeartBeat")), timerSub(String("Subscribe")), 
+    regExpires(gwConsts::REGISTRATION_DEFAULT_EXPIRES)
 {
 }
 
@@ -71,16 +72,10 @@ IMSTransport::~IMSTransport()
         regThread->join();
 //         regThread->try_join_for(boost::chrono::milliseconds(1000)); /// wait for the thread to end
     }
-    if (timerHeartBeat) {
-//         timerHeartBeat->Stop();
-        delete timerHeartBeat;
-        timerHeartBeat = NULL;
-    }
-    if (timerSub) {
-//         timerSub->Stop();
-        delete timerSub;
-        timerSub = NULL;
-    }
+    timerHeartBeat.Stop();
+
+    timerSub.Stop();
+
     incomingNotifyQueue.StopQueue();
     incomingMsgQueue.StopQueue();
 
@@ -98,10 +93,11 @@ IMSTransport::~IMSTransport()
         if (subSession) {
             // do not need to unsubscribe to the remote account, since the service may be still on
             // but the subscriber may be (temporarily) down.
-            //             subSession->unSubscribe();
+            subSession->unSubscribe();
             delete subSession;
             subSession = NULL;
         }
+        itrSubsession++;
     }
     std::map<qcc::String, PublicationInfo>::iterator itrPubsession = publications.begin();
     while (itrPubsession != publications.end()) {
@@ -308,14 +304,18 @@ IStatus IMSTransport::Init()
     /**
      * TBD
      */
-    timerSub = new SimpleTimer();
-    timerSub->Start(gwConsts::SIPSTACK_HEARTBEAT_INTERVAL, IMSTransport::SubFunc, this);
+    timerSub.Start();
+    SubTimerAlarmListener* subTimerAlarmer = new SubTimerAlarmListener();
+    Alarm subAlarm(gwConsts::SIPSTACK_HEARTBEAT_INTERVAL, subTimerAlarmer, this, gwConsts::SIPSTACK_HEARTBEAT_INTERVAL);
+    timerSub.AddAlarm(subAlarm);
 
     /**
      * Start a timer for heartbeat OPTIONS
      */
-    timerHeartBeat = new SimpleTimer();
-    timerHeartBeat->Start(gwConsts::SIPSTACK_HEARTBEAT_INTERVAL, IMSTransport::HeartBeatFunc, this);
+    timerHeartBeat.Start();
+    HeartBeatTimerAlarmListener* heartBeatTimerAlarmer = new HeartBeatTimerAlarmListener();
+    Alarm heartBeatAlarm(gwConsts::SIPSTACK_HEARTBEAT_INTERVAL, heartBeatTimerAlarmer, this, gwConsts::SIPSTACK_HEARTBEAT_INTERVAL);
+    timerHeartBeat.AddAlarm(heartBeatAlarm);
 
     return IC_OK;
 }
@@ -785,6 +785,64 @@ void IMSTransport::HeartBeatFunc(void* para)
 {
     static bool restartOpSession = false;
     IMSTransport* ims = (IMSTransport*)para;
+    if (!ims) {
+        return;
+    }
+    // If the scscf is not present which means REGISTER is not successful, should retry to REGISTER
+    if (ims->scscf.empty()) {
+        ims->regCmdQueue.Enqueue(ims->regExpires);
+        restartOpSession = true;
+        return;
+    }
+    if (restartOpSession || !ims->opSession) {
+        if (ims->opSession) {
+            delete ims->opSession;
+            ims->opSession = NULL;
+        }
+        ims->opSession = new OptionsSession(ims->stack);
+        String scscfUri("sip:");
+        scscfUri += ims->scscf;
+        ims->opSession->setToUri(scscfUri.c_str());
+        restartOpSession = false;
+    }
+    if (!ims->opSession->send()) {
+        // if the heartbeat is not successfully sent, re-register the UAC
+        ims->regCmdQueue.Enqueue(ims->regExpires);
+        restartOpSession = true;
+        return;
+    }
+    // Wait for the response of the OPTIONS heartbeat
+    {
+        std::unique_lock<std::mutex> lock(ims->mtxHeartBeat);
+        if (!ims->condHeartBeat.wait_for(lock, std::chrono::milliseconds(gwConsts::SIPSTACK_HEARTBEAT_EXPIRES))) {
+            // if timeout, the re-register the UAC
+            ims->regCmdQueue.Enqueue(ims->regExpires);
+            restartOpSession = true;
+        }
+
+    }
+}
+
+
+void IMSTransport::SubTimerAlarmListener::AlarmTriggered(const qcc::Alarm& alarm, QStatus reason)
+{
+    qcc::String subAccount;
+    IMSTransport* ims = (IMSTransport*)alarm->GetContext();
+
+    std::map<qcc::String, bool>::iterator itrSub = ims->subscriptions.begin();
+    while (itrSub != ims->subscriptions.end()) {
+        if (!itrSub->second) {
+            ims->doSubscribe(itrSub->first.c_str());
+        }
+        itrSub++;
+    }
+}
+
+
+void IMSTransport::HeartBeatTimerAlarmListener::AlarmTriggered(const qcc::Alarm& alarm, QStatus reason)
+{
+    static bool restartOpSession = false;
+    IMSTransport* ims = (IMSTransport*)alarm->GetContext();
     if (!ims) {
         return;
     }

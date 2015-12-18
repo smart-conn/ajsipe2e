@@ -906,7 +906,14 @@ ThreadReturn CloudCommEngineBusObject::NotificationReceiverThreadFunc(void* arg)
             XmlParseContext pc(source);
             status = XmlElement::Parse(pc);
             if (ER_OK != status) {
-                QCC_LogError(status, ("Error parsing the notification xml content: %s", notificationContent));
+                // Maybe the content is totally empty, in which case all services from the peer will be unsubscribed
+                if (nSubState == 0) {
+                    // service terminated
+                    status = cceBusObject->UnsubscribeCloudServiceFromLocal(peer, String(""));
+                    if (ER_OK != status) {
+                        QCC_LogError(status, ("Error unsubscribing cloud service from local"));
+                    }
+                }
                 continue;
             }
             const XmlElement* rootNode = pc.GetRoot();
@@ -1072,25 +1079,45 @@ QStatus CloudCommEngineBusObject::UnsubscribeCloudServiceFromLocal(const qcc::St
     } else {
         agentObjPath = normalizedServiceAddr;
     }
-    String serviceRootPath = GetServiceRootPath(serviceIntrospectionXml);
-    if (!serviceRootPath.empty()) {
-        if (serviceRootPath[0] != '/') {
-            agentObjPath += "/" + serviceRootPath;
-        } else {
-            agentObjPath += serviceRootPath;
+    if (serviceIntrospectionXml.size() > 0) {
+        String serviceRootPath = GetServiceRootPath(serviceIntrospectionXml);
+        if (!serviceRootPath.empty()) {
+            if (serviceRootPath[0] != '/') {
+                agentObjPath += "/" + serviceRootPath;
+            } else {
+                agentObjPath += serviceRootPath;
+            }
         }
-    }
 
-    /* Check if the cloud service has been subscribed to local already */
-    map<String, CloudServiceAgentBusObject*>::iterator cloudBusObjectIt = cloudBusObjects.find(agentObjPath);
-    if (cloudBusObjectIt != cloudBusObjects.end()) {
-        /* if the cloud service has been subscribed to local, then deleted the service mapping */
-        CloudServiceAgentBusObject* oldCloudBusObject = cloudBusObjectIt->second;
-        if (oldCloudBusObject) {
-            oldCloudBusObject->Cleanup(true);
-            delete oldCloudBusObject;
+        /* Check if the cloud service has been subscribed to local already */
+        map<String, CloudServiceAgentBusObject*>::iterator cloudBusObjectIt = cloudBusObjects.find(agentObjPath);
+        if (cloudBusObjectIt != cloudBusObjects.end()) {
+            /* if the cloud service has been subscribed to local, then deleted the service mapping */
+            CloudServiceAgentBusObject* oldCloudBusObject = cloudBusObjectIt->second;
+            if (oldCloudBusObject) {
+                oldCloudBusObject->Cleanup(true);
+                delete oldCloudBusObject;
+            }
+            cloudBusObjects.erase(cloudBusObjectIt);
         }
-        cloudBusObjects.erase(cloudBusObjectIt);
+    } else {
+        // if the serviceIntrospectionXml is empty, which means unsubscribing all services registered previously under the peer address
+        vector<map<String, CloudServiceAgentBusObject*>::iterator> vecDelete;
+        map<String, CloudServiceAgentBusObject*>::iterator cloudBusObjectIt = cloudBusObjects.begin();
+        while (cloudBusObjectIt != cloudBusObjects.end()) {
+            if (!cloudBusObjectIt->first.compare(0, normalizedServiceAddr.size(), normalizedServiceAddr)) {
+                CloudServiceAgentBusObject* oldCloudBusObject = cloudBusObjectIt->second;
+                if (oldCloudBusObject) {
+                    oldCloudBusObject->Cleanup(true);
+                    delete oldCloudBusObject;
+                }
+                vecDelete.push_back(cloudBusObjectIt);
+            }
+            cloudBusObjectIt++;
+        }
+        for (size_t i = 0; i < vecDelete.size(); i++) {
+            cloudBusObjects.erase(vecDelete[i]);
+        }
     }
 
     return status;

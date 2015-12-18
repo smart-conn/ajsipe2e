@@ -13,6 +13,10 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
+#if defined(QCC_OS_GROUP_WINDOWS)
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <qcc/platform.h>
 
 #include "CloudCommEngine/IMSTransport/IMSTransportExport.h"
 #include "CloudCommEngine/IMSTransport/IMSTransport.h"

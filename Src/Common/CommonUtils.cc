@@ -78,6 +78,27 @@ QStatus FillPropertyStore(services::AboutPropertyStoreImpl* propertyStore, const
         MANIPULATE_ARRAY_DICT(setAppName);
     } else if (aboutKey == "DefaultLanguage") {
         status = propertyStore->setDefaultLang(aboutValue);
+        std::vector<qcc::String> supportedLangsVec;
+        services::PropertyStoreProperty* supportedLangsProp = propertyStore->getProperty(services::SUPPORTED_LANGS);
+        if (supportedLangsProp) {
+            const MsgArg& supportedLangsArg = supportedLangsProp->getPropertyValue();
+            size_t supportedLangsNum = 0;
+            const char** supportedLangs = NULL; 
+            supportedLangsArg.Get("as", &supportedLangsNum, &supportedLangs);
+            if (supportedLangsNum >0 && supportedLangs) {
+                for (size_t i = 0; i < supportedLangsNum; i++) {
+                    const char* supportedLang = supportedLangs[i];
+                    if (supportedLang) {
+                        if (!strcmp(supportedLang, aboutValue.c_str())) {
+                            return status;
+                        }
+                        supportedLangsVec.push_back(qcc::String(supportedLang));
+                    }
+                }
+            }
+        }
+        supportedLangsVec.push_back(aboutValue);
+        status = propertyStore->setSupportedLangs(supportedLangsVec);
     } else if (aboutKey == "SupportedLanguages") {
         /* The supported languages are marshaled like "en,zh,sp" */
         vector<String> supportedLanguages;

@@ -350,6 +350,7 @@ IStatus IMSTransport::doSubscribe(const char* remoteAccount)
         subSession->setToUri(remoteAccount);
         subSession->addHeader("Event", "presence");
         isNewCreated = true;
+        subscriptions.insert(std::make_pair((qcc::String)remoteAccount, false));
     }
     if (subSession->subscribe()) {
         // wait for the response of the SUBSCRIBE
@@ -364,7 +365,9 @@ IStatus IMSTransport::doSubscribe(const char* remoteAccount)
             if (isNewCreated) {
                 subSessions.insert(std::make_pair((qcc::String)remoteAccount, subSession));
             }
-            subscriptions.insert(std::make_pair((qcc::String)remoteAccount, true));
+            subscriptions[(qcc::String)remoteAccount] = true;
+//             subscriptions.erase((qcc::String)remoteAccount);
+//             subscriptions.insert(std::make_pair((qcc::String)remoteAccount, true));
         } else {
             // if subscribing is not correctly responded or timed out (no response)
             if (isNewCreated) {

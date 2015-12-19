@@ -282,6 +282,10 @@ QStatus CloudServiceAgentBusObject::ParseXml(const char* xml, services::AboutPro
             }
         }
     }
+    if (ER_OK != status) {
+        return status;
+    }
+    status = context.about->AddObjectDescription(String(this->GetPath()), interfaces);
     return status;
 }
 
@@ -337,6 +341,10 @@ QStatus CloudServiceAgentBusObject::ParseNode(const XmlElement* root)
             }
         }
     }
+    if (ER_OK != status) {
+        return status;
+    }
+    status = context.about->AddObjectDescription(String(this->GetPath()), interfaces);
     return status;
 }
 
@@ -656,11 +664,13 @@ QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, servi
 
 
     /* Add the object description to About */
+/*
     status = context.about->AddObjectDescription(String(this->GetPath()), interfaces);
     if (status != ER_OK) {
         Cleanup(_context ? false : true);
         return status;
     }
+*/
     /* Prepare the context for all children objects */
 /*
     for (size_t i = 0; i < children.size(); i++) {

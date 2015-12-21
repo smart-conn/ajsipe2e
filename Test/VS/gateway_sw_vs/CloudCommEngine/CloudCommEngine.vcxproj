@@ -53,7 +53,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;QCC_OS_GROUP_WINDOWS;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ALLJOYN_SDK_HOME)\inc;$(ALLJOYN_SDK_HOME)\inc\alljoyn;$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SRC_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_HOME)\core\alljoyn\alljoyn_core\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ALLJOYN_SDK_HOME)\inc;$(ALLJOYN_SDK_HOME)\inc\alljoyn;$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SRC_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_HOME)\core\alljoyn\alljoyn_core\src;$(ALLJOYN_SRC_HOME)\services\base\controlpanel\cpp\inc;$(ALLJOYN_SRC_HOME)\services\base\controlpanel\cpp\src;$(ALLJOYN_SRC_HOME)\services\base\notification\cpp\inc;$(ALLJOYN_SRC_HOME)\services\base\notification\cpp\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/vmm /vmg %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -72,7 +72,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;QCC_OS_GROUP_WINDOWS;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ALLJOYN_SDK_HOME)\inc;$(ALLJOYN_SDK_HOME)\inc\alljoyn;$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SRC_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_HOME)\core\alljoyn\alljoyn_core\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ALLJOYN_SDK_HOME)\inc;$(ALLJOYN_SDK_HOME)\inc\alljoyn;$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SRC_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_HOME)\core\alljoyn\alljoyn_core\src;$(ALLJOYN_SRC_HOME)\services\base\controlpanel\cpp\inc;$(ALLJOYN_SRC_HOME)\services\base\controlpanel\cpp\src;$(ALLJOYN_SRC_HOME)\services\base\notification\cpp\inc;$(ALLJOYN_SRC_HOME)\services\base\notification\cpp\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/vmm /vmg %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>

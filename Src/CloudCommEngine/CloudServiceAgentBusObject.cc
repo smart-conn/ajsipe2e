@@ -19,6 +19,7 @@
 #include <qcc/platform.h>
 
 #include <qcc/StringSource.h>
+#include <qcc/StringUtil.h>
 
 #include "Common/CommonUtils.h"
 #include "Common/GatewayStd.h"
@@ -70,8 +71,12 @@ bool GetDescription(const XmlElement* elem, String& description)
 }
 
 
-CloudServiceAgentBusObject::CloudServiceAgentBusObject(::String const& objectPath, CloudCommEngineBusObject* owner)
-    : BusObject(objectPath.c_str()), ownerBusObject(owner)
+CloudServiceAgentBusObject::CloudServiceAgentBusObject(::String const& objectPath, 
+                                                       const String& remoteAccount, const String& remoteBusName, 
+                                                       CloudCommEngineBusObject* owner)
+    : BusObject(objectPath.c_str()),
+    remoteAccount(remoteAccount), remoteBusName(remoteBusName),
+    ownerBusObject(owner)
 {
 
 }
@@ -100,6 +105,7 @@ void CloudServiceAgentBusObject::CommonMethodHandler(const InterfaceDescription:
      *  characters in account name or BusName, like '@', or any characters that are not numeric
      *  or alphabetic
      */
+/*
     String calledAddr(this->GetPath());
     calledAddr.erase(0, 1); // since the first character is definitely '/'
     if (calledAddr[calledAddr.length() - 1] != '/') {
@@ -108,18 +114,13 @@ void CloudServiceAgentBusObject::CommonMethodHandler(const InterfaceDescription:
     calledAddr += member->iface->GetName();
     calledAddr += "/";
     calledAddr += member->name;
-//     status = cloudCallArgs[0].Set("s", calledAddr.c_str());
-//     CHECK_STATUS_AND_REPLY("Error setting the arg value");
+*/
 
-    /**
-     * The second arg is the parameters vector, every element of which a MsgArg (variant argument)
-     */
-//     status = cloudCallArgs[1].Set("av", numArgs, args);
-//     status = MarshalUtils::MarshalAllJoynArrayArgs(args, numArgs, cloudCallArgs[1]);
-//     CHECK_STATUS_AND_REPLY("Error marshaling array args");
-    /* The third arg is the local session ID */
-//     status = cloudCallArgs[2].Set("x", msg->GetSessionId());
-//     CHECK_STATUS_AND_REPLY("Error setting the arg value");
+    // calledAddress will be like: BusName/ObjPath/InterfaceName/MethodName
+    String calledAddr = remoteBusName + this->GetPath();
+    calledAddr += member->iface->GetName();
+    calledAddr += "/";
+    calledAddr += member->name;
 
     /**
       * Now we're ready to send out the cloud call by calling CloudCommEngine::CloudMethodCall
@@ -127,7 +128,7 @@ void CloudServiceAgentBusObject::CommonMethodHandler(const InterfaceDescription:
       * performance's perspective, in CloudMethodCall() implentation, multi-thread feature should
       * be implemented.
       */
-    status = ownerBusObject->CloudMethodCall(calledAddr, numArgs, args, msg->GetSessionId(), this, msg);
+    status = ownerBusObject->CloudMethodCall(remoteAccount, calledAddr, numArgs, args, msg->GetSessionId(), this, msg);
     CHECK_STATUS_AND_REPLY("Error making the cloud method call");
 }
 
@@ -143,6 +144,7 @@ void CloudServiceAgentBusObject::GetProp(const InterfaceDescription::Member* mem
     msg->GetArgs(numArgs, args);
 
     // The first arg: thierry_luo@nane.cn/BusName/ObjectPath/InterfaceName/MethodName
+/*
     String calledAddr(this->GetPath());
     calledAddr.erase(0, 1); // since the first character is definitely '/'
     if (calledAddr[calledAddr.length() - 1] != '/') {
@@ -151,9 +153,15 @@ void CloudServiceAgentBusObject::GetProp(const InterfaceDescription::Member* mem
     calledAddr += args[0].v_string.str;
     calledAddr += "/";
     calledAddr += "Get";
+*/
 
+    // calledAddress will be like: BusName/ObjPath/InterfaceName/MethodName
+    String calledAddr = remoteBusName + this->GetPath();
+    calledAddr += args[0].v_string.str;
+    calledAddr += "/";
+    calledAddr += "Get";
 
-    status = ownerBusObject->CloudMethodCall(calledAddr, numArgs, args, msg->GetSessionId(), this, msg);
+    status = ownerBusObject->CloudMethodCall(remoteAccount, calledAddr, numArgs, args, msg->GetSessionId(), this, msg);
 
     CHECK_STATUS_AND_REPLY("Error making the cloud method call");
 }
@@ -169,6 +177,7 @@ void CloudServiceAgentBusObject::SetProp(const InterfaceDescription::Member* mem
     msg->GetArgs(numArgs, args);
 
     // The first arg: thierry_luo@nane.cn/BusName/ObjectPath/InterfaceName/MethodName
+/*
     String calledAddr(this->GetPath());
     calledAddr.erase(0, 1); // since the first character is definitely '/'
     if (calledAddr[calledAddr.length() - 1] != '/') {
@@ -177,9 +186,16 @@ void CloudServiceAgentBusObject::SetProp(const InterfaceDescription::Member* mem
     calledAddr += args[0].v_string.str;
     calledAddr += "/";
     calledAddr += "Set";
+*/
+    // calledAddress will be like: BusName/ObjPath/InterfaceName/MethodName
+    String calledAddr = remoteBusName + this->GetPath();
+    calledAddr += args[0].v_string.str;
+    calledAddr += "/";
+    calledAddr += "Set";
 
 
-    status = ownerBusObject->CloudMethodCall(calledAddr, numArgs, args, msg->GetSessionId(), this, msg);
+
+    status = ownerBusObject->CloudMethodCall(remoteAccount, calledAddr, numArgs, args, msg->GetSessionId(), this, msg);
 
     CHECK_STATUS_AND_REPLY("Error making the cloud method call");
 }
@@ -195,6 +211,7 @@ void CloudServiceAgentBusObject::GetAllProps(const InterfaceDescription::Member*
     msg->GetArgs(numArgs, args);
 
     // The first arg: thierry_luo@nane.cn/BusName/ObjectPath/InterfaceName/MethodName
+/*
     String calledAddr(this->GetPath());
     calledAddr.erase(0, 1); // since the first character is definitely '/'
     if (calledAddr[calledAddr.length() - 1] != '/') {
@@ -203,16 +220,22 @@ void CloudServiceAgentBusObject::GetAllProps(const InterfaceDescription::Member*
     calledAddr += args[0].v_string.str;
     calledAddr += "/";
     calledAddr += "GetAll";
+*/
+    // calledAddress will be like: BusName/ObjPath/InterfaceName/MethodName
+    String calledAddr = remoteBusName + this->GetPath();
+    calledAddr += args[0].v_string.str;
+    calledAddr += "/";
+    calledAddr += "GetAll";
 
 
-    status = ownerBusObject->CloudMethodCall(calledAddr, numArgs, args, msg->GetSessionId(), this, msg);
+    status = ownerBusObject->CloudMethodCall(remoteAccount, calledAddr, numArgs, args, msg->GetSessionId(), this, msg);
 
     CHECK_STATUS_AND_REPLY("Error making the cloud method call");
 }
 
-QStatus CloudServiceAgentBusObject::ParseXml(const char* xml, services::AboutPropertyStoreImpl& propertyStore)
+QStatus CloudServiceAgentBusObject::ParseXml(const char* xml, services::AboutPropertyStoreImpl& propertyStore, BusAttachment* proxyBus)
 {
-    if (!bus) {
+    if (!proxyBus) {
         return ER_BUS_NO_TRANSPORTS;
     }
     QStatus status = ER_OK;
@@ -232,20 +255,36 @@ QStatus CloudServiceAgentBusObject::ParseXml(const char* xml, services::AboutPro
                     if (elemName == "node") {
                         const String& relativePath = elem->GetAttribute("name");
                         String childObjPath = this->GetPath();
-                        if (childObjPath.size() > 1 && relativePath[0] != '/') {
+/*
+                        if (childObjPath.size() > 0 && childObjPath[childObjPath.size() - 1] != '/' && relativePath[0] != '/') {
                             childObjPath += '/';
                         }
-                        childObjPath += relativePath;
-                        if (!relativePath.empty() && IsLegalObjectPath(childObjPath.c_str())) {
-                            CloudServiceAgentBusObject* newChild = new CloudServiceAgentBusObject(childObjPath, ownerBusObject);
-                            status = newChild->PrepareAgent(&context, NULL, String(""));
-                            if (ER_OK != status) {
-                                QCC_LogError(status, ("Error while preparing the Agent of child BusObject"));
-                                return status;
+*/
+                        if (childObjPath == "/") {
+                            childObjPath = relativePath;
+                        } else {
+                            if (childObjPath.size() > 1 && relativePath[0] != '/') {
+                                childObjPath += '/';
                             }
-                            status = newChild->ParseNode(elem);
+                            childObjPath += relativePath;
+                        }
+                        if (!relativePath.empty() && IsLegalObjectPath(childObjPath.c_str())) {
+                            CloudServiceAgentBusObject* newChild = new CloudServiceAgentBusObject(childObjPath, remoteAccount, remoteBusName, ownerBusObject);
+                            newChild->context = context;
+
+                            ajn::SessionPort sp = SESSION_PORT_ANY;
+                            const String& portStr = elem->GetAttribute("port");
+                            if (!portStr.empty()) {
+                                sp = StringToU32(portStr, 10, SESSION_PORT_ANY);
+                            }
+                            status = newChild->ParseNode(elem, proxyBus);
                             if (ER_OK != status) {
                                 QCC_LogError(status, ("Error while parsing Node in the introspection XML"));
+                                return status;
+                            }
+                            status = newChild->PrepareAgent(&context, NULL, sp, String(""));
+                            if (ER_OK != status) {
+                                QCC_LogError(status, ("Error while preparing the Agent of child BusObject"));
                                 return status;
                             }
                             children.push_back(newChild);
@@ -256,8 +295,11 @@ QStatus CloudServiceAgentBusObject::ParseXml(const char* xml, services::AboutPro
                         }
 
                     } else if (elemName == "interface") {
-                        status = ParseInterface(elem);
-                        if (ER_OK != status && ER_BUS_IFACE_ALREADY_EXISTS != status) {
+                        status = ParseInterface(elem, proxyBus);
+                        if (ER_BUS_IFACE_ALREADY_EXISTS == status) {
+                            status = ER_OK;
+                        }
+                        if (ER_OK != status) {
                             QCC_LogError(status, ("Error while parsing Interface in the introspection XML"));
                             return status;
                         }
@@ -273,25 +315,45 @@ QStatus CloudServiceAgentBusObject::ParseXml(const char* xml, services::AboutPro
                     }
                 }
             } else if (root->GetName() == "interface") {
-                status = ParseInterface(root);
+                status = ParseInterface(root, proxyBus);
                 if (ER_BUS_IFACE_ALREADY_EXISTS == status) {
                     status = ER_OK;
                 }
             } else if (root->GetName() == "node") {
-                return ParseNode(root);
+                return ParseNode(root, proxyBus);
             }
         }
     }
     if (ER_OK != status) {
         return status;
     }
-    status = context.about->AddObjectDescription(String(this->GetPath()), interfaces);
+
+    // Add the interface SIPE2E_CLOUDSERVICEAGENT_ALLJOYNENGINE_INTERFACE
+    InterfaceDescription* agentIntf = NULL;
+    status = proxyBus->CreateInterface(gwConsts::SIPE2E_CLOUDSERVICEAGENT_ALLJOYNENGINE_INTERFACE.c_str(), agentIntf, false);
+    if (ER_BUS_IFACE_ALREADY_EXISTS == status) {
+        status = ER_OK;
+        const InterfaceDescription* agentIntfExist = proxyBus->GetInterface(gwConsts::SIPE2E_CLOUDSERVICEAGENT_ALLJOYNENGINE_INTERFACE.c_str());
+        this->AddInterface(*agentIntfExist, AnnounceFlag::ANNOUNCED);
+        interfaces.push_back(agentIntfExist->GetName());
+    } else if (ER_OK == status) {
+        status = agentIntf->AddProperty("Version", "q", PROP_ACCESS_READ);
+        if (ER_OK != status) {
+            return status;
+        }
+        agentIntf->Activate();
+        this->AddInterface(*agentIntf, AnnounceFlag::ANNOUNCED);
+        interfaces.push_back(agentIntf->GetName());
+    } else {
+        return status;
+    }
+
     return status;
 }
 
-QStatus CloudServiceAgentBusObject::ParseNode(const XmlElement* root)
+QStatus CloudServiceAgentBusObject::ParseNode(const XmlElement* root, BusAttachment* proxyBus)
 {
-    if (!bus) {
+    if (!proxyBus) {
         return ER_BUS_NO_TRANSPORTS;
     }
     QStatus status = ER_OK;
@@ -311,7 +373,7 @@ QStatus CloudServiceAgentBusObject::ParseNode(const XmlElement* root)
         const XmlElement* elem = *it++;
         const String& elemName = elem->GetName();
         if (elemName == "interface") {
-            status = ParseInterface(elem);
+            status = ParseInterface(elem, proxyBus);
             if (ER_BUS_IFACE_ALREADY_EXISTS == status) {
                 status = ER_OK;
             }
@@ -323,16 +385,22 @@ QStatus CloudServiceAgentBusObject::ParseNode(const XmlElement* root)
             }
             childObjPath += relativePath;
             if (!relativePath.empty() && IsLegalObjectPath(childObjPath.c_str())) {
-                CloudServiceAgentBusObject* newChild = new CloudServiceAgentBusObject(childObjPath, ownerBusObject);
-                status = newChild->PrepareAgent(&context, NULL, String(""));
+                CloudServiceAgentBusObject* newChild = new CloudServiceAgentBusObject(childObjPath, remoteAccount, remoteBusName, ownerBusObject);
+                newChild->context = context;
+
+                ajn::SessionPort sp = SESSION_PORT_ANY;
+                const String& portStr = elem->GetAttribute("port");
+                if (!portStr.empty()) {
+                    sp = StringToU32(portStr, 10, SESSION_PORT_ANY);
+                }
+                status = newChild->ParseNode(elem, proxyBus);
+                if (ER_OK != status) {
+                    break;
+                }
+                status = newChild->PrepareAgent(&context, NULL, sp, String(""));
                 if (ER_OK != status) {
                     QCC_LogError(status, ("Error while preparing the Agent of child BusObject"));
                     return status;
-                }
-                status = newChild->ParseNode(elem);
-                if (ER_OK != status) {
-                    //this->AddChild(newChild); // AddChild will happen in the RegisterObject() process
-                    break;
                 }
                 children.push_back(newChild);
             } else {
@@ -344,13 +412,33 @@ QStatus CloudServiceAgentBusObject::ParseNode(const XmlElement* root)
     if (ER_OK != status) {
         return status;
     }
-    status = context.about->AddObjectDescription(String(this->GetPath()), interfaces);
+
+    // Add the interface SIPE2E_CLOUDSERVICEAGENT_ALLJOYNENGINE_INTERFACE
+    InterfaceDescription* agentIntf = NULL;
+    status = proxyBus->CreateInterface(gwConsts::SIPE2E_CLOUDSERVICEAGENT_ALLJOYNENGINE_INTERFACE.c_str(), agentIntf, false);
+    if (ER_BUS_IFACE_ALREADY_EXISTS == status) {
+        status = ER_OK;
+        const InterfaceDescription* agentIntfExist = proxyBus->GetInterface(gwConsts::SIPE2E_CLOUDSERVICEAGENT_ALLJOYNENGINE_INTERFACE.c_str());
+        this->AddInterface(*agentIntfExist, AnnounceFlag::ANNOUNCED);
+        interfaces.push_back(agentIntfExist->GetName());
+    } else if (ER_OK == status) {
+        status = agentIntf->AddProperty("Version", "q", PROP_ACCESS_READ);
+        if (ER_OK != status) {
+            return status;
+        }
+        agentIntf->Activate();
+        this->AddInterface(*agentIntf, AnnounceFlag::ANNOUNCED);
+        interfaces.push_back(agentIntf->GetName());
+    } else {
+        return status;
+    }
+
     return status;
 }
 
-QStatus CloudServiceAgentBusObject::ParseInterface(const XmlElement* root)
+QStatus CloudServiceAgentBusObject::ParseInterface(const XmlElement* root, BusAttachment* proxyBus)
 {
-    if (!bus) {
+    if (!proxyBus) {
         return ER_BUS_NO_TRANSPORTS;
     }
     QStatus status = ER_OK;
@@ -373,7 +461,10 @@ QStatus CloudServiceAgentBusObject::ParseInterface(const XmlElement* root)
      * interface evolution is better supported.
      */
     if ((ifName == org::freedesktop::DBus::InterfaceName) ||
-        (ifName == org::freedesktop::DBus::Properties::InterfaceName)) {
+        (ifName == org::freedesktop::DBus::Peer::InterfaceName) ||
+        (ifName == org::freedesktop::DBus::Properties::InterfaceName) ||
+        (ifName == org::freedesktop::DBus::Introspectable::InterfaceName) ||
+        (ifName == org::allseen::Introspectable::InterfaceName)) {
             return ER_OK;
     }
 
@@ -396,7 +487,7 @@ QStatus CloudServiceAgentBusObject::ParseInterface(const XmlElement* root)
     /* Create a new interface */
 //     InterfaceDescription intf(ifName.c_str(), secPolicy);
     InterfaceDescription* intf = NULL;
-    status = bus->CreateInterface(ifName.c_str(), intf, secPolicy);
+    status = proxyBus->CreateInterface(ifName.c_str(), intf, secPolicy);
     if (ER_OK != status) {
         // log error
         return status;
@@ -582,7 +673,9 @@ QStatus CloudServiceAgentBusObject::ParseInterface(const XmlElement* root)
 }
 
 
-QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, services::AboutPropertyStoreImpl* propertyStore, const qcc::String& serviceIntrospectionXml)
+QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, services::AboutPropertyStoreImpl* propertyStore, 
+                                                 ajn::SessionPort sp, 
+                                                 const qcc::String& serviceIntrospectionXml)
 {
     QStatus status = ER_OK;
 
@@ -614,22 +707,12 @@ QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, servi
         /* Prepare the BusListener */
         context.busListener = new CommonBusListener(context.bus, NULL, LocalSessionJoined, LocalSessionLost, this);
 
-        TransportMask transportMask = TRANSPORT_ANY;
-        SessionPort sp = SESSION_PORT_ANY;
-        SessionOpts opts(SessionOpts::TRAFFIC_MESSAGES, false, SessionOpts::PROXIMITY_ANY, transportMask);
-
-        QStatus status = context.bus->BindSessionPort(sp, opts, *context.busListener); // If successful, selecdted seession port will be returned
-        if (status != ER_OK) {
-            Cleanup(true);
-            return status;
-        }
-
         /* Prepare the About Service */
         context.about = new services::AboutService(*context.bus, *context.propertyStore);
-        context.busListener->setSessionPort(sp);
+//         context.busListener->setSessionPort(sp);
         context.bus->RegisterBusListener(*context.busListener);
 
-        status = context.about->Register(sp);
+        status = context.about->Register(gwConsts::ANNOUNCMENT_PORT_NUMBER);
         if (status != ER_OK) {
             Cleanup(true);
             return status;
@@ -646,15 +729,19 @@ QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, servi
 
     }
 
-    /* Register itself on the bus */
-    status = context.bus->RegisterBusObject(*this, false); // security will be considered in the future
-    if (status != ER_OK) {
-        Cleanup(_context ? false : true);
-        return status;
+    if (sp != SESSION_PORT_ANY) {
+        TransportMask transportMask = TRANSPORT_ANY;
+        SessionOpts opts(SessionOpts::TRAFFIC_MESSAGES, false, SessionOpts::PROXIMITY_ANY, transportMask);
+
+        status = context.bus->BindSessionPort(sp, opts, *context.busListener);
+        if (status != ER_OK && status != ER_ALLJOYN_BINDSESSIONPORT_REPLY_ALREADY_EXISTS) {
+            Cleanup(_context ? false : true);
+            return status;
+        }
     }
 
     if (!_context) {
-        status = ParseXml(serviceIntrospectionXml.c_str(), *propertyStore);
+        status = ParseXml(serviceIntrospectionXml.c_str(), *propertyStore, context.bus);
         if (ER_OK != status) {
             QCC_LogError(status, ("Error while trying to ParseXml to prepare CloudServiceAgentBusObject"));
             Cleanup(true);
@@ -662,6 +749,15 @@ QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, servi
         }
     }
 
+    /* Add Object Description */
+    context.about->AddObjectDescription(this->GetPath(), interfaces);
+
+    /* Register itself on the bus */
+    status = context.bus->RegisterBusObject(*this, false); // security will be considered in the future
+    if (status != ER_OK) {
+        Cleanup(_context ? false : true);
+        return status;
+    }
 
     /* Add the object description to About */
 /*
@@ -710,9 +806,10 @@ QStatus CloudServiceAgentBusObject::Cleanup(bool topLevel)
     }
     if (!topLevel) {
         /* First clean up all children */
-        if (context.bus) {
-            context.bus->UnregisterBusObject(*this);
-        }
+        // Not necessary, because Bus will remove all children while removing top-most BusObject
+//         if (context.bus) {
+//             context.bus->UnregisterBusObject(*this);
+//         }
         if (context.about) {
             status = context.about->RemoveObjectDescription(String(this->GetPath()), interfaces);
         }
@@ -754,6 +851,7 @@ void CloudServiceAgentBusObject::LocalSessionJoined(void* arg, ajn::SessionPort 
         QCC_LogError(ER_FAIL, ("The CloudServiceAgentBusObject is not ready"));
         return;
     }
+/*
     const char* objPath = parentCSABO->GetPath(); // This is only the path of the root AgentBusObject, like: thierry_luo@nane.cn/BusName (in most cases the root path is /BusName)
     String peerAddr(objPath);
     peerAddr.erase(0, 1); // since the first character is definitely '/'
@@ -764,8 +862,9 @@ void CloudServiceAgentBusObject::LocalSessionJoined(void* arg, ajn::SessionPort 
     }
     String peerBusNameObjPath = peerAddr.substr(slash + 1, peerAddr.length() - slash - 1);
     peerAddr.erase(slash, peerAddr.length() - slash);
+*/
    
-    QStatus status = parentCSABO->ownerBusObject->UpdateSignalHandlerInfoToCloud(peerAddr, peerBusNameObjPath, joiner, id);
+    QStatus status = parentCSABO->ownerBusObject->UpdateSignalHandlerInfoToCloud(parentCSABO->remoteAccount, parentCSABO->remoteBusName, joiner, id);
     CHECK_STATUS_AND_LOG("Error updating signal handler info to cloud");
 }
 

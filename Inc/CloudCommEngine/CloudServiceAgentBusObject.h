@@ -36,8 +36,9 @@ namespace sipe2e {
 
 namespace gateway {
 
+
 /**
-    *    CloudServiceAgentBusObject class
+    * CloudServiceAgentBusObject class
     * This is the Agent BusObject exposing services/interfaces on behalf of cloud services
     * Every Agent BusObject is created while subscribing a remote service (either cloud service
     * or service provided by devices in other proximal networks).
@@ -49,7 +50,9 @@ class CloudServiceAgentBusObject : public ajn::BusObject
     friend class CloudCommEngineBusObject;
     friend class CloudCommEngineBusObject::CloudMethodCallRunable;
 public:
-    CloudServiceAgentBusObject(qcc::String const& objectPath, CloudCommEngineBusObject* owner);
+    CloudServiceAgentBusObject(const qcc::String& objectPath, 
+        const qcc::String& remoteAccount, const qcc::String& remoteBusName, 
+        CloudCommEngineBusObject* owner);
     virtual ~CloudServiceAgentBusObject();
 
 public:
@@ -67,14 +70,16 @@ public:
         * @param xml - the introspection XML string describing the interfaces and children interfaces
         * @param propertyStore - fill in the propertyStore based on the about data in the XML
         */
-    QStatus ParseXml(const char* xml, ajn::services::AboutPropertyStoreImpl& propertyStore);
+    QStatus ParseXml(const char* xml, ajn::services::AboutPropertyStoreImpl& propertyStore, ajn::BusAttachment* proxyBus);
 
     /**
         * Prepare the agent AllJoyn executing environment, including BusAttachment, AboutService
         * @param _bus - the BusAttachment that the Agent BusObject is registers on. if it's NULL, 
         *                           then 
         */
-    QStatus PrepareAgent(AllJoynContext* _context, ajn::services::AboutPropertyStoreImpl* propertyStore, const qcc::String& serviceIntrospectionXml);
+    QStatus PrepareAgent(AllJoynContext* _context, ajn::services::AboutPropertyStoreImpl* propertyStore,
+        ajn::SessionPort sp,
+        const qcc::String& serviceIntrospectionXml);
 
     /**
         * Announce the BusObject and all its children
@@ -112,7 +117,7 @@ private:
         * @param root - the node xml root element of the introspection XML string
         * @param bus - the BusAttachment that the agent BusObject will be registered in
         */
-    QStatus ParseNode(const qcc::XmlElement* root);
+    QStatus ParseNode(const qcc::XmlElement* root, ajn::BusAttachment* proxyBus);
 
     /**
         * @internal
@@ -121,12 +126,14 @@ private:
         * @param root - the interface root element of the introspection XML string
         * @param bus - the BusAttachment that the agent BusObject will be registered in
         */
-    QStatus ParseInterface(const qcc::XmlElement* root);
+    QStatus ParseInterface(const qcc::XmlElement* root, ajn::BusAttachment* proxyBus);
 
 
 protected:
     /* The AllJoyn execution environment */
     AllJoynContext context;
+    /* The remote account address and remote BusName */
+    qcc::String remoteAccount, remoteBusName;
     /* The supported interfaces' names */
     std::vector<qcc::String> interfaces;
     /* All the children BusObjects */

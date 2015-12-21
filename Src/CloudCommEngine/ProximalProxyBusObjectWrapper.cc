@@ -25,6 +25,8 @@
 
 #include <alljoyn/AllJoynStd.h>
 #include <alljoyn/BusAttachment.h>
+#include <ControlPanelConstants.h>
+#include <NotificationConstants.h>
 
 #include "CloudCommEngine/ProximalProxyBusObjectWrapper.h"
 #include "CloudCommEngine/CloudCommEngineBusObject.h"
@@ -98,17 +100,32 @@ QStatus ProximalProxyBusObjectWrapper::IntrospectProxyChildren()
     return ER_OK;
 }
 
-String ProximalProxyBusObjectWrapper::GenerateProxyIntrospectionXml()
+String ProximalProxyBusObjectWrapper::GenerateProxyIntrospectionXml(ajn::SessionPort& wellKnownPort, bool topLevel)
 {
     if (!proxy.unwrap()) {
         QCC_DbgHLPrintf(("Top-level ProxyBusObject is not NULL"));
         return ER_OK;
     }
+
     String introXml("");
     const String close = "\">\n";
 
     introXml += "<node name=\"";
-    introXml += proxy->GetPath() + close;
+
+    const String& objPath = proxy->GetPath();
+    if (topLevel) {
+        // if it's top level ProxyBusObject, name attribute is whole ObjPath
+        introXml += proxy->GetPath()/* + close*/;
+    } else {
+        size_t slash = objPath.find_last_of('/');
+        if (slash != String::npos) {
+            introXml += objPath.substr(slash + 1, objPath.size() - slash - 1) /* + close*/;
+        }
+    }
+
+    String intfsXml("");
+
+    wellKnownPort = SESSION_PORT_ANY;
 
     /* First we add all interface description */
     size_t numIntf = proxy->GetInterfaces();
@@ -125,10 +142,19 @@ String ProximalProxyBusObjectWrapper::GenerateProxyIntrospectionXml()
                 // because these interfaces will by default be implemented by every BusObject
                 const char* intfName = intf->GetName();
                 if (intf && intfName 
+                    && strcmp(intfName, org::freedesktop::DBus::InterfaceName)
                     && strcmp(intfName, org::freedesktop::DBus::Peer::InterfaceName)
                     && strcmp(intfName, org::freedesktop::DBus::Properties::InterfaceName)
                     && strcmp(intfName, org::freedesktop::DBus::Introspectable::InterfaceName)
                     && strcmp(intfName, org::allseen::Introspectable::InterfaceName)) {
+
+                        // if the interface is "org.alljoyn.ControlPanel.ControlPanel" the port will be set to CONTROLPANELSERVICE_PORT (1000)
+                        // if the interface is "org.alljoyn.Notification" the port will be set to AJ_NOTIFICATION_PRODUCER_SERVICE_PORT (1010)
+                        if (!strcmp(intfName, services::cpsConsts::AJ_CONTROLPANEL_INTERFACE.c_str())) {
+                            wellKnownPort = services::cpsConsts::CONTROLPANELSERVICE_PORT;
+                        } else if (!strcmp(intfName, services::nsConsts::AJ_NOTIFICATION_INTERFACE_NAME.c_str())) {
+                            wellKnownPort = services::nsConsts::AJ_NOTIFICATION_PRODUCER_SERVICE_PORT;
+                        }
 
                         String intfXml = intf->Introspect();
 
@@ -151,23 +177,25 @@ String ProximalProxyBusObjectWrapper::GenerateProxyIntrospectionXml()
                             }
                         }
 
-                        introXml += intfXml;
-                        introXml += "\n";
+                        intfsXml += intfXml;
+                        intfsXml += "\n";
                 }
             }
         }
         delete[] intfs;
     }
 
+    if (wellKnownPort != SESSION_PORT_ANY) {
+        introXml += "\" port=\"";
+        introXml += U32ToString(wellKnownPort);
+    }
+    introXml += close;
+    introXml += intfsXml;
+
     /* Secondly we add all children */
     for (size_t i = 0; i < children.size(); i++) {
-        // This conversion is dangerous!
-        String childObjName = children[i]->proxy->GetPath();
-        size_t pos = childObjName.find_last_of('/');
-        if (String::npos != pos) {
-            childObjName = childObjName.substr(pos + 1, childObjName.length() - pos - 1);
-            introXml += children[i]->GenerateProxyIntrospectionXml();
-        }
+        ajn::SessionPort childPort = SESSION_PORT_ANY;
+        introXml += children[i]->GenerateProxyIntrospectionXml(childPort, false);
     }
 
     introXml += "</node>\n";
@@ -192,8 +220,11 @@ void ProximalProxyBusObjectWrapper::CommonSignalHandler(const InterfaceDescripti
     // Now we try to find the SignalHandlerInfo using the key BusName/ObjPath
     // Get the Bus Name of the signal sender which is saved as the service name of the ProxyBusObject at the time of creation
     const String& senderBusName = proxy->GetServiceName(); // it's the same as msg->GetSender() ?
+/*
     String busNameObjPath;
     IllegalStringToObjPathString(senderBusName, busNameObjPath);
+*/
+    String busNameObjPath(senderBusName);
 //     busNameObjPath += srcPath; // The Signal Handler Info is store with key as BusName (without ObjPath?)
 
     std::map<qcc::String, std::map<qcc::String, std::vector<CloudCommEngineBusObject::SignalHandlerInfo>>>::iterator itShiMap = ownerBusObject->signalHandlersInfo.find(busNameObjPath);
@@ -217,9 +248,12 @@ void ProximalProxyBusObjectWrapper::CommonSignalHandler(const InterfaceDescripti
             busNameObjPath += "/";
             busNameObjPath += member->name;
 //             cloudCallArgs[0].Set("s", busNameObjPath.c_str());
+/*
             String receiverAddr(peerAddr);
             receiverAddr += "/";
             receiverAddr += shi.busName;
+*/
+            String receiverAddr(shi.busName);
             receiverAddr += "/";
             receiverAddr += qcc::U32ToString(shi.sessionId);
 //             cloudCallArgs[1].Set("s", receiverAddr.c_str());
@@ -227,7 +261,7 @@ void ProximalProxyBusObjectWrapper::CommonSignalHandler(const InterfaceDescripti
 //             cloudCallArgs[3].Set("x", shi.sessionId);
 
             // Send out the signal
-            status = ownerBusObject->CloudSignalCall(busNameObjPath, receiverAddr, numArgs, args, shi.sessionId);
+            status = ownerBusObject->CloudSignalCall(peerAddr, busNameObjPath, receiverAddr, numArgs, args, shi.sessionId);
             if (ER_OK != status) {
                 QCC_LogError(status, ("Error sending signal to cloud"));
             }

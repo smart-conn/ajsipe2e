@@ -182,16 +182,16 @@ private:
     QStatus LocalMethodCall(const qcc::String& addr, size_t inArgsNum, const ajn::MsgArg* inArgsArray, const qcc::String& cloudSessionId, 
         size_t& outArgsNum, const ajn::MsgArg*& outArgsArray, unsigned int& localSessionId);
 
-    QStatus LocalSignalCall(const qcc::String& senderAddr, const qcc::String& receiverAddr,
+    QStatus LocalSignalCall(const qcc::String& peer, const qcc::String& senderAddr, const qcc::String& receiverAddr,
         size_t inArgsNum, const ajn::MsgArg* inArgsArray, const qcc::String& cloudSessionId);
 
     QStatus UpdateSignalHandlerInfoToLocal(const qcc::String& localBusNameObjPath, const qcc::String& peerAddr, 
         const qcc::String& peerBusName, unsigned int peerSessionId);
 
-    QStatus CloudMethodCall(const qcc::String& addr, size_t inArgsNum, const ajn::MsgArg* inArgsArray, unsigned int localSessionId, 
+    QStatus CloudMethodCall(const qcc::String& peer, const qcc::String& addr, size_t inArgsNum, const ajn::MsgArg* inArgsArray, unsigned int localSessionId, 
         CloudServiceAgentBusObject* agent, ajn::Message msg);
 
-    QStatus CloudSignalCall(const qcc::String& senderAddr, const qcc::String& receiverAddr,
+    QStatus CloudSignalCall(const qcc::String& peer, const qcc::String& senderAddr, const qcc::String& receiverAddr,
         size_t inArgsNum, const ajn::MsgArg* inArgsArray, unsigned int localSessionId);
 
     QStatus PublishLocalServiceToCloud(const qcc::String& serviceIntrospectionXml);

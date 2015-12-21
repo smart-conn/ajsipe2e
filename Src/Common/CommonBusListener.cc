@@ -60,9 +60,11 @@ ajn::SessionPort CommonBusListener::getSessionPort()
 
 bool CommonBusListener::AcceptSessionJoiner(ajn::SessionPort sessionPort, const char* joiner, const ajn::SessionOpts& opts)
 {
+/*
     if (sessionPort != m_SessionPort) {
         return false;
     }
+*/
 
     std::cout << "Accepting JoinSessionRequest" << std::endl;
     return true;

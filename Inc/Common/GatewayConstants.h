@@ -26,6 +26,8 @@ namespace gwConsts {
 static const uint16_t DATE_PROPERTY_TYPE = 0;
 static const uint16_t TIME_PROPERTY_TYPE = 1;
 
+static const uint16_t ANNOUNCMENT_PORT_NUMBER = 900;
+
 static const qcc::String SIPE2E_GATEWAY_OBJECTPATH_PREFIX = "/SIPE2E/Gateway";
 
 /*
@@ -53,6 +55,8 @@ static const qcc::String SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_UPDATESIGNALHANDLE
 */
 static const qcc::String SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_SUBSCRIBE = "AJSubscribe";
 static const qcc::String SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_UNSUBSCRIBE = "AJUnsubscribe";
+
+static const qcc::String SIPE2E_CLOUDSERVICEAGENT_ALLJOYNENGINE_INTERFACE = "cn.nane.SIPE2E.Gateway.CloudServiceAgent.AllJoynEngine";
 
 
 static const uint32_t CLOUD_METHOD_CALL_THREAD_POOL_SIZE = 1024;

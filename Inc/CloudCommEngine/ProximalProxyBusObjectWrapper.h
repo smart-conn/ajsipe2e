@@ -39,7 +39,7 @@ public:
     virtual ~ProximalProxyBusObjectWrapper();
 
     QStatus IntrospectProxyChildren();
-    qcc::String GenerateProxyIntrospectionXml();
+    qcc::String GenerateProxyIntrospectionXml(ajn::SessionPort& wellKnownPort, bool topLevel);
 
     /**
      * AnnounceHandler is a callback registered to receive AllJoyn Signal.

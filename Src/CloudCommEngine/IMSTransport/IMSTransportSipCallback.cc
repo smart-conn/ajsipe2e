@@ -255,6 +255,7 @@ int IMSTransportSipCallback::OnMessagingEvent(const MessagingEvent* e)
                         switch (atoi(msgType)) {
                         default:
                         case gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL:
+                        case gwConsts::customheader::RPC_MSG_TYPE_PROPERTY_CALL:
                         case gwConsts::customheader::RPC_MSG_TYPE_SIGNAL_CALL:
                         case gwConsts::customheader::RPC_MSG_TYPE_UPDATE_SIGNAL_HANDLER:
                             {
@@ -282,6 +283,7 @@ int IMSTransportSipCallback::OnMessagingEvent(const MessagingEvent* e)
                             }
                             break;
                         case gwConsts::customheader::RPC_MSG_TYPE_METHOD_RET:
+                        case gwConsts::customheader::RPC_MSG_TYPE_PROPERTY_RET:
                         case gwConsts::customheader::RPC_MSG_TYPE_SIGNAL_RET:
                             {
                                 // if it is a response message

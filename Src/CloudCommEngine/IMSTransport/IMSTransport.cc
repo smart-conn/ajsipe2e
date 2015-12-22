@@ -672,6 +672,7 @@ IStatus IMSTransport::SendCloudMessage(int msgType,
     msgSession->addHeader(gwConsts::customheader::RPC_MSG_TYPE, qcc::I32ToString(msgType).c_str());
     switch (msgType) {
     case gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL:
+    case gwConsts::customheader::RPC_MSG_TYPE_PROPERTY_CALL:
     case gwConsts::customheader::RPC_MSG_TYPE_SIGNAL_CALL:
         {
             // if it is an outgoing request, the callId should be NULL, and will be generated here
@@ -692,7 +693,8 @@ IStatus IMSTransport::SendCloudMessage(int msgType,
             }
 
             // after sending the request out, the sending thread will be blocked to wait for the response for some time
-            if (msgType == gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL) {
+            if (msgType == gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL
+                || msgType == gwConsts::customheader::RPC_MSG_TYPE_PROPERTY_CALL) {
                 // only method call will be hold waiting for the answer
                 std::shared_ptr<SyncContext> syncCtx(new SyncContext());
                 syncCtx->content = NULL;
@@ -724,6 +726,7 @@ IStatus IMSTransport::SendCloudMessage(int msgType,
         }
         break;
     case gwConsts::customheader::RPC_MSG_TYPE_METHOD_RET:
+    case gwConsts::customheader::RPC_MSG_TYPE_PROPERTY_RET:
     case gwConsts::customheader::RPC_MSG_TYPE_SIGNAL_RET:
         {
             // if it is an outgoing response, just send it out

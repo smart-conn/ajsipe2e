@@ -33,6 +33,7 @@
 #include <alljoyn/about/AnnounceHandler.h>
 
 #include "Common/GatewayStd.h"
+#include "CloudCommEngine/IMSTransport/IMSTransportConstants.h"
 
 struct axutil_env;
 typedef struct axutil_env axutil_env_t;
@@ -179,16 +180,16 @@ private:
 
     QStatus UnsubscribeCloudServiceFromLocal(const qcc::String& serviceAddr, const qcc::String& serviceIntrospectionXml);
 
-    QStatus LocalMethodCall(const qcc::String& addr, size_t inArgsNum, const ajn::MsgArg* inArgsArray, const qcc::String& cloudSessionId, 
-        size_t& outArgsNum, const ajn::MsgArg*& outArgsArray, unsigned int& localSessionId);
+    QStatus LocalMethodCall(gwConsts::customheader::RPC_MSG_TYPE_ENUM callType, const qcc::String& addr, size_t inArgsNum, const ajn::MsgArg* inArgsArray, const qcc::String& cloudSessionId, 
+        size_t& outArgsNum, ajn::MsgArg*& outArgsArray, unsigned int& localSessionId);
 
     QStatus LocalSignalCall(const qcc::String& peer, const qcc::String& senderAddr, const qcc::String& receiverAddr,
-        size_t inArgsNum, const ajn::MsgArg* inArgsArray, const qcc::String& cloudSessionId);
+        size_t inArgsNum, ajn::MsgArg* inArgsArray, const qcc::String& cloudSessionId);
 
     QStatus UpdateSignalHandlerInfoToLocal(const qcc::String& localBusNameObjPath, const qcc::String& peerAddr, 
         const qcc::String& peerBusName, unsigned int peerSessionId);
 
-    QStatus CloudMethodCall(const qcc::String& peer, const qcc::String& addr, size_t inArgsNum, const ajn::MsgArg* inArgsArray, unsigned int localSessionId, 
+    QStatus CloudMethodCall(gwConsts::customheader::RPC_MSG_TYPE_ENUM callType, const qcc::String& peer, const qcc::String& addr, size_t inArgsNum, const ajn::MsgArg* inArgsArray, unsigned int localSessionId, 
         CloudServiceAgentBusObject* agent, ajn::Message msg);
 
     QStatus CloudSignalCall(const qcc::String& peer, const qcc::String& senderAddr, const qcc::String& receiverAddr,

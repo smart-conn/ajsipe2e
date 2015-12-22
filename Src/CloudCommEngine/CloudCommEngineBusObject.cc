@@ -54,6 +54,7 @@ using namespace gwConsts;
 
 typedef struct _CloudMethodCallThreadArg
 {
+    gwConsts::customheader::RPC_MSG_TYPE_ENUM callType;
     MsgArg* inArgs;
     unsigned int inArgsNum;
     String peer;
@@ -62,7 +63,8 @@ typedef struct _CloudMethodCallThreadArg
     Message msg;
     CloudCommEngineBusObject* owner;
     _CloudMethodCallThreadArg(Message _msg)
-        : inArgs(NULL), inArgsNum(0),
+        : callType(gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL),
+        inArgs(NULL), inArgsNum(0),
         agent(NULL), msg(_msg),
         owner(NULL)
     {
@@ -539,7 +541,7 @@ void CloudCommEngineBusObject::CloudMethodCallRunable::Run()
     argsStr +=  "</args>";
 
     char* resBuf = NULL;
-    int itStatus = ITSendCloudMessage(gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL, arg->peer.c_str(), NULL, arg->calledAddr.c_str(), argsStr.c_str(), &resBuf);
+    int itStatus = ITSendCloudMessage(arg->callType, arg->peer.c_str(), NULL, arg->calledAddr.c_str(), argsStr.c_str(), &resBuf);
     if (0 != itStatus) {
         if (resBuf) {
             ITReleaseBuf(resBuf);
@@ -618,15 +620,15 @@ void CloudCommEngineBusObject::LocalMethodCallRunable::Run(void)
 {
     QStatus status = ER_OK;
 
-    if (!arg || arg->owner) {
+    if (!arg || !arg->owner) {
         return;
     }
 
     size_t outArgsNum = 0;
-    const ajn::MsgArg* outArgsArray = NULL;
+    ajn::MsgArg* outArgsArray = NULL;
     unsigned int localSessionId = 0;
 
-    status = arg->owner->LocalMethodCall(arg->addr, arg->inArgsNum, arg->inArgs, arg->cloudSessionId, outArgsNum, outArgsArray, localSessionId);
+    status = arg->owner->LocalMethodCall(arg->msgType, arg->addr, arg->inArgsNum, arg->inArgs, arg->cloudSessionId, outArgsNum, outArgsArray, localSessionId);
 
     if (ER_OK != status) {
         QCC_LogError(status, ("Error executing local method call"));
@@ -700,7 +702,7 @@ ThreadReturn CloudCommEngineBusObject::MessageReceiverThreadFunc(void* arg)
             }
             *tmp = '\0';
 
-            if (msgTypeN <= gwConsts::customheader::RPC_MSG_TYPE_SIGNAL_RET) {
+            if (msgTypeN < gwConsts::customheader::RPC_MSG_TYPE_UPDATE_SIGNAL_HANDLER) {
                 // If the request is METHOD CALL or SIGNAL CALL
                 char* callId = tmp + 1;
                 tmp = strchr(callId, '^');
@@ -721,6 +723,7 @@ ThreadReturn CloudCommEngineBusObject::MessageReceiverThreadFunc(void* arg)
                     ITReleaseBuf(msgBuf);
                     continue;
                 }
+                *tmp = '\0';
                 char* msgContent = tmp + 1;
 
                 StringSource source(msgContent);
@@ -745,6 +748,7 @@ ThreadReturn CloudCommEngineBusObject::MessageReceiverThreadFunc(void* arg)
 
                 switch (msgTypeN) {
                 case gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL:
+                case gwConsts::customheader::RPC_MSG_TYPE_PROPERTY_CALL:
                     {
                         LocalMethodCallThreadArg* localMethodCallArg = new LocalMethodCallThreadArg();
                         localMethodCallArg->msgType = (gwConsts::customheader::RPC_MSG_TYPE_ENUM)msgTypeN;
@@ -847,6 +851,7 @@ ThreadReturn CloudCommEngineBusObject::MessageReceiverThreadFunc(void* arg)
                     ITReleaseBuf(msgBuf);
                     continue;
                 }
+                *tmp = '\0';
                 char* msgContent = tmp + 1;
 
                 StringSource source(msgContent);
@@ -1145,8 +1150,8 @@ QStatus CloudCommEngineBusObject::UnsubscribeCloudServiceFromLocal(const qcc::St
     return status;
 }
 
-QStatus CloudCommEngineBusObject::LocalMethodCall(const qcc::String& addr, size_t inArgsNum, const ajn::MsgArg* inArgsArray,
-                                                  const qcc::String& cloudSessionId, size_t& outArgsNum, const ajn::MsgArg*& outArgsArray, unsigned int& localSessionId)
+QStatus CloudCommEngineBusObject::LocalMethodCall(gwConsts::customheader::RPC_MSG_TYPE_ENUM callType, const qcc::String& addr, size_t inArgsNum, const ajn::MsgArg* inArgsArray,
+                                                  const qcc::String& cloudSessionId, size_t& outArgsNum, ajn::MsgArg*& outArgsArray, unsigned int& localSessionId)
 {
     QStatus status = ER_OK;
 
@@ -1200,39 +1205,78 @@ QStatus CloudCommEngineBusObject::LocalMethodCall(const qcc::String& addr, size_
         }
     }
 
-    MsgArg* inArgs = NULL;
-    if (inArgsNum > 0 && inArgsArray) {
-        inArgs = new MsgArg[inArgsNum];
-        for (size_t i = 0; i < inArgsNum; i++) {
-            inArgs[i] = inArgsArray[i];
+    switch (callType) {
+    case gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL:
+        {
+            MsgArg* inArgs = NULL;
+            if (inArgsNum > 0 && inArgsArray) {
+                inArgs = new MsgArg[inArgsNum];
+                for (size_t i = 0; i < inArgsNum; i++) {
+                    inArgs[i] = inArgsArray[i];
+                }
+            }
+
+            // cloudSessionId: not used yet
+
+            // Now call the local method through the ProxyBusObject
+            // Here we use synchronous call because we issued a thread every time to process each call
+            Message replyMsg(*proxyWrapper->proxyBus);
+            status = proxyWrapper->proxy->MethodCall(intfName.c_str(), methodName.c_str(),
+                inArgs, inArgsNum, replyMsg);
+
+            if (inArgs) {
+                delete[] inArgs;
+            }
+            if (ER_OK != status) {
+                QCC_LogError(status, ("Error making the local method call"));
+                return status;
+            }
+
+            const MsgArg* outArgsArrayTmp = NULL;
+            replyMsg->GetArgs(outArgsNum, outArgsArrayTmp);
+            if (outArgsArrayTmp) {
+                for (size_t i = 0; i < outArgsNum; i++) {
+                    outArgsArray[i] = outArgsArrayTmp[i];
+                }
+            }
+
+            localSessionId = replyMsg->GetSessionId();
         }
+        break;
+    case gwConsts::customheader::RPC_MSG_TYPE_PROPERTY_CALL:
+        {
+            if (methodName == "Get") {
+                outArgsArray = new MsgArg(ALLJOYN_VARIANT); // memory leaks, TBD
+                outArgsArray->v_variant.val = new MsgArg();
+                status = proxyWrapper->proxy->GetProperty(intfName.c_str(), inArgsArray[1].v_string.str, *(outArgsArray->v_variant.val));
+                outArgsNum = 1;
+            } else if (methodName == "GetAll") {
+                outArgsArray = new MsgArg(ALLJOYN_VARIANT); // memory leaks, TBD
+                outArgsArray->v_variant.val = new MsgArg();
+                status = proxyWrapper->proxy->GetAllProperties(intfName.c_str(), *(outArgsArray->v_variant.val));
+                outArgsNum = 1;
+            } else if (methodName == "Set") {
+                status = proxyWrapper->proxy->SetProperty(intfName.c_str(), inArgsArray[1].v_string.str, *(inArgsArray[2].v_variant.val));
+                outArgsNum = 0;
+                outArgsArray = NULL;
+            }
+        }
+        break;
+    default:
+        {
+            status = ER_FAIL;
+            QCC_LogError(status, ("Wrong CallType, not MethodCall or Property Get/GetAll/Set"));
+            return status;
+        }
+        break;
     }
-
-    // cloudSessionId: not used yet
-
-    // Now call the local method through the ProxyBusObject
-    // Here we use synchronous call because we issued a thread every time to process each call
-    Message replyMsg(*proxyWrapper->proxyBus);
-    status = proxyWrapper->proxy->MethodCall(intfName.c_str(), methodName.c_str(),
-        inArgs, inArgsNum, replyMsg);
-
-    if (inArgs) {
-        delete[] inArgs;
-    }
-    if (ER_OK != status) {
-        QCC_LogError(status, ("Error making the local method call"));
-        return status;
-    }
-
-    replyMsg->GetArgs(outArgsNum, outArgsArray);
-
-    localSessionId = replyMsg->GetSessionId();
 
     return status;
 }
 
+
 QStatus CloudCommEngineBusObject::LocalSignalCall(const qcc::String& peer, const qcc::String& senderAddr, const qcc::String& receiverAddr, 
-                                                  size_t inArgsNum, const ajn::MsgArg* inArgsArray, const qcc::String& cloudSessionId)
+                                                  size_t inArgsNum, ajn::MsgArg* inArgsArray, const qcc::String& cloudSessionId)
 {
     QStatus status = ER_OK;
 
@@ -1344,7 +1388,7 @@ QStatus CloudCommEngineBusObject::UpdateSignalHandlerInfoToLocal(const qcc::Stri
    return status;
 }
 
-QStatus CloudCommEngineBusObject::CloudMethodCall(const qcc::String& peer, const qcc::String& addr, size_t inArgsNum, const ajn::MsgArg* inArgsArray, unsigned int localSessionId, 
+QStatus CloudCommEngineBusObject::CloudMethodCall(gwConsts::customheader::RPC_MSG_TYPE_ENUM callType, const qcc::String& peer, const qcc::String& addr, size_t inArgsNum, const ajn::MsgArg* inArgsArray, unsigned int localSessionId, 
                                                   CloudServiceAgentBusObject* agent, ajn::Message msg)
 {
     QStatus status = ER_OK;
@@ -1361,6 +1405,7 @@ QStatus CloudCommEngineBusObject::CloudMethodCall(const qcc::String& peer, const
 
     // Firstly try to find the stub for this method call, if failed, create one stub for it
     CloudMethodCallThreadArg* argList = new CloudMethodCallThreadArg(msg);
+    argList->callType = callType;
     argList->inArgsNum = inArgsNum;
     if (inArgsNum > 0 && inArgsArray) {
         argList->inArgs = new MsgArg[inArgsNum];

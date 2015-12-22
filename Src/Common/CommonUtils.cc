@@ -70,12 +70,14 @@ QStatus FillPropertyStore(services::AboutPropertyStoreImpl* propertyStore, const
         status = propertyStore->setDeviceId(aboutValue);
     } else if (aboutKey == "DeviceName") {
         /* The manufacturer name is like "en,device name`zh,设备名字" */
-        MANIPULATE_ARRAY_DICT(setDeviceName);
+//         MANIPULATE_ARRAY_DICT(setDeviceName);
+        status = propertyStore->setDeviceName(aboutValue);
     } else if (aboutKey == "AppId") {
         status = propertyStore->setAppId(aboutValue);
     } else if (aboutKey == "AppName") {
         /* The manufacturer name is like "en,app name`zh,app名字" */
-        MANIPULATE_ARRAY_DICT(setAppName);
+//         MANIPULATE_ARRAY_DICT(setAppName);
+        status = propertyStore->setAppName(aboutValue);
     } else if (aboutKey == "DefaultLanguage") {
         status = propertyStore->setDefaultLang(aboutValue);
         std::vector<qcc::String> supportedLangsVec;
@@ -112,10 +114,12 @@ QStatus FillPropertyStore(services::AboutPropertyStoreImpl* propertyStore, const
         status = propertyStore->setSupportedLangs(supportedLanguages);
     } else if (aboutKey == "Description") {
         /* The manufacturer name is like "en,description words`zh,介绍" */
-        MANIPULATE_ARRAY_DICT(setDescription);
+//         MANIPULATE_ARRAY_DICT(setDescription);
+        status = propertyStore->setDescription(aboutValue);
     } else if (aboutKey == "Manufacturer") {
         /* The manufacturer name is like "en,manufacturer name`zh,设备商名字" */
-        MANIPULATE_ARRAY_DICT(setManufacturer);
+//         MANIPULATE_ARRAY_DICT(setManufacturer);
+        status = propertyStore->setManufacturer(aboutValue);
     } else if (aboutKey == "DateOfManufacture") {
         status = propertyStore->setDateOfManufacture(aboutValue);
     } else if (aboutKey == "ModelNumber") {

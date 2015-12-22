@@ -24,16 +24,18 @@ namespace gwConsts {
 
 namespace customheader {
 
-static const char* RPC_MSG_TYPE = "RPC-Msg-Type";
-static const char* RPC_CALL_ID = "RPC-Call-ID";
-static const char* RPC_ADDR = "RPC-Addr";
+static const char* RPC_MSG_TYPE = "RMT"; // "RPC-Msg-Type";
+static const char* RPC_CALL_ID = "RCI"; // "RPC-Call-ID";
+static const char* RPC_ADDR = "RA"; // "RPC-Addr";
 
 enum RPC_MSG_TYPE_ENUM {
     RPC_MSG_TYPE_METHOD_CALL = 0,
     RPC_MSG_TYPE_METHOD_RET = 1,
     RPC_MSG_TYPE_SIGNAL_CALL = 2,
     RPC_MSG_TYPE_SIGNAL_RET = 3,
-    RPC_MSG_TYPE_UPDATE_SIGNAL_HANDLER = 4
+    RPC_MSG_TYPE_PROPERTY_CALL = 4,
+    RPC_MSG_TYPE_PROPERTY_RET = 5,
+    RPC_MSG_TYPE_UPDATE_SIGNAL_HANDLER = 6
 };
 
 }

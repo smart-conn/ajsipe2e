@@ -118,6 +118,7 @@ void CloudServiceAgentBusObject::CommonMethodHandler(const InterfaceDescription:
 
     // calledAddress will be like: BusName/ObjPath/InterfaceName/MethodName
     String calledAddr = remoteBusName + this->GetPath();
+    calledAddr += "/";
     calledAddr += member->iface->GetName();
     calledAddr += "/";
     calledAddr += member->name;
@@ -128,7 +129,7 @@ void CloudServiceAgentBusObject::CommonMethodHandler(const InterfaceDescription:
       * performance's perspective, in CloudMethodCall() implentation, multi-thread feature should
       * be implemented.
       */
-    status = ownerBusObject->CloudMethodCall(remoteAccount, calledAddr, numArgs, args, msg->GetSessionId(), this, msg);
+    status = ownerBusObject->CloudMethodCall(gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL, remoteAccount, calledAddr, numArgs, args, msg->GetSessionId(), this, msg);
     CHECK_STATUS_AND_REPLY("Error making the cloud method call");
 }
 
@@ -157,11 +158,12 @@ void CloudServiceAgentBusObject::GetProp(const InterfaceDescription::Member* mem
 
     // calledAddress will be like: BusName/ObjPath/InterfaceName/MethodName
     String calledAddr = remoteBusName + this->GetPath();
+    calledAddr += "/";
     calledAddr += args[0].v_string.str;
     calledAddr += "/";
     calledAddr += "Get";
 
-    status = ownerBusObject->CloudMethodCall(remoteAccount, calledAddr, numArgs, args, msg->GetSessionId(), this, msg);
+    status = ownerBusObject->CloudMethodCall(gwConsts::customheader::RPC_MSG_TYPE_PROPERTY_CALL, remoteAccount, calledAddr, numArgs, args, msg->GetSessionId(), this, msg);
 
     CHECK_STATUS_AND_REPLY("Error making the cloud method call");
 }
@@ -189,13 +191,14 @@ void CloudServiceAgentBusObject::SetProp(const InterfaceDescription::Member* mem
 */
     // calledAddress will be like: BusName/ObjPath/InterfaceName/MethodName
     String calledAddr = remoteBusName + this->GetPath();
+    calledAddr += "/";
     calledAddr += args[0].v_string.str;
     calledAddr += "/";
     calledAddr += "Set";
 
 
 
-    status = ownerBusObject->CloudMethodCall(remoteAccount, calledAddr, numArgs, args, msg->GetSessionId(), this, msg);
+    status = ownerBusObject->CloudMethodCall(gwConsts::customheader::RPC_MSG_TYPE_PROPERTY_CALL, remoteAccount, calledAddr, numArgs, args, msg->GetSessionId(), this, msg);
 
     CHECK_STATUS_AND_REPLY("Error making the cloud method call");
 }
@@ -223,12 +226,13 @@ void CloudServiceAgentBusObject::GetAllProps(const InterfaceDescription::Member*
 */
     // calledAddress will be like: BusName/ObjPath/InterfaceName/MethodName
     String calledAddr = remoteBusName + this->GetPath();
+    calledAddr += "/";
     calledAddr += args[0].v_string.str;
     calledAddr += "/";
     calledAddr += "GetAll";
 
 
-    status = ownerBusObject->CloudMethodCall(remoteAccount, calledAddr, numArgs, args, msg->GetSessionId(), this, msg);
+    status = ownerBusObject->CloudMethodCall(gwConsts::customheader::RPC_MSG_TYPE_PROPERTY_CALL, remoteAccount, calledAddr, numArgs, args, msg->GetSessionId(), this, msg);
 
     CHECK_STATUS_AND_REPLY("Error making the cloud method call");
 }

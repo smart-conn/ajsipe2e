@@ -30,7 +30,8 @@
 #include <alljoyn/BusObject.h>
 #include <alljoyn/ProxyBusObject.h>
 #include <alljoyn/InterfaceDescription.h>
-#include <alljoyn/about/AnnounceHandler.h>
+// #include <alljoyn/about/AnnounceHandler.h>
+#include <alljoyn/AboutObj.h>
 
 #include "Common/GatewayStd.h"
 #include "CloudCommEngine/IMSTransport/IMSTransportConstants.h"
@@ -88,7 +89,7 @@ public:
      *    This AnnounceHandler is receiving all announcements from local objects, and then create
      * ProxyBusObjects for every service (app/device)
      */
-    class LocalServiceAnnounceHandler : public ajn::services::AnnounceHandler
+    class LocalServiceAnnounceHandler : public ajn::AboutListener
     {
         friend class CloudCommEngineBusObject;
 
@@ -103,8 +104,8 @@ public:
              * Set the AnnounceContent data
              * @param -    
              */
-            void SetAnnounceContent(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs,
-                const AboutData& aboutData);
+            void SetAnnounceContent(uint16_t version, uint16_t port, const char* busName, const ajn::MsgArg& objectDescsArg,
+                const ajn::MsgArg& aboutDataArg);
 
             /**
               * This method is called by the ThreadPool when the Runnable object is
@@ -134,8 +135,8 @@ public:
          * @param[in] objectDescs map of ObjectDescriptions using qcc::String as key std::vector<qcc::String>   as value, describing interfaces
          * @param[in] aboutData map of AboutData using qcc::String as key and ajn::MsgArg as value
          */
-        virtual void Announce(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs,
-            const AboutData& aboutData);
+        virtual void Announced(const char* busName, uint16_t version, ajn::SessionPort port,
+            const ajn::MsgArg& objectDescsArg, const ajn::MsgArg& aboutDataArg);
 
     protected:
         /* The parent BusObject that owns this AnnounceHandler instance */
@@ -149,7 +150,7 @@ public:
     /**
      * @param cloudCommBus -     the BusAttachment that connects CloudCommEngine and CloudCommEngine
      */
-    QStatus Init(ajn::BusAttachment& cloudCommBus, ajn::services::AboutService& cloudCommAboutService);
+    QStatus Init(ajn::BusAttachment& cloudCommBus/*, ajn::AboutObj& cloudCommAboutObj*/);
 
     /**
      * Clean up the AllJoyn execution context
@@ -236,7 +237,7 @@ protected:
 
     qcc::ThreadPool methodCallThreadPool;
 
-    ajn::services::AboutService* aboutService;
+//     ajn::services::AboutService* aboutService;
 
     qcc::Thread messageReceiverThread, notificationReceiverThread;
 

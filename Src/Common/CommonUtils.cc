@@ -13,9 +13,6 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-#if defined(QCC_OS_GROUP_WINDOWS)
-#define WIN32_LEAN_AND_MEAN
-#endif
 #include "Common/CommonUtils.h"
 #include <qcc/Debug.h>
 #include <qcc/StringUtil.h>
@@ -23,7 +20,6 @@
 #if defined( _MSC_VER )
 #include <direct.h>        // _getcwd
 // #include <crtdbg.h>
-#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #elif defined(MINGW32) || defined(__MINGW32__)
 #include <io.h>  // mkdir
@@ -41,6 +37,7 @@ namespace sipe2e {
 
 namespace gateway {
 
+/*
 QStatus FillPropertyStore(services::AboutPropertyStoreImpl* propertyStore, const String& aboutKey, const String& aboutValue)
 {
 #define MANIPULATE_ARRAY_DICT(setMethod) \
@@ -51,7 +48,7 @@ QStatus FillPropertyStore(services::AboutPropertyStoreImpl* propertyStore, const
             String manu = aboutValue.substr(pos, (String::npos==searchPos ? (aboutValue.length() - pos) : (searchPos - pos))); \
             pos = (String::npos == searchPos ? searchPos : searchPos + 1); \
             \
-            /* Manipulate the manufacturer name string consisting of language and name in specific language */ \
+            / * Manipulate the manufacturer name string consisting of language and name in specific language * / \
             String lan, deviceName; \
             size_t posLan = manu.find_first_of(','); \
             if (String::npos != posLan) { \
@@ -69,13 +66,13 @@ QStatus FillPropertyStore(services::AboutPropertyStoreImpl* propertyStore, const
     if (aboutKey == "DeviceId") {
         status = propertyStore->setDeviceId(aboutValue);
     } else if (aboutKey == "DeviceName") {
-        /* The manufacturer name is like "en,device name`zh,设备名字" */
+        / * The manufacturer name is like "en,device name`zh,设备名字" * /
 //         MANIPULATE_ARRAY_DICT(setDeviceName);
         status = propertyStore->setDeviceName(aboutValue);
     } else if (aboutKey == "AppId") {
         status = propertyStore->setAppId(aboutValue);
     } else if (aboutKey == "AppName") {
-        /* The manufacturer name is like "en,app name`zh,app名字" */
+        / * The manufacturer name is like "en,app name`zh,app名字" * /
 //         MANIPULATE_ARRAY_DICT(setAppName);
         status = propertyStore->setAppName(aboutValue);
     } else if (aboutKey == "DefaultLanguage") {
@@ -102,7 +99,7 @@ QStatus FillPropertyStore(services::AboutPropertyStoreImpl* propertyStore, const
         supportedLangsVec.push_back(aboutValue);
         status = propertyStore->setSupportedLangs(supportedLangsVec);
     } else if (aboutKey == "SupportedLanguages") {
-        /* The supported languages are marshaled like "en,zh,sp" */
+        / * The supported languages are marshaled like "en,zh,sp" * /
         vector<String> supportedLanguages;
         size_t pos = 0;
         do {
@@ -113,11 +110,11 @@ QStatus FillPropertyStore(services::AboutPropertyStoreImpl* propertyStore, const
         } while (String::npos != pos);
         status = propertyStore->setSupportedLangs(supportedLanguages);
     } else if (aboutKey == "Description") {
-        /* The manufacturer name is like "en,description words`zh,介绍" */
+        / * The manufacturer name is like "en,description words`zh,介绍" * /
 //         MANIPULATE_ARRAY_DICT(setDescription);
         status = propertyStore->setDescription(aboutValue);
     } else if (aboutKey == "Manufacturer") {
-        /* The manufacturer name is like "en,manufacturer name`zh,设备商名字" */
+        / * The manufacturer name is like "en,manufacturer name`zh,设备商名字" * /
 //         MANIPULATE_ARRAY_DICT(setManufacturer);
         status = propertyStore->setManufacturer(aboutValue);
     } else if (aboutKey == "DateOfManufacture") {
@@ -135,6 +132,7 @@ QStatus FillPropertyStore(services::AboutPropertyStoreImpl* propertyStore, const
     }
     return status;
 }
+*/
 
 QStatus NormalizePath(qcc::String& strPath)
 {
@@ -215,15 +213,20 @@ size_t StringSplit(const String& inStr, char delim, std::vector<String>& arrayOu
     size_t space = 0, startPos = 0;
     size_t arrayStrSize = inStr.size();
     space = inStr.find_first_of(delim, startPos);
-    while (space != String::npos) {
+    while (true) {
         arraySize++;
-        const String& currArgStr = inStr.substr(startPos, space - startPos);
-        arrayOut.push_back(currArgStr);
+        arrayOut.push_back(inStr.substr(startPos, space - startPos));
         startPos = space + 1;
         if (startPos >= arrayStrSize) {
             break;
         }
-        space = inStr.find_first_of(delim, startPos);
+        size_t newSpace = inStr.find_first_of(delim, startPos);
+        if (newSpace == String::npos) {
+            arraySize++;
+            arrayOut.push_back(inStr.substr(startPos, arrayStrSize - startPos));
+            break;
+        }
+        space = newSpace;
     }
 
     return arraySize;
@@ -245,7 +248,7 @@ qcc::String ArgToXml(const ajn::MsgArg* args, size_t indent)
 
     switch (args->typeId) {
     case ALLJOYN_ARRAY:
-        str += "<array type_sig=\"" + qcc::String(CHK_STR(args->v_array.GetElemSig())) + "\">";
+        str += "<array type=\"" + qcc::String(CHK_STR(args->v_array.GetElemSig())) + "\">";
         for (uint32_t i = 0; i < args->v_array.GetNumElements(); i++) {
             str += "\n" + ArgToXml(&args->v_array.GetElements()[i], indent)/*args->v_array.elements[i].ToString(indent)*/;
         }
@@ -311,7 +314,7 @@ qcc::String ArgToXml(const ajn::MsgArg* args, size_t indent)
         break;
 
     case ALLJOYN_VARIANT:
-        str += "<variant signature=\"" + args->v_variant.val->Signature() + "\">\n";
+        str += "<variant type=\"" + args->v_variant.val->Signature() + "\">\n";
         str += ArgToXml(args->v_variant.val, indent)/*args->v_variant.val->ToString(indent)*/;
         str += "\n" + in + "</variant>";
         break;
@@ -536,7 +539,9 @@ QStatus XmlToArg(const XmlElement* argEle, MsgArg& arg)
                                 return status;
                             }
                         }
-                        status = arg.Set("av", argsNum, argsArray);
+                        String arraySig("a");
+                        arraySig += arrayType;
+                        status = arg.Set(arraySig.c_str(), argsNum, argsArray);
                     } else {}
                 }
                 break;
@@ -561,6 +566,7 @@ QStatus XmlToArg(const XmlElement* argEle, MsgArg& arg)
             if (entryEleVec.size() != 2) {// should be one key and one value
                 break;
             }
+            arg.typeId = AllJoynTypeId::ALLJOYN_DICT_ENTRY;
             arg.v_dictEntry.key = new MsgArg();
             arg.v_dictEntry.val = new MsgArg();
             status = XmlToArg(entryEleVec[0], *arg.v_dictEntry.key);

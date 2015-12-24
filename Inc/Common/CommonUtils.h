@@ -37,7 +37,7 @@ namespace gateway {
  * @param aboutKey - the key of one about data
  * @param aboutValue - the value of one about data
  */
-QStatus FillPropertyStore(ajn::services::AboutPropertyStoreImpl* propertyStore, const qcc::String& aboutKey, const qcc::String& aboutValue);
+// QStatus FillPropertyStore(ajn::services::AboutPropertyStoreImpl* propertyStore, const qcc::String& aboutKey, const qcc::String& aboutValue);
 
 /**
  * 

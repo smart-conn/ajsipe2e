@@ -13,9 +13,6 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-#if defined(QCC_OS_GROUP_WINDOWS)
-#define WIN32_LEAN_AND_MEAN
-#endif
 #include <qcc/platform.h>
 #include <qcc/String.h>
 #include <qcc/Debug.h>
@@ -27,8 +24,8 @@
 #include "Common/CommonUtils.h"
 
 #include <alljoyn/AllJoynStd.h>
-#include <alljoyn/about/AboutService.h>
-#include <alljoyn/about/AnnouncementRegistrar.h>
+// #include <alljoyn/about/AboutService.h>
+// #include <alljoyn/about/AnnouncementRegistrar.h>
 
 #include "CloudCommEngine/CloudCommEngineBusObject.h"
 #include "Common/GatewayStd.h"
@@ -41,6 +38,8 @@
 #include "CloudCommEngine/IMSTransport/pidf.h"
 
 #define QCC_MODULE "SIPE2E"
+// temporary disable
+#define QCC_LogError(status, msg)
 
 
 using namespace ajn;
@@ -105,7 +104,7 @@ typedef struct _LocalMethodCallThreadArg {
 CloudCommEngineBusObject::CloudCommEngineBusObject(qcc::String const& objectPath, uint32_t threadPoolSize)
     : BusObject(objectPath.c_str()),
     methodCallThreadPool("CloudMethodCallThreadPool", threadPoolSize),
-    aboutService(NULL),
+//     aboutService(NULL),
     messageReceiverThread("MessageReceiverThread", CloudCommEngineBusObject::MessageReceiverThreadFunc),
     notificationReceiverThread("NotificationReceiverThread", CloudCommEngineBusObject::NotificationReceiverThreadFunc)
 {
@@ -129,13 +128,13 @@ CloudCommEngineBusObject::LocalServiceAnnounceHandler::AnnounceHandlerTask::~Ann
 
 }
 
-void CloudCommEngineBusObject::LocalServiceAnnounceHandler::AnnounceHandlerTask::SetAnnounceContent(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs, const AboutData& aboutData)
+void CloudCommEngineBusObject::LocalServiceAnnounceHandler::AnnounceHandlerTask::SetAnnounceContent(uint16_t version, uint16_t port, const char* busName, const MsgArg& objectDescsArg, const MsgArg& aboutDataArg)
 {
     announceData.version = version;
     announceData.port = port;
     announceData.busName = busName;
-    announceData.objectDescs = objectDescs;
-    announceData.aboutData = aboutData;
+    announceData.objectDescsArg = objectDescsArg;
+    announceData.aboutDataArg = aboutDataArg;
 }
 
 void CloudCommEngineBusObject::LocalServiceAnnounceHandler::AnnounceHandlerTask::Run(void)
@@ -172,6 +171,8 @@ void CloudCommEngineBusObject::LocalServiceAnnounceHandler::AnnounceHandlerTask:
     introspectionXml += "\">\n";
     /* Save the announcement data to XML */
     introspectionXml += "<about>\n";
+    introspectionXml += ArgToXml(&announceData.aboutDataArg, 0);
+/*
     for (services::AnnounceHandler::AboutData::const_iterator itAboutData = announceData.aboutData.begin();
         itAboutData != announceData.aboutData.end(); ++itAboutData) {
             introspectionXml += "<aboutData key=\"";
@@ -203,53 +204,64 @@ void CloudCommEngineBusObject::LocalServiceAnnounceHandler::AnnounceHandlerTask:
             }
             introspectionXml += "\"/>\n";
     }
+*/
     introspectionXml += "</about>\n";
 
-    for (services::AnnounceHandler::ObjectDescriptions::const_iterator itObjDesc = announceData.objectDescs.begin();
-        itObjDesc != announceData.objectDescs.end(); ++itObjDesc) {
-            const String& objPath = itObjDesc->first;
-            // Ignore the About interfaces
-            if (objPath == org::alljoyn::About::ObjectPath || objPath == org::alljoyn::Icon::ObjectPath) {
-                continue;
-            }
-            /* Create the ProxyBusObject according to this object description */
-            const char* serviceName = announceData.busName.c_str();
-            const char* objPathName = objPath.c_str();
-            bool secure = false;
-            _ProxyBusObject _pbo(*ownerBusObject->proxyContext.bus, serviceName, objPathName, sessionId, secure);
-            _ProximalProxyBusObjectWrapper proxyWrapper(_pbo, ownerBusObject->proxyContext.bus, ownerBusObject);
-            status = proxyWrapper->IntrospectProxyChildren();
-            if (ER_OK != status) {
-                QCC_LogError(status, ("Error while introspecting the remote BusObject"));
-                continue;
-            }
-            // We try to look into the bus and get the interface SIPE2E_CLOUDSERVICEAGENT_ALLJOYNENGINE_INTERFACE, if successful,
-            // we think it is a CloudServiceAgentBusObject, then we'll disconnect the session and ignore it
-            const InterfaceDescription* agentInfc = _pbo->GetInterface(gwConsts::SIPE2E_CLOUDSERVICEAGENT_ALLJOYNENGINE_INTERFACE.c_str());
-            if (agentInfc) {
-                // this is a CloudServiceAgentBusObject
-                ownerBusObject->proxyContext.bus->LeaveSession(sessionId);
-                return;
-            }
+    // The objectDescsArg 's type signature is "a(oas)"
+    size_t numObj = 0;
+    MsgArg* objArray = NULL;
+    status = announceData.objectDescsArg.Get("a(oas)", &numObj, &objArray);
+    if (ER_OK != status) {
+        QCC_LogError(status, ("Error while trying to get the ObjectDescriptions from the About Data"));
+        return;
+    }
 
-            /* Try to publish the object and its interfaces/services to the cloud */
-            /* First we should compose the introspection XML string */
-            SessionPort wellKnownPort = SESSION_PORT_ANY;
-            introspectionXml += proxyWrapper->GenerateProxyIntrospectionXml(wellKnownPort, true);
-            if (wellKnownPort != SESSION_PORT_ANY) {
-                status = ownerBusObject->proxyContext.bus->JoinSession(announceData.busName.c_str(), wellKnownPort, NULL, sessionId, opts);
-            }
+    for (size_t objIndx = 0; objIndx < numObj; objIndx++) {
+        char* objPath = NULL;
+        size_t numDescs = 0;
+        MsgArg* descs = NULL;
+        status = objArray[objIndx].Get("(oas)", &objPath, &numDescs, &descs);
+        if (ER_OK != status) {
+            QCC_LogError(status, ("Error while trying to get Description from the About Data: wrong format"));
+            return;
+        }
+        if (!strcmp(objPath, org::alljoyn::About::ObjectPath) || !strcmp(objPath, org::alljoyn::Icon::ObjectPath)) {
+            continue;
+        }
+        /* Create the ProxyBusObject according to this object description */
+        const char* serviceName = announceData.busName.c_str();
+        bool secure = false;
+        _ProxyBusObject _pbo(*ownerBusObject->proxyContext.bus, serviceName, objPath, sessionId, secure);
+        _ProximalProxyBusObjectWrapper proxyWrapper(_pbo, ownerBusObject->proxyContext.bus, ownerBusObject);
+        status = proxyWrapper->IntrospectProxyChildren();
+        if (ER_OK != status) {
+            QCC_LogError(status, ("Error while introspecting the remote BusObject"));
+            continue;
+        }
+        // We try to look into the bus and get the interface SIPE2E_CLOUDSERVICEAGENT_ALLJOYNENGINE_INTERFACE, if successful,
+        // we think it is a CloudServiceAgentBusObject, then we'll disconnect the session and ignore it
+        const InterfaceDescription* agentInfc = _pbo->GetInterface(gwConsts::SIPE2E_CLOUDSERVICEAGENT_ALLJOYNENGINE_INTERFACE.c_str());
+        if (agentInfc) {
+            // this is a CloudServiceAgentBusObject
+            ownerBusObject->proxyContext.bus->LeaveSession(sessionId);
+            return;
+        }
 
-            /* And save this ProxyBusObject and all its children to map for later usage */
-            ownerBusObject->SaveProxyBusObject(proxyWrapper);
+        /* Try to publish the object and its interfaces/services to the cloud */
+        /* First we should compose the introspection XML string */
+        SessionPort wellKnownPort = SESSION_PORT_ANY;
+        introspectionXml += proxyWrapper->GenerateProxyIntrospectionXml(wellKnownPort, true);
+        if (wellKnownPort != SESSION_PORT_ANY) {
+            status = ownerBusObject->proxyContext.bus->JoinSession(announceData.busName.c_str(), wellKnownPort, NULL, sessionId, opts);
+        }
+
+        /* And save this ProxyBusObject and all its children to map for later usage */
+        ownerBusObject->SaveProxyBusObject(proxyWrapper);
     }
     introspectionXml += "</service>\n";
 
     /* Then we call PublishLocalServiceToCloud() to publish local services */
     /* Since this is a separate thread, we can simply use synchronous method call */
-#ifndef NDEBUG
-    printf("%s", introspectionXml.c_str());
-#endif // DEBUG
 
     ownerBusObject->proxyContext.bus->LeaveSession(sessionId);
 
@@ -263,7 +275,7 @@ void CloudCommEngineBusObject::LocalServiceAnnounceHandler::AnnounceHandlerTask:
 
 
 CloudCommEngineBusObject::LocalServiceAnnounceHandler::LocalServiceAnnounceHandler(CloudCommEngineBusObject* owner)
-    : services::AnnounceHandler(), ownerBusObject(owner), taskPool("LocalServiceAnnounceHandler", LOCAL_SERVICE_ANNOUNCE_HANDLER_TASK_POOL_SIZE)
+    : ownerBusObject(owner), taskPool("LocalServiceAnnounceHandler", LOCAL_SERVICE_ANNOUNCE_HANDLER_TASK_POOL_SIZE)
 {
 
 
@@ -274,7 +286,8 @@ CloudCommEngineBusObject::LocalServiceAnnounceHandler::~LocalServiceAnnounceHand
 
 }
 
-void CloudCommEngineBusObject::LocalServiceAnnounceHandler::Announce(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs, const AboutData& aboutData)
+void CloudCommEngineBusObject::LocalServiceAnnounceHandler::Announced(const char* busName, uint16_t version, SessionPort port,
+                                                                      const MsgArg& objectDescsArg, const MsgArg& aboutDataArg)
 {
     /* 
       * Since we'll have to ping the bus, and try to join the session when receiving announcements, and 
@@ -288,13 +301,13 @@ void CloudCommEngineBusObject::LocalServiceAnnounceHandler::Announce(uint16_t ve
     if (port == gwConsts::SIPE2E_CLOUDCOMMENGINE_SESSION_PORT)
         return;
     Ptr<AnnounceHandlerTask> task(new AnnounceHandlerTask(ownerBusObject));
-    task->SetAnnounceContent(version, port, busName, objectDescs, aboutData);
+    task->SetAnnounceContent(version, port, busName, objectDescsArg, aboutDataArg);
     taskPool.WaitForAvailableThread();
     taskPool.Execute(task);
 }
 
 
-QStatus CloudCommEngineBusObject::Init(BusAttachment& cloudCommBus, services::AboutService& cloudCommAboutService)
+QStatus CloudCommEngineBusObject::Init(BusAttachment& cloudCommBus/*, ajn::AboutObj& cloudCommAboutObj*/)
 {
     QStatus status = ER_OK;
 
@@ -321,8 +334,9 @@ QStatus CloudCommEngineBusObject::Init(BusAttachment& cloudCommBus, services::Ab
     }
 
     /* Prepare the AnnounceHandler */
-    proxyContext.aboutHandler = new LocalServiceAnnounceHandler(this);
-    status = services::AnnouncementRegistrar::RegisterAnnounceHandler(*proxyContext.bus, *proxyContext.aboutHandler, NULL, 0);
+    proxyContext.aboutListener = new LocalServiceAnnounceHandler(this);
+    proxyContext.bus->RegisterAboutListener(*proxyContext.aboutListener);
+    status = proxyContext.bus->WhoImplementsNonBlocking(NULL);
     if (ER_OK != status) {
         Cleanup();
         return status;
@@ -360,6 +374,7 @@ QStatus CloudCommEngineBusObject::Init(BusAttachment& cloudCommBus, services::Ab
     }
 
     /* Prepare the About announcement object descriptions */
+/*
     vector<String> intfNames;
     intfNames.push_back(SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE);
     status = cloudCommAboutService.AddObjectDescription(SIPE2E_CLOUDCOMMENGINE_OBJECTPATH, intfNames);
@@ -368,6 +383,7 @@ QStatus CloudCommEngineBusObject::Init(BusAttachment& cloudCommBus, services::Ab
         return status;
     }
     aboutService = &cloudCommAboutService;
+*/
 
     messageReceiverThread.Start(this);
     notificationReceiverThread.Start(this);
@@ -396,20 +412,20 @@ QStatus CloudCommEngineBusObject::Cleanup()
         delete proxyContext.busListener;
         proxyContext.busListener = NULL;
     }
-    if (proxyContext.propertyStore) {
-        delete proxyContext.propertyStore;
-        proxyContext.propertyStore = NULL;
+    if (proxyContext.aboutData) {
+        delete proxyContext.aboutData;
+        proxyContext.aboutData = NULL;
     }
-    if (proxyContext.aboutHandler) {
+    if (proxyContext.aboutListener) {
         if (proxyContext.bus) {
-            services::AnnouncementRegistrar::UnRegisterAllAnnounceHandlers(*proxyContext.bus);
+            proxyContext.bus->UnregisterAboutListener(*proxyContext.aboutListener);
         }
-        delete proxyContext.aboutHandler;
-        proxyContext.aboutHandler = NULL;
+        delete proxyContext.aboutListener;
+        proxyContext.aboutListener = NULL;
     }
-    if (proxyContext.about) {
-        delete proxyContext.about;
-        proxyContext.about = NULL;
+    if (proxyContext.aboutObj) {
+        delete proxyContext.aboutObj;
+        proxyContext.aboutObj = NULL;
     }
 
     /* Delete all ProxyBusObjects and the proxy AllJoynContext */
@@ -421,12 +437,14 @@ QStatus CloudCommEngineBusObject::Cleanup()
     signalHandlersInfo.clear();
 
     /* Prepare the About announcement object descriptions */
+/*
     vector<String> intfNames;
     intfNames.push_back(SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE);
     if (aboutService) {
         status = aboutService->RemoveObjectDescription(SIPE2E_CLOUDCOMMENGINE_OBJECTPATH, intfNames);
         aboutService = NULL;
     }
+*/
 
     ITStopReadCloudMessage();
     messageReceiverThread.Join();
@@ -580,7 +598,17 @@ void CloudCommEngineBusObject::CloudMethodCallRunable::Run()
             return;
         }
 
-        const std::vector<XmlElement*>& argsEles = rootEle->GetChildren();
+        const std::vector<XmlElement*>& argsRootEles = rootEle->GetChildren();
+        if (!argsRootEles[0]) {
+            QCC_LogError(ER_FAIL, ("The reply args are not in correct format"));
+            status = agent->MethodReply(arg->msg, ER_FAIL);
+            if (ER_OK != status) {
+                QCC_LogError(status, ("Method Reply did not complete successfully"));
+            }
+            ITReleaseBuf(resBuf);
+            return;
+        }
+        const std::vector<XmlElement*>& argsEles = argsRootEles[0]->GetChildren();
         size_t argsNum = argsEles.size();
         MsgArg* argsArray = NULL;
         if (argsNum > 0) {
@@ -590,7 +618,7 @@ void CloudCommEngineBusObject::CloudMethodCallRunable::Run()
             }
         }
 
-        status = agent->MethodReply(arg->msg, argsArray, argsNum);
+        status = agent->MethodReply(arg->msg, argsArray, argsNum); // what if the argsNum==0? TBD
         if (ER_OK != status) {
             QCC_LogError(status, ("Method Reply did not complete successfully"));
         }
@@ -879,7 +907,6 @@ ThreadReturn CloudCommEngineBusObject::MessageReceiverThreadFunc(void* arg)
                     }
                 } else {
                     // the root node is not SignalHandlerInfo node, just ignore it
-                    QCC_DbgPrintf(("The root node is not SignalHandlerInfo."));
                     ITReleaseBuf(msgBuf);
                     continue;
                 }
@@ -985,7 +1012,6 @@ ThreadReturn CloudCommEngineBusObject::NotificationReceiverThreadFunc(void* arg)
                 }
             } else {
                 // the root node is not presence node, just ignore it
-                QCC_DbgPrintf(("The root node is not presence."));
                 continue;
             }
 
@@ -1058,21 +1084,9 @@ QStatus CloudCommEngineBusObject::SubscribeCloudServiceToLocal(const qcc::String
 
     /* Create the new Agent BusObject and parse it through the introspection XML string */
     CloudServiceAgentBusObject* agentBusObject = new CloudServiceAgentBusObject(String("/"), serviceAddr, serviceBusName, this);
-    services::AboutPropertyStoreImpl* propertyStore = new services::AboutPropertyStoreImpl();
-/*
-    status = agentBusObject->ParseXml(serviceIntrospectionXml.c_str(), *propertyStore);
-    if (ER_OK != status) {
-        QCC_LogError(status, ("Error while trying to ParseXml to prepare CloudServiceAgentBusObject"));
-        agentBusObject->Cleanup(true);
-        delete agentBusObject;
-        agentBusObject = NULL;
-        return status;
-    }
-*/
 
     /* Prepare the Agent Service BusObject environment */
-    SessionPort sp = SESSION_PORT_ANY;
-    status = agentBusObject->PrepareAgent(NULL, propertyStore, sp, serviceIntrospectionXml);
+    status = agentBusObject->PrepareAgent(NULL, serviceIntrospectionXml);
     if (ER_OK != status) {
         QCC_LogError(status, ("Error while preparing CloudServiceAgentBusObject"));
         agentBusObject->Cleanup(true);

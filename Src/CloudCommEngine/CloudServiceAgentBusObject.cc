@@ -13,9 +13,6 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-#if defined(QCC_OS_GROUP_WINDOWS)
-#define WIN32_LEAN_AND_MEAN
-#endif
 #include <qcc/platform.h>
 
 #include <qcc/StringSource.h>
@@ -33,6 +30,8 @@
 
 
 #define QCC_MODULE "SIPE2E"
+// temporary disable
+#define QCC_LogError(status, msg)
 
 
 using namespace ajn;
@@ -74,7 +73,9 @@ bool GetDescription(const XmlElement* elem, String& description)
 CloudServiceAgentBusObject::CloudServiceAgentBusObject(::String const& objectPath, 
                                                        const String& remoteAccount, const String& remoteBusName, 
                                                        CloudCommEngineBusObject* owner)
-    : BusObject(objectPath.c_str()),
+    : BusObject(objectPath.c_str()), 
+    aboutDataHandler(this),
+    sp(SESSION_PORT_ANY),
     remoteAccount(remoteAccount), remoteBusName(remoteBusName),
     ownerBusObject(owner)
 {
@@ -237,7 +238,7 @@ void CloudServiceAgentBusObject::GetAllProps(const InterfaceDescription::Member*
     CHECK_STATUS_AND_REPLY("Error making the cloud method call");
 }
 
-QStatus CloudServiceAgentBusObject::ParseXml(const char* xml, services::AboutPropertyStoreImpl& propertyStore, BusAttachment* proxyBus)
+QStatus CloudServiceAgentBusObject::ParseXml(const char* xml, BusAttachment* proxyBus)
 {
     if (!proxyBus) {
         return ER_BUS_NO_TRANSPORTS;
@@ -276,17 +277,21 @@ QStatus CloudServiceAgentBusObject::ParseXml(const char* xml, services::AboutPro
                             CloudServiceAgentBusObject* newChild = new CloudServiceAgentBusObject(childObjPath, remoteAccount, remoteBusName, ownerBusObject);
                             newChild->context = context;
 
-                            ajn::SessionPort sp = SESSION_PORT_ANY;
+                            ajn::SessionPort sPort = SESSION_PORT_ANY;
                             const String& portStr = elem->GetAttribute("port");
                             if (!portStr.empty()) {
-                                sp = StringToU32(portStr, 10, SESSION_PORT_ANY);
+                                sPort = StringToU32(portStr, 10, SESSION_PORT_ANY);
+                            }
+                            if (sPort != SESSION_PORT_ANY) {
+                                sp = sPort;
+                                newChild->sp = sPort;
                             }
                             status = newChild->ParseNode(elem, proxyBus);
                             if (ER_OK != status) {
                                 QCC_LogError(status, ("Error while parsing Node in the introspection XML"));
                                 return status;
                             }
-                            status = newChild->PrepareAgent(&context, NULL, sp, String(""));
+                            status = newChild->PrepareAgent(&context, String(""));
                             if (ER_OK != status) {
                                 QCC_LogError(status, ("Error while preparing the Agent of child BusObject"));
                                 return status;
@@ -309,12 +314,24 @@ QStatus CloudServiceAgentBusObject::ParseXml(const char* xml, services::AboutPro
                         }
                     } else if (elemName == "about") {
                         /* Fill in the about data */
+/*
                         vector<XmlElement*>::const_iterator itAboutData = elem->GetChildren().begin();
                         for (;itAboutData != elem->GetChildren().end(); itAboutData++) {
                             const XmlElement* elemAboutData = *itAboutData;
                             const String& aboutKey = elemAboutData->GetAttribute("key");
                             const String& aboutValue = elemAboutData->GetAttribute("value");
                             FillPropertyStore(&propertyStore, aboutKey, aboutValue);
+                        }
+*/
+                        const std::vector<XmlElement*>& aboutDataEles = elem->GetChildren();
+                        if (aboutDataEles.size() == 0) {
+                            continue;
+                        }
+                        context.aboutData = new ajn::MsgArg();
+                        status = XmlToArg(aboutDataEles[0], *context.aboutData);
+                        if (ER_OK != status) {
+                            QCC_LogError(status, ("Error while parsing the announced about data"));
+                            return status;
                         }
                     }
                 }
@@ -392,16 +409,14 @@ QStatus CloudServiceAgentBusObject::ParseNode(const XmlElement* root, BusAttachm
                 CloudServiceAgentBusObject* newChild = new CloudServiceAgentBusObject(childObjPath, remoteAccount, remoteBusName, ownerBusObject);
                 newChild->context = context;
 
-                ajn::SessionPort sp = SESSION_PORT_ANY;
-                const String& portStr = elem->GetAttribute("port");
-                if (!portStr.empty()) {
-                    sp = StringToU32(portStr, 10, SESSION_PORT_ANY);
+                if (sp != SESSION_PORT_ANY) {
+                    newChild->sp = sp;
                 }
                 status = newChild->ParseNode(elem, proxyBus);
                 if (ER_OK != status) {
                     break;
                 }
-                status = newChild->PrepareAgent(&context, NULL, sp, String(""));
+                status = newChild->PrepareAgent(&context, String(""));
                 if (ER_OK != status) {
                     QCC_LogError(status, ("Error while preparing the Agent of child BusObject"));
                     return status;
@@ -483,7 +498,7 @@ QStatus CloudServiceAgentBusObject::ParseInterface(const XmlElement* root, BusAt
         secPolicy = AJ_IFC_SECURITY_OFF;
     } else {
         if ((sec != String::Empty) && (sec != "inherit")) {
-            QCC_DbgHLPrintf(("Unknown annotation %s is defaulting to 'inherit'. Valid values: 'true', 'inherit', or 'off'.", org::alljoyn::Bus::Secure));
+            QCC_LogError(ER_WARNING, ("Unknown annotation %s is defaulting to 'inherit'. Valid values: 'true', 'inherit', or 'off'.", org::alljoyn::Bus::Secure));
         }
         secPolicy = AJ_IFC_SECURITY_INHERIT;
     }
@@ -677,9 +692,7 @@ QStatus CloudServiceAgentBusObject::ParseInterface(const XmlElement* root, BusAt
 }
 
 
-QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, services::AboutPropertyStoreImpl* propertyStore, 
-                                                 ajn::SessionPort sp, 
-                                                 const qcc::String& serviceIntrospectionXml)
+QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, const qcc::String& serviceIntrospectionXml)
 {
     QStatus status = ER_OK;
 
@@ -687,10 +700,10 @@ QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, servi
         /* If it's NULL then this Agent BusObject is the top level parent object, and we should prepare AllJoyn context for it */
         /* Prepare the BusAttachment */
         context.bus = NULL;
-        context.propertyStore = propertyStore;
+        context.aboutData = NULL;
         context.busListener = NULL;
-        context.aboutHandler = NULL;
-        context.about = NULL;
+        context.aboutListener = NULL;
+        context.aboutObj = NULL;
         context.bus = new BusAttachment(this->GetName().c_str(), true);
         if (!context.bus) {
             Cleanup(true);
@@ -710,23 +723,27 @@ QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, servi
 
         /* Prepare the BusListener */
         context.busListener = new CommonBusListener(context.bus, NULL, LocalSessionJoined, LocalSessionLost, this);
+        context.bus->RegisterBusListener(*context.busListener);
 
         /* Prepare the About Service */
+/*
         context.about = new services::AboutService(*context.bus, *context.propertyStore);
-//         context.busListener->setSessionPort(sp);
-        context.bus->RegisterBusListener(*context.busListener);
 
         status = context.about->Register(gwConsts::ANNOUNCMENT_PORT_NUMBER);
         if (status != ER_OK) {
             Cleanup(true);
             return status;
         }
+*/
+        context.aboutObj = new AboutObj(*context.bus);
+/*
 
-        status = context.bus->RegisterBusObject(*context.about);
+        status = context.bus->RegisterBusObject(*context.aboutObj);
         if (status != ER_OK) {
             Cleanup(true);
             return status;
         }
+*/
     } else {
         /* If bus is not NULL then this Agent BusObject is a child object, and we just copy its context */
         context = *_context;
@@ -745,7 +762,7 @@ QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, servi
     }
 
     if (!_context) {
-        status = ParseXml(serviceIntrospectionXml.c_str(), *propertyStore, context.bus);
+        status = ParseXml(serviceIntrospectionXml.c_str(), context.bus);
         if (ER_OK != status) {
             QCC_LogError(status, ("Error while trying to ParseXml to prepare CloudServiceAgentBusObject"));
             Cleanup(true);
@@ -754,7 +771,7 @@ QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, servi
     }
 
     /* Add Object Description */
-    context.about->AddObjectDescription(this->GetPath(), interfaces);
+//     context.about->AddObjectDescription(this->GetPath(), interfaces);
 
     /* Register itself on the bus */
     status = context.bus->RegisterBusObject(*this, false); // security will be considered in the future
@@ -789,11 +806,11 @@ QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, servi
 
 QStatus CloudServiceAgentBusObject::Announce()
 {
-    if (!context.about) {
+    if (!context.aboutObj) {
         return ER_BUS_NO_TRANSPORTS;
     }
 
-    return context.about->Announce();
+    return context.aboutObj->Announce(sp, aboutDataHandler);
 }
 
 QStatus CloudServiceAgentBusObject::Cleanup(bool topLevel)
@@ -814,9 +831,9 @@ QStatus CloudServiceAgentBusObject::Cleanup(bool topLevel)
 //         if (context.bus) {
 //             context.bus->UnregisterBusObject(*this);
 //         }
-        if (context.about) {
-            status = context.about->RemoveObjectDescription(String(this->GetPath()), interfaces);
-        }
+//         if (context.about) {
+//             status = context.about->RemoveObjectDescription(String(this->GetPath()), interfaces);
+//         }
     }
     else {
         if (context.bus && context.busListener) {
@@ -827,14 +844,14 @@ QStatus CloudServiceAgentBusObject::Cleanup(bool topLevel)
             delete context.busListener;
             context.busListener = NULL;
         }
-        if (context.about) {
-            context.about->RemoveObjectDescription(String(this->GetPath()), interfaces);
-            delete context.about;
-            context.about = NULL;
+        if (context.aboutObj) {
+//             context.about->RemoveObjectDescription(String(this->GetPath()), interfaces);
+            delete context.aboutObj;
+            context.aboutObj = NULL;
         }
-        if (context.propertyStore) {
-            delete context.propertyStore;
-            context.propertyStore = NULL;
+        if (context.aboutData) {
+            delete context.aboutData;
+            context.aboutData = NULL;
         }
         if (context.bus) {
             context.bus->UnregisterBusObject(*this);
@@ -875,6 +892,29 @@ void CloudServiceAgentBusObject::LocalSessionJoined(void* arg, ajn::SessionPort 
 void CloudServiceAgentBusObject::LocalSessionLost(void* arg, ajn::SessionId sessionId, ajn::SessionListener::SessionLostReason reason)
 {
     // TBD: 
+}
+
+CloudServiceAgentBusObject::CloudServiceAgentAboutData::CloudServiceAgentAboutData(CloudServiceAgentBusObject* _owner)
+    : owner(_owner)
+{
+    
+}
+
+QStatus CloudServiceAgentBusObject::CloudServiceAgentAboutData::GetAboutData(ajn::MsgArg* msgArg, const char* language)
+{
+    QStatus status = ER_OK;
+    if (owner->context.aboutData) {
+        *msgArg = *owner->context.aboutData;
+    } else {
+        status = ER_ABOUT_ABOUTDATA_MISSING_REQUIRED_FIELD;
+        QCC_LogError(status, ("No AboutData available for this service/device"));
+    }
+    return status;
+}
+
+QStatus CloudServiceAgentBusObject::CloudServiceAgentAboutData::GetAnnouncedAboutData(ajn::MsgArg* msgArg)
+{
+    return GetAboutData(msgArg, NULL);
 }
 
 }

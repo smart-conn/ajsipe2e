@@ -10,8 +10,8 @@
         </IMS>
     </Transport>
     <Subscriptions>
-        <!--Subscription>sip:luoyongheng@nane.cn</Subscription>
+        <Subscription>sip:luoyongheng@nane.cn</Subscription>
         <Subscription>sip:renwei@nane.cn</Subscription>
-        <Subscription>sip:zhaoyanhui@nane.cn</Subscription-->
+        <Subscription>sip:zhaoyanhui@nane.cn</Subscription>
     </Subscription>
 </CloudCommEngine>

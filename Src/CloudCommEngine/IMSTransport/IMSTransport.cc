@@ -13,9 +13,6 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-#if defined(QCC_OS_GROUP_WINDOWS)
-#define WIN32_LEAN_AND_MEAN
-#endif
 #include <qcc/platform.h>
 #include "CloudCommEngine/IMSTransport/IMSTransport.h"
 #include "CloudCommEngine/IMSTransport/IMSTransportSipCallback.h"
@@ -29,6 +26,7 @@
 #include <qcc/XmlElement.h>
 #include <qcc/StringSource.h>
 #include <qcc/StringUtil.h>
+#include <alljoyn/Init.h>
 
 #include <mutex>
 
@@ -38,7 +36,6 @@
 #if defined( _MSC_VER )
 #include <direct.h>        // _getcwd
 // #include <crtdbg.h>
-#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #elif defined(MINGW32) || defined(__MINGW32__)
 #include <io.h>  // mkdir
@@ -59,7 +56,7 @@ IMSTransport::IMSTransport()
     : stack(NULL), sipCB(NULL), imsTransportStatus(gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED),
     realm(gwConsts::DEFAULT_REALM), pcscfPort(gwConsts::DEFAULT_PCSCF_PORT),
     regSession(NULL), opSession(NULL), msgSession(NULL),
-    regThread(NULL), timerHeartBeat(String("HeartBeat")), timerSub(String("Subscribe")), 
+    regThread(NULL), timerHeartBeat(new Timer(String("HeartBeat"))), timerSub(new Timer(String("Subscribe"))), 
     regExpires(gwConsts::REGISTRATION_DEFAULT_EXPIRES)
 {
 }
@@ -72,9 +69,15 @@ IMSTransport::~IMSTransport()
         regThread->join();
 //         regThread->try_join_for(boost::chrono::milliseconds(1000)); /// wait for the thread to end
     }
-    timerHeartBeat.Stop();
+    timerHeartBeat->Stop();
+    timerHeartBeat->Join();
+    delete timerHeartBeat;
+    timerHeartBeat = NULL;
 
-    timerSub.Stop();
+    timerSub->Stop();
+    timerSub->Join();
+    delete timerSub;
+    timerSub = NULL;
 
     incomingNotifyQueue.StopQueue();
     incomingMsgQueue.StopQueue();
@@ -140,6 +143,7 @@ IMSTransport::~IMSTransport()
         delete sipCB;
         sipCB = NULL;
     }
+    AllJoynShutdown();
 }
 
 
@@ -183,6 +187,10 @@ IStatus IMSTransport::Init()
      *  </Transport>
      */
     QStatus status = ER_OK;
+    status = AllJoynInit();
+    if (ER_OK != status) {
+        return IC_TRANSPORT_FAIL;
+    }
     char confFile[MAX_PATH];
     confFile[0] = '\0';
     char* tmpRet = NULL;
@@ -304,18 +312,18 @@ IStatus IMSTransport::Init()
     /**
      * TBD
      */
-    timerSub.Start();
+    timerSub->Start();
     SubTimerAlarmListener* subTimerAlarmer = new SubTimerAlarmListener();
     Alarm subAlarm(gwConsts::SIPSTACK_HEARTBEAT_INTERVAL, subTimerAlarmer, this, gwConsts::SIPSTACK_HEARTBEAT_INTERVAL);
-    timerSub.AddAlarm(subAlarm);
+    timerSub->AddAlarm(subAlarm);
 
     /**
      * Start a timer for heartbeat OPTIONS
      */
-    timerHeartBeat.Start();
+    timerHeartBeat->Start();
     HeartBeatTimerAlarmListener* heartBeatTimerAlarmer = new HeartBeatTimerAlarmListener();
     Alarm heartBeatAlarm(gwConsts::SIPSTACK_HEARTBEAT_INTERVAL, heartBeatTimerAlarmer, this, gwConsts::SIPSTACK_HEARTBEAT_INTERVAL);
-    timerHeartBeat.AddAlarm(heartBeatAlarm);
+    timerHeartBeat->AddAlarm(heartBeatAlarm);
 
     return IC_OK;
 }
@@ -775,6 +783,9 @@ void IMSTransport::SubFunc(void* para)
     qcc::String subAccount;
     IMSTransport* ims = (IMSTransport*)para;
     
+    if (ims->imsTransportStatus == gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED) {
+        return;
+    }
     std::map<qcc::String, bool>::iterator itrSub = ims->subscriptions.begin();
     while (itrSub != ims->subscriptions.end()) {
         if (!itrSub->second) {

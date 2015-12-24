@@ -49,6 +49,7 @@ class CloudServiceAgentBusObject : public ajn::BusObject
 {
     friend class CloudCommEngineBusObject;
     friend class CloudCommEngineBusObject::CloudMethodCallRunable;
+    friend class CloudServiceAgentAboutData;
 public:
     CloudServiceAgentBusObject(const qcc::String& objectPath, 
         const qcc::String& remoteAccount, const qcc::String& remoteBusName, 
@@ -70,16 +71,14 @@ public:
         * @param xml - the introspection XML string describing the interfaces and children interfaces
         * @param propertyStore - fill in the propertyStore based on the about data in the XML
         */
-    QStatus ParseXml(const char* xml, ajn::services::AboutPropertyStoreImpl& propertyStore, ajn::BusAttachment* proxyBus);
+    QStatus ParseXml(const char* xml, ajn::BusAttachment* proxyBus);
 
     /**
         * Prepare the agent AllJoyn executing environment, including BusAttachment, AboutService
         * @param _bus - the BusAttachment that the Agent BusObject is registers on. if it's NULL, 
         *                           then 
         */
-    QStatus PrepareAgent(AllJoynContext* _context, ajn::services::AboutPropertyStoreImpl* propertyStore,
-        ajn::SessionPort sp,
-        const qcc::String& serviceIntrospectionXml);
+    QStatus PrepareAgent(AllJoynContext* _context, const qcc::String& serviceIntrospectionXml);
 
     /**
         * Announce the BusObject and all its children
@@ -128,10 +127,23 @@ private:
         */
     QStatus ParseInterface(const qcc::XmlElement* root, ajn::BusAttachment* proxyBus);
 
+protected:
+    class CloudServiceAgentAboutData : public ajn::AboutDataListener
+    {
+    public:
+        CloudServiceAgentAboutData(CloudServiceAgentBusObject* _owner);
+        virtual QStatus GetAboutData(ajn::MsgArg* msgArg, const char* language);
+        virtual QStatus GetAnnouncedAboutData(ajn::MsgArg* msgArg);
+
+    private:
+        CloudServiceAgentBusObject* owner;
+    } aboutDataHandler;
 
 protected:
     /* The AllJoyn execution environment */
     AllJoynContext context;
+    /* The session port */
+    ajn::SessionPort sp;
     /* The remote account address and remote BusName */
     qcc::String remoteAccount, remoteBusName;
     /* The supported interfaces' names */

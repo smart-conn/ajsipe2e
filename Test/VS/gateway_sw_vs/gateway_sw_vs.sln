@@ -10,18 +10,18 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IMSTransport", "IMSTranspor
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Win32 = Debug|Win32
-		Release|Win32 = Release|Win32
+		Debug_1504|Win32 = Debug_1504|Win32
+		Release_1504|Win32 = Release_1504|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{5D54D42B-53E5-494A-BF30-0C536F9089FB}.Debug|Win32.ActiveCfg = Debug|Win32
-		{5D54D42B-53E5-494A-BF30-0C536F9089FB}.Debug|Win32.Build.0 = Debug|Win32
-		{5D54D42B-53E5-494A-BF30-0C536F9089FB}.Release|Win32.ActiveCfg = Release|Win32
-		{5D54D42B-53E5-494A-BF30-0C536F9089FB}.Release|Win32.Build.0 = Release|Win32
-		{7B4E5FA7-A47F-4EAE-8088-97AC841B26E8}.Debug|Win32.ActiveCfg = Debug|Win32
-		{7B4E5FA7-A47F-4EAE-8088-97AC841B26E8}.Debug|Win32.Build.0 = Debug|Win32
-		{7B4E5FA7-A47F-4EAE-8088-97AC841B26E8}.Release|Win32.ActiveCfg = Release|Win32
-		{7B4E5FA7-A47F-4EAE-8088-97AC841B26E8}.Release|Win32.Build.0 = Release|Win32
+		{5D54D42B-53E5-494A-BF30-0C536F9089FB}.Debug_1504|Win32.ActiveCfg = Debug_1504|Win32
+		{5D54D42B-53E5-494A-BF30-0C536F9089FB}.Debug_1504|Win32.Build.0 = Debug_1504|Win32
+		{5D54D42B-53E5-494A-BF30-0C536F9089FB}.Release_1504|Win32.ActiveCfg = Release_1504|Win32
+		{5D54D42B-53E5-494A-BF30-0C536F9089FB}.Release_1504|Win32.Build.0 = Release_1504|Win32
+		{7B4E5FA7-A47F-4EAE-8088-97AC841B26E8}.Debug_1504|Win32.ActiveCfg = Debug_1504|Win32
+		{7B4E5FA7-A47F-4EAE-8088-97AC841B26E8}.Debug_1504|Win32.Build.0 = Debug_1504|Win32
+		{7B4E5FA7-A47F-4EAE-8088-97AC841B26E8}.Release_1504|Win32.ActiveCfg = Release_1504|Win32
+		{7B4E5FA7-A47F-4EAE-8088-97AC841B26E8}.Release_1504|Win32.Build.0 = Release_1504|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -18,9 +18,9 @@
 #define GATEWAYSTD_H_
 
 #include "Common/CommonBusListener.h"
-#include <alljoyn/about/AnnounceHandler.h>
-#include <alljoyn/about/AboutPropertyStoreImpl.h>
-#include <alljoyn/about/AboutService.h>
+#include <alljoyn/AboutListener.h>
+// #include <alljoyn/about/AboutPropertyStoreImpl.h>
+#include <alljoyn/AboutObj.h>
 
 
 #define CHECK_RETURN(x) if ((status = x) != ER_OK) { return status; }
@@ -47,20 +47,20 @@ namespace gateway {
 
 typedef struct _AllJoynContext {
     ajn::BusAttachment* bus;
-    ajn::services::AboutPropertyStoreImpl* propertyStore;
+    ajn::MsgArg* aboutData;
     CommonBusListener* busListener;
-    ajn::services::AnnounceHandler* aboutHandler;
-    ajn::services::AboutService* about;
-    _AllJoynContext() : bus(NULL), propertyStore(NULL), busListener(NULL),
-        aboutHandler(NULL), about(NULL) {}
+    ajn::AboutListener* aboutListener;
+    ajn::AboutObj* aboutObj;
+    _AllJoynContext() : bus(NULL), aboutData(NULL), busListener(NULL),
+        aboutListener(NULL), aboutObj(NULL) {}
 } AllJoynContext;
 
 typedef struct _AnnounceContent {
     uint16_t version; // version of AboutService
     uint16_t port; // port used by the AboutService
     qcc::String busName; // unique bus name of the service
-    ajn::services::AnnounceHandler::ObjectDescriptions objectDescs; // map of ObjectDescriptions describing objects/interfaces
-    ajn::services::AnnounceHandler::AboutData aboutData; // map of AboutData describing properties of app/device/services
+    ajn::MsgArg objectDescsArg; // map of ObjectDescriptions describing objects/interfaces
+    ajn::MsgArg aboutDataArg; // map of AboutData describing properties of app/device/services
 } AnnounceContent;
 
 /*

@@ -284,10 +284,10 @@ private:
     /**
      * TBD
      */
-    qcc::Timer timerSub;
+    qcc::Timer* timerSub;
 
     /* */
-    qcc::Timer timerHeartBeat;
+    qcc::Timer* timerHeartBeat;
 
     /* The condition for waiting for the response of HeartBeat (OPTIONS) */
     std::mutex mtxHeartBeat;

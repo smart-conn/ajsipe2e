@@ -13,9 +13,6 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-#if defined(QCC_OS_GROUP_WINDOWS)
-#define WIN32_LEAN_AND_MEAN
-#endif
 
 #include <qcc/platform.h>
 #include <qcc/Debug.h>
@@ -33,6 +30,8 @@
 #include "Common/CommonUtils.h"
 
 #define QCC_MODULE "SIPE2E"
+// temporary disable
+#define QCC_LogError(status, msg)
 
 using namespace ajn;
 using namespace qcc;
@@ -64,7 +63,7 @@ ProximalProxyBusObjectWrapper::~ProximalProxyBusObjectWrapper()
 QStatus ProximalProxyBusObjectWrapper::IntrospectProxyChildren()
 {
     if (!proxy.unwrap()) {
-        QCC_DbgHLPrintf(("Top-level ProxyBusObject is not NULL"));
+        QCC_LogError(ER_OK, ("Top-level ProxyBusObject is not NULL"));
         return ER_OK;
     }
     QStatus status = proxy->IntrospectRemoteObject();
@@ -82,10 +81,6 @@ QStatus ProximalProxyBusObjectWrapper::IntrospectProxyChildren()
     numChildren = proxy->GetManagedChildren(proxyBusObjectChildren, numChildren);
 
     for (size_t i = 0; i < numChildren; i++) {
-#ifndef NDEBUG
-        String const& objectPath = (*proxyBusObjectChildren[i])->GetPath();
-        QCC_DbgPrintf(("ObjectPath is: %s", objectPath.c_str()));
-#endif
         _ProximalProxyBusObjectWrapper proxyWrapper(*proxyBusObjectChildren[i], proxyBus, ownerBusObject);
         children.push_back(proxyWrapper);
         status = proxyWrapper->IntrospectProxyChildren();
@@ -103,7 +98,7 @@ QStatus ProximalProxyBusObjectWrapper::IntrospectProxyChildren()
 String ProximalProxyBusObjectWrapper::GenerateProxyIntrospectionXml(ajn::SessionPort& wellKnownPort, bool topLevel)
 {
     if (!proxy.unwrap()) {
-        QCC_DbgHLPrintf(("Top-level ProxyBusObject is not NULL"));
+        QCC_LogError(ER_OK, ("Top-level ProxyBusObject is not NULL"));
         return ER_OK;
     }
 

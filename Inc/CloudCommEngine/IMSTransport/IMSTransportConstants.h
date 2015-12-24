@@ -63,8 +63,8 @@ static const unsigned int REGISTRATION_DEFAULT_TIMEOUT = 5000; // timeout of SIP
 static const unsigned int PUBLICATION_DEFAULT_TIMEOUT = 5000; // timeout of SIP (un)publish in ms
 static const unsigned int SUBSCRIPTION_DEFAULT_TIMEOUT = 5000; // timeout of SIP (un)subscribe in ms
 
-static const unsigned int SIPSTACK_HEARTBEAT_INTERVAL = 10000; // heartbeat interval for SIP stack in ms, sending OPTIONS periodically
-static const unsigned int SIPSTACK_HEARTBEAT_EXPIRES = 5000; // heartbeat expires for SIP stack in ms, waiting for OPTIONS response
+static const unsigned int SIPSTACK_HEARTBEAT_INTERVAL = 30000; // heartbeat interval for SIP stack in ms, sending OPTIONS periodically
+static const unsigned int SIPSTACK_HEARTBEAT_EXPIRES = 2000; // heartbeat expires for SIP stack in ms, waiting for OPTIONS response
 
 static const char* DEFAULT_NAMESPACE_URI = "http://nane.cn/sipe2e";
 static const char* DEFAULT_NAMESPACE_PREFIX = "sipe2e";

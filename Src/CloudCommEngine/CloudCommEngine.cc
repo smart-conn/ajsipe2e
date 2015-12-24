@@ -39,9 +39,7 @@
 #include "CloudCommEngine/IMSTransport/IMSTransportConstants.h"
 
 
-#define QCC_MODULE "SIPE2E"
-// temporary disable
-// #define QCC_LogError(status, msg)
+#define QCC_MODULE "CloudCommEngine"
 
 using namespace std;
 using namespace qcc;

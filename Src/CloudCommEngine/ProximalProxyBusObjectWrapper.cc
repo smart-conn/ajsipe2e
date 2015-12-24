@@ -29,9 +29,7 @@
 #include "CloudCommEngine/CloudCommEngineBusObject.h"
 #include "Common/CommonUtils.h"
 
-#define QCC_MODULE "SIPE2E"
-// temporary disable
-#define QCC_LogError(status, msg)
+#define QCC_MODULE "ProximalProxyBusObjectWrapper"
 
 using namespace ajn;
 using namespace qcc;

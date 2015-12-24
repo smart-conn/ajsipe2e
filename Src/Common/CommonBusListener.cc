@@ -19,7 +19,7 @@
 
 #include <qcc/String.h>
 
-#define QCC_MODULE "SIPE2E"
+#define QCC_MODULE "CommonBusListener"
 
 namespace sipe2e {
 

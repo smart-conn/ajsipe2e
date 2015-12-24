@@ -314,7 +314,8 @@ IStatus IMSTransport::Init()
      */
     timerSub->Start();
     SubTimerAlarmListener* subTimerAlarmer = new SubTimerAlarmListener();
-    Alarm subAlarm(gwConsts::SIPSTACK_HEARTBEAT_INTERVAL, subTimerAlarmer, this, gwConsts::SIPSTACK_HEARTBEAT_INTERVAL);
+    uint32_t alarmTime = /*gwConsts::SIPSTACK_HEARTBEAT_INTERVAL*/100;
+    Alarm subAlarm(alarmTime, subTimerAlarmer, this, gwConsts::SIPSTACK_HEARTBEAT_INTERVAL);
     timerSub->AddAlarm(subAlarm);
 
     /**
@@ -322,7 +323,8 @@ IStatus IMSTransport::Init()
      */
     timerHeartBeat->Start();
     HeartBeatTimerAlarmListener* heartBeatTimerAlarmer = new HeartBeatTimerAlarmListener();
-    Alarm heartBeatAlarm(gwConsts::SIPSTACK_HEARTBEAT_INTERVAL, heartBeatTimerAlarmer, this, gwConsts::SIPSTACK_HEARTBEAT_INTERVAL);
+    alarmTime = /*gwConsts::SIPSTACK_HEARTBEAT_INTERVAL*/100;
+    Alarm heartBeatAlarm(alarmTime, heartBeatTimerAlarmer, this, gwConsts::SIPSTACK_HEARTBEAT_INTERVAL);
     timerHeartBeat->AddAlarm(heartBeatAlarm);
 
     return IC_OK;
@@ -778,14 +780,12 @@ void IMSTransport::RegThreadFunc()
     }
 }
 
+/*
 void IMSTransport::SubFunc(void* para)
 {
     qcc::String subAccount;
     IMSTransport* ims = (IMSTransport*)para;
     
-    if (ims->imsTransportStatus == gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED) {
-        return;
-    }
     std::map<qcc::String, bool>::iterator itrSub = ims->subscriptions.begin();
     while (itrSub != ims->subscriptions.end()) {
         if (!itrSub->second) {
@@ -794,7 +794,9 @@ void IMSTransport::SubFunc(void* para)
         itrSub++;
     }
 }
+*/
 
+/*
 void IMSTransport::HeartBeatFunc(void* para)
 {
     static bool restartOpSession = false;
@@ -836,6 +838,7 @@ void IMSTransport::HeartBeatFunc(void* para)
 
     }
 }
+*/
 
 
 void IMSTransport::SubTimerAlarmListener::AlarmTriggered(const qcc::Alarm& alarm, QStatus reason)
@@ -843,6 +846,9 @@ void IMSTransport::SubTimerAlarmListener::AlarmTriggered(const qcc::Alarm& alarm
     qcc::String subAccount;
     IMSTransport* ims = (IMSTransport*)alarm->GetContext();
 
+    if (ims->imsTransportStatus == gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED) {
+        return;
+    }
     std::map<qcc::String, bool>::iterator itrSub = ims->subscriptions.begin();
     while (itrSub != ims->subscriptions.end()) {
         if (!itrSub->second) {

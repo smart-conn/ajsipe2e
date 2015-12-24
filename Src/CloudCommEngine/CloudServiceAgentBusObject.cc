@@ -29,9 +29,7 @@
 #include <BusUtil.h>
 
 
-#define QCC_MODULE "SIPE2E"
-// temporary disable
-#define QCC_LogError(status, msg)
+#define QCC_MODULE "CloudServiceAgentBusObject"
 
 
 using namespace ajn;
@@ -333,6 +331,60 @@ QStatus CloudServiceAgentBusObject::ParseXml(const char* xml, BusAttachment* pro
                             QCC_LogError(status, ("Error while parsing the announced about data"));
                             return status;
                         }
+                        // Traverse the aboutData, if some fields are missing, then try to add them
+                        /*
+                            Field Name          	Required	Announced	Localized	Data type	        Description
+                            AppId	                        yes         yes             no                ay	The globally unique id for the application.
+                            DefaultLanguage 	    yes         yes             no	             s      The default language supported by the device. IETF langauge tags specified by RFC 5646.
+                            DeviceName	            no          yes             yes	             s      If Config service exist on the device, About instance populates the value as DeviceName in Config; If there is not Config, it can be set by the app. Device Name is optional for a third party apps but required for system apps. Versions of AllJoyn older than 14.12 this field was required. If working with older applications this field may be required.
+                            DeviceId	                    yes         yes             no                s     A string with value generated using platform specific means.
+                            AppName	                    yes         yes             yes               s     The application name assigned by the app manufacturer
+                            Manufacturer	            yes         yes             yes	              s     The manufacturer's name.
+                            ModelNumber	            yes         yes             no                 s      The app model number
+                            SupportedLanguages  yes         no              no                  as      A list of supported languages by the application
+                            Description                 yes         no              yes                 s       Detailed description provided by the application.
+                            DateOfManufacture   no          no              no                   s      The date of manufacture. using format YYYY-MM-DD. (Known as XML DateTime Format)
+                            SoftwareVersion         yes         no              no                   s      The software version of the manufacturer's software
+                            AJSoftwareVersion      yes         no              no                  s      The current version of the AllJoyn SDK utilized by the application.
+                            HardwareVersion        no          no              no                   s       The device hardware version.
+                            SupportUrl                   no          no              no                   s      The support URL.
+                        */
+                        size_t numAboutEntries = 0;
+                        MsgArg* aboutEntries = NULL;
+                        status = context.aboutData->Get("a{sv}", &numAboutEntries, &aboutEntries);
+                        if (ER_OK != status) {
+                            QCC_LogError(status, ("Error while trying to get About Data entries"));
+                            return status;
+                        }
+
+                        // Add 4 more required fields: SupportedLanguages,Description,SoftwareVersion,AJSoftwareVersion
+                        MsgArg* newAboutEntries = new MsgArg[numAboutEntries + 4];
+                        for (size_t entryIndx = 0; entryIndx < numAboutEntries; entryIndx++) {
+                            newAboutEntries[entryIndx] = aboutEntries[entryIndx];
+                        }
+                        context.aboutData->Clear();
+
+                        // SupportedLanguages: "as"
+                        const char** supportedLangs = new const char*[2];
+                        supportedLangs[0] = "en";
+                        supportedLangs[1] = "zh";
+                        MsgArg* entryVal = new MsgArg("as", 2, supportedLangs);
+                        newAboutEntries[numAboutEntries].Set("{sv}", AboutData::SUPPORTED_LANGUAGES, entryVal);
+
+                        // Description
+                        entryVal = new MsgArg("s", "Description: not announced");
+                        newAboutEntries[numAboutEntries + 1].Set("{sv}", AboutData::DESCRIPTION, entryVal);
+
+                        // SoftwareVersion
+                        entryVal = new MsgArg("s", "SoftwareVersion: not announced");
+                        newAboutEntries[numAboutEntries + 2].Set("{sv}", AboutData::SOFTWARE_VERSION, entryVal);
+
+                        // AJSoftwareVersion
+                        entryVal = new MsgArg("s", "AJSoftwareVersion: not announced");
+                        newAboutEntries[numAboutEntries + 3].Set("{sv}", AboutData::AJ_SOFTWARE_VERSION, entryVal);
+
+                        context.aboutData->Set("a{sv}", numAboutEntries + 4, newAboutEntries);
+
                     }
                 }
             } else if (root->GetName() == "interface") {
@@ -754,6 +806,7 @@ QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, const
         TransportMask transportMask = TRANSPORT_ANY;
         SessionOpts opts(SessionOpts::TRAFFIC_MESSAGES, false, SessionOpts::PROXIMITY_ANY, transportMask);
 
+        context.busListener->setSessionPort(sp);
         status = context.bus->BindSessionPort(sp, opts, *context.busListener);
         if (status != ER_OK && status != ER_ALLJOYN_BINDSESSIONPORT_REPLY_ALREADY_EXISTS) {
             Cleanup(_context ? false : true);
@@ -846,6 +899,7 @@ QStatus CloudServiceAgentBusObject::Cleanup(bool topLevel)
         }
         if (context.aboutObj) {
 //             context.about->RemoveObjectDescription(String(this->GetPath()), interfaces);
+            context.aboutObj->Unannounce();
             delete context.aboutObj;
             context.aboutObj = NULL;
         }

@@ -27,7 +27,7 @@
 #include <sys/stat.h>    // mkdir
 #endif
 
-#define QCC_MODULE "SIPE2E"
+#define QCC_MODULE "CommonUtils"
 
 using namespace ajn;
 using namespace qcc;

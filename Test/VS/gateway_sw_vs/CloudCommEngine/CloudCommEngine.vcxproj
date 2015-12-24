@@ -88,12 +88,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\..\..\AllSeen Alliance\v15.04\source\core\alljoyn\alljoyn_core\src\BusUtil.cc">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_1504|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\AllSeen Alliance\v15.04\source\core\alljoyn\alljoyn_core\src\SignatureUtils.cc">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_1504|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\..\..\AllSeen Alliance\v15.04\source\services\base\sample_apps\cpp\samples_common\AboutObjApi.cc" />
     <ClCompile Include="..\..\..\..\Src\CloudCommEngine\CloudCommEngine.cc" />
     <ClCompile Include="..\..\..\..\Src\CloudCommEngine\CloudCommEngineBusObject.cc" />

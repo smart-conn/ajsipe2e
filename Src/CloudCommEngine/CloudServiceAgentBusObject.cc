@@ -104,16 +104,6 @@ void CloudServiceAgentBusObject::CommonMethodHandler(const InterfaceDescription:
      *  characters in account name or BusName, like '@', or any characters that are not numeric
      *  or alphabetic
      */
-/*
-    String calledAddr(this->GetPath());
-    calledAddr.erase(0, 1); // since the first character is definitely '/'
-    if (calledAddr[calledAddr.length() - 1] != '/') {
-        calledAddr += "/";
-    }
-    calledAddr += member->iface->GetName();
-    calledAddr += "/";
-    calledAddr += member->name;
-*/
 
     // calledAddress will be like: BusName/ObjPath/InterfaceName/MethodName
     String calledAddr = remoteBusName + this->GetPath();
@@ -144,16 +134,6 @@ void CloudServiceAgentBusObject::GetProp(const InterfaceDescription::Member* mem
     msg->GetArgs(numArgs, args);
 
     // The first arg: thierry_luo@nane.cn/BusName/ObjectPath/InterfaceName/MethodName
-/*
-    String calledAddr(this->GetPath());
-    calledAddr.erase(0, 1); // since the first character is definitely '/'
-    if (calledAddr[calledAddr.length() - 1] != '/') {
-        calledAddr += "/";
-    }
-    calledAddr += args[0].v_string.str;
-    calledAddr += "/";
-    calledAddr += "Get";
-*/
 
     // calledAddress will be like: BusName/ObjPath/InterfaceName/MethodName
     String calledAddr = remoteBusName + this->GetPath();
@@ -178,16 +158,6 @@ void CloudServiceAgentBusObject::SetProp(const InterfaceDescription::Member* mem
     msg->GetArgs(numArgs, args);
 
     // The first arg: thierry_luo@nane.cn/BusName/ObjectPath/InterfaceName/MethodName
-/*
-    String calledAddr(this->GetPath());
-    calledAddr.erase(0, 1); // since the first character is definitely '/'
-    if (calledAddr[calledAddr.length() - 1] != '/') {
-        calledAddr += "/";
-    }
-    calledAddr += args[0].v_string.str;
-    calledAddr += "/";
-    calledAddr += "Set";
-*/
     // calledAddress will be like: BusName/ObjPath/InterfaceName/MethodName
     String calledAddr = remoteBusName + this->GetPath();
     calledAddr += "/";
@@ -213,16 +183,6 @@ void CloudServiceAgentBusObject::GetAllProps(const InterfaceDescription::Member*
     msg->GetArgs(numArgs, args);
 
     // The first arg: thierry_luo@nane.cn/BusName/ObjectPath/InterfaceName/MethodName
-/*
-    String calledAddr(this->GetPath());
-    calledAddr.erase(0, 1); // since the first character is definitely '/'
-    if (calledAddr[calledAddr.length() - 1] != '/') {
-        calledAddr += "/";
-    }
-    calledAddr += args[0].v_string.str;
-    calledAddr += "/";
-    calledAddr += "GetAll";
-*/
     // calledAddress will be like: BusName/ObjPath/InterfaceName/MethodName
     String calledAddr = remoteBusName + this->GetPath();
     calledAddr += "/";
@@ -281,7 +241,6 @@ QStatus CloudServiceAgentBusObject::ParseXml(const char* xml, BusAttachment* pro
                                 sPort = StringToU32(portStr, 10, SESSION_PORT_ANY);
                             }
                             if (sPort != SESSION_PORT_ANY) {
-                                sp = sPort;
                                 newChild->sp = sPort;
                             }
                             status = newChild->ParseNode(elem, proxyBus);
@@ -777,25 +736,7 @@ QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, const
         context.busListener = new CommonBusListener(context.bus, NULL, LocalSessionJoined, LocalSessionLost, this);
         context.bus->RegisterBusListener(*context.busListener);
 
-        /* Prepare the About Service */
-/*
-        context.about = new services::AboutService(*context.bus, *context.propertyStore);
-
-        status = context.about->Register(gwConsts::ANNOUNCMENT_PORT_NUMBER);
-        if (status != ER_OK) {
-            Cleanup(true);
-            return status;
-        }
-*/
         context.aboutObj = new AboutObj(*context.bus);
-/*
-
-        status = context.bus->RegisterBusObject(*context.aboutObj);
-        if (status != ER_OK) {
-            Cleanup(true);
-            return status;
-        }
-*/
     } else {
         /* If bus is not NULL then this Agent BusObject is a child object, and we just copy its context */
         context = *_context;
@@ -833,14 +774,6 @@ QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, const
         return status;
     }
 
-    /* Add the object description to About */
-/*
-    status = context.about->AddObjectDescription(String(this->GetPath()), interfaces);
-    if (status != ER_OK) {
-        Cleanup(_context ? false : true);
-        return status;
-    }
-*/
     /* Prepare the context for all children objects */
 /*
     for (size_t i = 0; i < children.size(); i++) {
@@ -862,8 +795,22 @@ QStatus CloudServiceAgentBusObject::Announce()
     if (!context.aboutObj) {
         return ER_BUS_NO_TRANSPORTS;
     }
-
-    return context.aboutObj->Announce(sp, aboutDataHandler);
+    QStatus status = ER_OK;
+    // if its SessionPort is available, announce it, if not, announce its all children that have available SessionPort
+    if (sp != SESSION_PORT_ANY) {
+        status = context.aboutObj->Announce(sp, aboutDataHandler);
+    } else {
+        for (size_t i = 0; i < children.size(); i++) {
+            if (children[i]->sp != SESSION_PORT_ANY) {
+                status = context.aboutObj->Announce(children[i]->sp, children[i]->aboutDataHandler);
+                if (ER_OK == status) {
+                    // Only announce once successfully, all enough
+                    break;
+                }
+            }
+        }
+    }
+    return status;
 }
 
 QStatus CloudServiceAgentBusObject::Cleanup(bool topLevel)
@@ -926,26 +873,32 @@ void CloudServiceAgentBusObject::LocalSessionJoined(void* arg, ajn::SessionPort 
         QCC_LogError(ER_FAIL, ("The CloudServiceAgentBusObject is not ready"));
         return;
     }
-/*
-    const char* objPath = parentCSABO->GetPath(); // This is only the path of the root AgentBusObject, like: thierry_luo@nane.cn/BusName (in most cases the root path is /BusName)
-    String peerAddr(objPath);
-    peerAddr.erase(0, 1); // since the first character is definitely '/'
-    size_t slash = peerAddr.find_first_of('/', 0);
-    if (slash == String::npos) {
-        QCC_LogError(ER_FAIL, ("The format of ObjPath of CloudServiceAgentBusObject is not correct"));
-        return;
-    }
-    String peerBusNameObjPath = peerAddr.substr(slash + 1, peerAddr.length() - slash - 1);
-    peerAddr.erase(slash, peerAddr.length() - slash);
-*/
+
+    String calledAddr(parentCSABO->remoteBusName);
+    calledAddr += "/1"; // 1 means adding, 0 means deleting
    
-    QStatus status = parentCSABO->ownerBusObject->UpdateSignalHandlerInfoToCloud(parentCSABO->remoteAccount, parentCSABO->remoteBusName, joiner, id);
-    CHECK_STATUS_AND_LOG("Error updating signal handler info to cloud");
+    QStatus status = parentCSABO->ownerBusObject->UpdateSignalHandlerInfoToCloud(parentCSABO->remoteAccount, calledAddr, joiner, id);
+    CHECK_STATUS_AND_LOG("Error updating signal handler info to cloud while session joined");
 }
 
 void CloudServiceAgentBusObject::LocalSessionLost(void* arg, ajn::SessionId sessionId, ajn::SessionListener::SessionLostReason reason)
 {
-    // TBD: 
+    if (!arg) {
+        return;
+    }
+    CloudServiceAgentBusObject* parentCSABO = (CloudServiceAgentBusObject*)arg;
+    if (!parentCSABO || !parentCSABO->ownerBusObject) {
+        QCC_LogError(ER_FAIL, ("The CloudServiceAgentBusObject is not ready"));
+        return;
+    }
+
+    String calledAddr(parentCSABO->remoteBusName);
+    calledAddr += "/0"; // 1 means adding, 0 means deleting
+
+    String joiner = parentCSABO->context.busListener->getJoinerBySessionId(sessionId);
+
+    QStatus status = parentCSABO->ownerBusObject->UpdateSignalHandlerInfoToCloud(parentCSABO->remoteAccount, calledAddr, joiner, sessionId);
+    CHECK_STATUS_AND_LOG("Error updating signal handler info to cloud while session lost");
 }
 
 CloudServiceAgentBusObject::CloudServiceAgentAboutData::CloudServiceAgentAboutData(CloudServiceAgentBusObject* _owner)

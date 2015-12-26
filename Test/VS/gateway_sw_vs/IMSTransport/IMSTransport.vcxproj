@@ -52,13 +52,13 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;QCC_OS_GROUP_WINDOWS;_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;SIPE2E_GATEWAY_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SDK_1504_HOME_DEBUG)\inc;$(ALLJOYN_SDK_1504_HOME_DEBUG)\inc\alljoyn;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(DOUBANGO_HOME)\bindings\_common;$(DOUBANGO_HOME)\thirdparties\win32\include;$(DOUBANGO_HOME)\tinySIP\include;$(DOUBANGO_HOME)\tinyMEDIA\include;$(DOUBANGO_HOME)\tinySDP\include;$(DOUBANGO_HOME)\tinyDAV\include;$(DOUBANGO_HOME)\tinySAK\src;$(DOUBANGO_HOME)\tinyNET\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SDK_1504_HOME_DEBUG)\inc;$(ALLJOYN_SDK_1504_HOME_DEBUG)\inc\alljoyn;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\sample_apps\cpp\samples_common;$(DOUBANGO_HOME)\bindings\_common;$(DOUBANGO_HOME)\thirdparties\win32\include;$(DOUBANGO_HOME)\tinySIP\include;$(DOUBANGO_HOME)\tinyMEDIA\include;$(DOUBANGO_HOME)\tinySDP\include;$(DOUBANGO_HOME)\tinyDAV\include;$(DOUBANGO_HOME)\tinySAK\src;$(DOUBANGO_HOME)\tinyNET\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(DOUBANGO_HOME)\bindings\vs_2005\csharp\DEBUG;$(ALLJOYN_SDK_1504_HOME_DEBUG)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(DOUBANGO_HOME)\bindings\vs_2005\csharp\Debug;$(ALLJOYN_SDK_1504_HOME_DEBUG)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>alljoyn.lib;tinyWRAP.lib;ws2_32.lib;Secur32.lib;crypt32.lib;Bcrypt.lib;Ncrypt.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -71,7 +71,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;QCC_OS_GROUP_WINDOWS;WIN32_LEAN_AND_MEAN;SIPE2E_GATEWAY_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SDK_1504_HOME_RELEASE)\inc;$(ALLJOYN_SDK_1504_HOME_RELEASE)\inc\alljoyn;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(DOUBANGO_HOME)\bindings\_common;$(DOUBANGO_HOME)\thirdparties\win32\include;$(DOUBANGO_HOME)\tinySIP\include;$(DOUBANGO_HOME)\tinyMEDIA\include;$(DOUBANGO_HOME)\tinySDP\include;$(DOUBANGO_HOME)\tinyDAV\include;$(DOUBANGO_HOME)\tinySAK\src;$(DOUBANGO_HOME)\tinyNET\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SDK_1504_HOME_RELEASE)\inc;$(ALLJOYN_SDK_1504_HOME_RELEASE)\inc\alljoyn;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\sample_apps\cpp\samples_common;$(DOUBANGO_HOME)\bindings\_common;$(DOUBANGO_HOME)\thirdparties\win32\include;$(DOUBANGO_HOME)\tinySIP\include;$(DOUBANGO_HOME)\tinyMEDIA\include;$(DOUBANGO_HOME)\tinySDP\include;$(DOUBANGO_HOME)\tinyDAV\include;$(DOUBANGO_HOME)\tinySAK\src;$(DOUBANGO_HOME)\tinyNET\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -83,6 +83,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\..\..\AllSeen Alliance\v15.04\source\services\base\sample_apps\cpp\samples_common\AJInitializer.cc" />
     <ClCompile Include="..\..\..\..\Src\CloudCommEngine\IMSTransport\IMSTransport.cc" />
     <ClCompile Include="..\..\..\..\Src\CloudCommEngine\IMSTransport\IMSTransportExport.cc" />
     <ClCompile Include="..\..\..\..\Src\CloudCommEngine\IMSTransport\IMSTransportSipCallback.cc" />

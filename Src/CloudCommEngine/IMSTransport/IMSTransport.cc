@@ -55,7 +55,7 @@ static IMSTransport* imsIns = new IMSTransport();
 IMSTransport::IMSTransport()
     : stack(NULL), sipCB(NULL), imsTransportStatus(gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED),
     realm(gwConsts::DEFAULT_REALM), pcscfPort(gwConsts::DEFAULT_PCSCF_PORT),
-    regSession(NULL), opSession(NULL), msgSession(NULL),
+    regSession(NULL), opSession(NULL), 
     regThread(NULL), timerHeartBeat(new Timer(String("HeartBeat"))), timerSub(new Timer(String("Subscribe"))), 
     regExpires(gwConsts::REGISTRATION_DEFAULT_EXPIRES)
 {
@@ -85,10 +85,6 @@ IMSTransport::~IMSTransport()
     if (opSession) {
         delete opSession;
         opSession = NULL;
-    }
-    if (msgSession) {
-        delete msgSession;
-        msgSession = NULL;
     }
     std::map<qcc::String, SubscriptionSession*>::iterator itrSubsession = subSessions.begin();
     while (itrSubsession != subSessions.end()) {
@@ -143,7 +139,6 @@ IMSTransport::~IMSTransport()
         delete sipCB;
         sipCB = NULL;
     }
-    AllJoynShutdown();
 }
 
 
@@ -187,7 +182,7 @@ IStatus IMSTransport::Init()
      *  </Transport>
      */
     QStatus status = ER_OK;
-    status = AllJoynInit();
+    status = ajInit.Initialize();
     if (ER_OK != status) {
         return IC_TRANSPORT_FAIL;
     }
@@ -295,8 +290,6 @@ IStatus IMSTransport::Init()
 //     regSession->setExpires(expires);
 
 //     opSession = new OptionsSession(stack);
-
-    msgSession = new MessagingSession(stack);
     
     /**
      * Here we start a new thread for registration task. 
@@ -315,7 +308,7 @@ IStatus IMSTransport::Init()
     timerSub->Start();
     SubTimerAlarmListener* subTimerAlarmer = new SubTimerAlarmListener();
     uint32_t alarmTime = /*gwConsts::SIPSTACK_HEARTBEAT_INTERVAL*/100;
-    Alarm subAlarm(alarmTime, subTimerAlarmer, this, gwConsts::SIPSTACK_HEARTBEAT_INTERVAL);
+    Alarm subAlarm(alarmTime, subTimerAlarmer, this, gwConsts::SIPSTACK_SUBSCRIPTION_INTERVAL);
     timerSub->AddAlarm(subAlarm);
 
     /**
@@ -670,16 +663,14 @@ IStatus IMSTransport::SendCloudMessage(int msgType,
     if (!msgBuf) {
         return IC_BAD_ARG_5;
     }
-    if (!msgSession) {
-        // The stack or the Message Session are not correctly initialized
-        return IC_TRANSPORT_FAIL;
-    }
-    msgSession->addHeader("Content-Type", gwConsts::contenttype::ALLJOYN_XML);
+
+    MessagingSession msgSession(stack);
+    msgSession.addHeader("Content-Type", gwConsts::contenttype::ALLJOYN_XML);
     char peerUri[gwConsts::MAX_SIP_ADDR_LEN];
     strcpy(peerUri, "sip:");
     strcat(peerUri, peer);
-    msgSession->setToUri(peerUri);
-    msgSession->addHeader(gwConsts::customheader::RPC_MSG_TYPE, qcc::I32ToString(msgType).c_str());
+    msgSession.setToUri(peerUri);
+    msgSession.addHeader(gwConsts::customheader::RPC_MSG_TYPE, qcc::I32ToString(msgType).c_str());
     switch (msgType) {
     case gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL:
     case gwConsts::customheader::RPC_MSG_TYPE_PROPERTY_CALL:
@@ -695,9 +686,9 @@ IStatus IMSTransport::SendCloudMessage(int msgType,
             }
             qcc::String callIdStr;
             ajn::services::GuidUtil::GetInstance()->GenerateGUID(&callIdStr);
-            msgSession->addHeader(gwConsts::customheader::RPC_CALL_ID, callIdStr.c_str());
-            msgSession->addHeader(gwConsts::customheader::RPC_ADDR, addr);
-            if (!msgSession->send(msgBuf, strlen(msgBuf))) {
+            msgSession.addHeader(gwConsts::customheader::RPC_CALL_ID, callIdStr.c_str());
+            msgSession.addHeader(gwConsts::customheader::RPC_ADDR, addr);
+            if (!msgSession.send(msgBuf, strlen(msgBuf))) {
                 // if error sending out the message
                 return IC_TRANSPORT_FAIL;
             }
@@ -743,8 +734,8 @@ IStatus IMSTransport::SendCloudMessage(int msgType,
             if (!callId) {
                 return IC_BAD_ARG_3;
             }
-            msgSession->addHeader(gwConsts::customheader::RPC_CALL_ID, callId);
-            if (!msgSession->send(msgBuf, strlen(msgBuf))) {
+            msgSession.addHeader(gwConsts::customheader::RPC_CALL_ID, callId);
+            if (!msgSession.send(msgBuf, strlen(msgBuf))) {
                 // if error sending out the message
                 return IC_TRANSPORT_FAIL;
             }
@@ -755,8 +746,12 @@ IStatus IMSTransport::SendCloudMessage(int msgType,
             if (!addr) {
                 return IC_BAD_ARG_4;
             }
-            msgSession->addHeader(gwConsts::customheader::RPC_ADDR, addr);
-            if (!msgSession->send(msgBuf, strlen(msgBuf))) {
+            msgSession.addHeader(gwConsts::customheader::RPC_ADDR, addr);
+
+            qcc::String callIdStr;
+            ajn::services::GuidUtil::GetInstance()->GenerateGUID(&callIdStr);
+            msgSession.addHeader(gwConsts::customheader::RPC_CALL_ID, callIdStr.c_str());
+            if (!msgSession.send(msgBuf, strlen(msgBuf))) {
                 // if error sending out the message
                 return IC_TRANSPORT_FAIL;
             }

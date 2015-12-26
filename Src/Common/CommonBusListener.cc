@@ -73,7 +73,11 @@ void CommonBusListener::SessionJoined(ajn::SessionPort sessionPort, ajn::Session
         m_Bus->SetSessionListener(id, this);
     }
 //     m_SessionIds.push_back(id);
-    m_SessionIdJoinerMap.insert(std::make_pair(id, qcc::String(joiner)));
+    SessionInfo sInfo;
+    sInfo.id = id;
+    sInfo.joiner = joiner;
+    sInfo.port = sessionPort;
+    m_SessionInfos.insert(std::make_pair(id, sInfo));
     if (m_sessionJoinedCB) {
         m_sessionJoinedCB(m_arg, sessionPort, id, joiner);
     }
@@ -86,12 +90,12 @@ void CommonBusListener::SessionLost(ajn::SessionId sessionId, SessionLostReason 
 //     if (it != m_SessionIds.end()) {
 //         m_SessionIds.erase(it);
 //     }
-    std::map<ajn::SessionId, qcc::String>::iterator it = m_SessionIdJoinerMap.find(sessionId);
-    if (it != m_SessionIdJoinerMap.end()) {
-        m_SessionIdJoinerMap.erase(it);
-    }
     if (m_sessionLostCB) {
         m_sessionLostCB(m_arg, sessionId, reason);
+    }
+    std::map<ajn::SessionId, SessionInfo>::iterator it = m_SessionInfos.find(sessionId);
+    if (it != m_SessionInfos.end()) {
+        m_SessionInfos.erase(it);
     }
 }
 
@@ -100,10 +104,12 @@ void CommonBusListener::SessionLost(ajn::SessionId sessionId, SessionLostReason 
 //     return m_SessionIds;
 // }
 
+/*
 const std::map<ajn::SessionId, qcc::String>& CommonBusListener::getSessionIdJoinerMap() const
 {
-    return m_SessionIdJoinerMap;
+    return m_SessionInfos;
 }
+*/
 
 void CommonBusListener::BusDisconnected()
 {
@@ -111,6 +117,24 @@ void CommonBusListener::BusDisconnected()
     if (m_DaemonDisconnectCB) {
         m_DaemonDisconnectCB(m_arg);
     }
+}
+
+qcc::String CommonBusListener::getJoinerBySessionId(ajn::SessionId id)
+{
+    std::map<ajn::SessionId, SessionInfo>::const_iterator it = m_SessionInfos.find(id);
+    if (it != m_SessionInfos.end()) {
+        return it->second.joiner;
+    }
+    return qcc::String("");
+}
+
+ajn::SessionPort CommonBusListener::getSessionPortBySessionId(ajn::SessionId id)
+{
+    std::map<ajn::SessionId, SessionInfo>::const_iterator it = m_SessionInfos.find(id);
+    if (it != m_SessionInfos.end()) {
+        return it->second.port;
+    }
+    return ajn::SESSION_PORT_ANY;
 }
 
 

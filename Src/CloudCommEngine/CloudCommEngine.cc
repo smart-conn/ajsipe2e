@@ -23,7 +23,7 @@
 // #include <alljoyn/about/AnnouncementRegistrar.h>
 
 #include "AboutObjApi.h"
-#include <alljoyn/Init.h>
+#include "AJInitializer.h"
 
 // #include <Common/GuidUtil.h>
 
@@ -47,6 +47,8 @@ using namespace ajn;
 
 using namespace sipe2e;
 using namespace gateway;
+
+AJInitializer ajInit;
 
 /** Top level message bus object. */
 static BusAttachment* s_bus = NULL;
@@ -182,12 +184,6 @@ void cleanup()
         s_bus->UnregisterBusListener(*s_busListener);
         s_bus->UnbindSessionPort(s_busListener->getSessionPort());
     }
-/*
-    if (s_pceProxyBusObject->IsValid()) {
-        ManagedObj<ProxyBusObject> tmp;
-        s_pceProxyBusObject = tmp;
-    }
-*/
     if (s_cceBusObject) {
         if (s_bus) {
             s_bus->UnregisterBusObject(*s_cceBusObject);
@@ -214,8 +210,7 @@ void cleanup()
         delete s_bus;
         s_bus = NULL;
     }
-    AllJoynRouterShutdown();
-    AllJoynShutdown();
+    ITShutdown();
 }
 
 
@@ -226,19 +221,15 @@ int CDECL_CALL main(int argc, char** argv, char** envArg)
 
     QStatus status = ER_OK;
 
-    if (AllJoynInit() != ER_OK) {
-        return 1;
-    }
-    if (AllJoynRouterInit() != ER_OK) {
-        return 1;
+    status = ajInit.Initialize();
+    if (ER_OK != status) {
+        return -1;
     }
 
 start:
     // Initialize the IMSTransport
     if (0 != ITInitialize())
     {
-        AllJoynRouterShutdown();
-        AllJoynShutdown();
         return ER_FAIL;
     }
 
@@ -253,15 +244,13 @@ start:
     /* Prepare bus attachment */
     s_bus = new BusAttachment(gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME.c_str(), true);
     if (!s_bus) {
-        AllJoynRouterShutdown();
-        AllJoynShutdown();
+        ITShutdown();
         status = ER_OUT_OF_MEMORY;
         return status;
     }
     status = s_bus->Start();
     if (ER_OK != status) {
-        AllJoynRouterShutdown();
-        AllJoynShutdown();
+        ITShutdown();
         delete s_bus;
         return status;
     }
@@ -272,9 +261,8 @@ start:
 
     status = s_bus->Connect();
     if (ER_OK != status) {
+        ITShutdown();
         delete s_bus;
-        AllJoynRouterShutdown();
-        AllJoynShutdown();
         return status;
     }
 
@@ -318,16 +306,10 @@ start:
 
 
     while (s_interrupt == false) {
-#ifdef QCC_OS_GROUP_WINDOWS
-        ::sleep(200);
-#else
-        usleep(200000);
-#endif
+        qcc::Sleep(200);
     }
 
     cleanup();
-
-    ITShutdown();
 
 
     return 0;

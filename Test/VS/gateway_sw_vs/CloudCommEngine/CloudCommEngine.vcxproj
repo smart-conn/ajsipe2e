@@ -52,7 +52,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;UNICODE;_UNICODE;QCC_OS_GROUP_WINDOWS;WIN32_LEAN_AND_MEAN;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;UNICODE;_UNICODE;ROUTER;QCC_OS_GROUP_WINDOWS;WIN32_LEAN_AND_MEAN;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ALLJOYN_SDK_1504_HOME_DEBUG)\inc;$(ALLJOYN_SDK_1504_HOME_DEBUG)\inc\alljoyn;$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\alljoyn_core\src;$(ALLJOYN_SRC_1504_HOME)\services\base\controlpanel\cpp\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\controlpanel\cpp\src;$(ALLJOYN_SRC_1504_HOME)\services\base\notification\cpp\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\notification\cpp\src;$(ALLJOYN_SRC_1504_HOME)\services\base\sample_apps\cpp\samples_common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/vmm /vmg %(AdditionalOptions)</AdditionalOptions>
       <CallingConvention>Cdecl</CallingConvention>
@@ -74,7 +74,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;UNICODE;_UNICODE;QCC_OS_GROUP_WINDOWS;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;UNICODE;_UNICODE;ROUTER;QCC_OS_GROUP_WINDOWS;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ALLJOYN_SDK_1504_HOME_RELEASE)\inc;$(ALLJOYN_SDK_1504_HOME_RELEASE)\inc\alljoyn;$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\alljoyn_core\src;$(ALLJOYN_SRC_1504_HOME)\services\base\controlpanel\cpp\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\controlpanel\cpp\src;$(ALLJOYN_SRC_1504_HOME)\services\base\notification\cpp\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\notification\cpp\src;$(ALLJOYN_SRC_1504_HOME)\services\base\sample_apps\cpp\samples_common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/vmm /vmg %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -89,6 +89,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\..\..\AllSeen Alliance\v15.04\source\services\base\sample_apps\cpp\samples_common\AboutObjApi.cc" />
+    <ClCompile Include="..\..\..\..\..\..\..\AllSeen Alliance\v15.04\source\services\base\sample_apps\cpp\samples_common\AJInitializer.cc" />
     <ClCompile Include="..\..\..\..\Src\CloudCommEngine\CloudCommEngine.cc" />
     <ClCompile Include="..\..\..\..\Src\CloudCommEngine\CloudCommEngineBusObject.cc" />
     <ClCompile Include="..\..\..\..\Src\CloudCommEngine\CloudServiceAgentBusObject.cc" />

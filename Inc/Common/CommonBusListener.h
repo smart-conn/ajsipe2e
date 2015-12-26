@@ -98,12 +98,15 @@ class CommonBusListener : public ajn::BusListener, public ajn::SessionPortListen
      */
 //     const std::vector<ajn::SessionId>& getSessionIds() const;
 
-    const std::map<ajn::SessionId, qcc::String>& getSessionIdJoinerMap() const;
+//     const std::map<ajn::SessionId, qcc::String>& getSessionIdJoinerMap() const;
 
     /**
      * Function when Bus has been disconnected
      */
     void BusDisconnected();
+
+    qcc::String getJoinerBySessionId(ajn::SessionId id);
+    ajn::SessionPort getSessionPortBySessionId(ajn::SessionId id);
 
   private:
 
@@ -121,8 +124,14 @@ class CommonBusListener : public ajn::BusListener, public ajn::SessionPortListen
      * The sessionIds for the port
      */
 //     std::vector<ajn::SessionId> m_SessionIds;
+    typedef struct  
+    {
+        ajn::SessionId id;
+        qcc::String joiner;
+        ajn::SessionPort port;
+    } SessionInfo;
 
-    std::map<ajn::SessionId, qcc::String> m_SessionIdJoinerMap;
+    std::map<ajn::SessionId, SessionInfo> m_SessionInfos;
 
     /**
      * Callback when daemon is disconnected

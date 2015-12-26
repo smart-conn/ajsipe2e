@@ -217,6 +217,9 @@ int IMSTransportSipCallback::OnMessagingEvent(const MessagingEvent* e)
             if (msg) {
                 session->accept();
                 char* contentType = ((SipMessage*)msg)->getSipHeaderValue("c");
+#ifndef NDEBUG
+                printf("Received a SIP MESSAGE with content type '%s'\n", contentType);
+#endif
                 if (contentType) {
                     if (!strcmp(contentType, gwConsts::contenttype::ALLJOYN_XML)) {
                         // RPC message
@@ -231,10 +234,16 @@ int IMSTransportSipCallback::OnMessagingEvent(const MessagingEvent* e)
                         // the response
                         char* msgType = ((SipMessage*)msg)->getSipHeaderValue(gwConsts::customheader::RPC_MSG_TYPE);
                         if (!msgType) {
+#ifndef NDEBUG
+                            printf("Cannot get the msg type\n");
+#endif
                             return -1;
                         }
                         char* peer = ((SipMessage*)msg)->getSipHeaderValue("f");
                         if (!peer) {
+#ifndef NDEBUG
+                            printf("Cannot get the from header value\n");
+#endif
                             return -1;
                         }
                         char* tmp = strchr(peer, ':');
@@ -246,9 +255,17 @@ int IMSTransportSipCallback::OnMessagingEvent(const MessagingEvent* e)
                         }
                         char *callId = ((SipMessage*)msg)->getSipHeaderValue(gwConsts::customheader::RPC_CALL_ID);
                         if (!callId || strlen(callId) > gwConsts::MAX_RPC_MSG_CALLID_LEN) {
+#ifndef NDEBUG
+                            printf("Cannot get the callid header value\n");
+#endif
                             return -1;
                         }
+
+
                         unsigned int contentLen = ((SipMessage*)msg)->getSipContentLength();
+#ifndef NDEBUG
+                        printf("Received a SIP MESSAGE:\nmsgType:%s\npeer:%s\ncontentLen:%i\n", msgType, peer, contentLen);
+#endif
                         switch (atoi(msgType)) {
                         default:
                         case gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL:

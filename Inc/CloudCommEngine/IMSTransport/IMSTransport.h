@@ -24,6 +24,7 @@
 
 #include <qcc/String.h>
 #include <qcc/Timer.h>
+#include <AJInitializer.h>
 
 #include <mutex>
 #include <thread>
@@ -237,8 +238,6 @@ private:
     /* */
     OptionsSession* opSession;
     /* */
-    MessagingSession* msgSession;
-    /* */
     std::map<qcc::String, SubscriptionSession*> subSessions;
 
     /* All subscribed account information, if the subscription is successful, the value is true */
@@ -322,6 +321,9 @@ private:
      * calling 
      */
     SyncQueue<char*> incomingNotifyQueue;
+
+    // AllJoyn Initializer
+    AJInitializer ajInit;
 };
 
 }

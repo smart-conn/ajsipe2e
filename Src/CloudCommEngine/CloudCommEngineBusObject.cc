@@ -162,9 +162,6 @@ void CloudCommEngineBusObject::LocalServiceAnnounceHandler::AnnounceHandlerTask:
 
     /* If the session is successfully joined then saved the session ID and create the ProxyBusObjects for all announced Objects */
     String introspectionXml("<service name=\"");
-//     String normalizedBusName;
-//     IllegalStringToObjPathString(announceData.busName, normalizedBusName);
-//     introspectionXml += normalizedBusName;
     introspectionXml += announceData.busName;
     introspectionXml += "\">\n";
     /* Save the announcement data to XML */
@@ -371,18 +368,6 @@ QStatus CloudCommEngineBusObject::Init(BusAttachment& cloudCommBus/*, ajn::About
         return status;
     }
 
-    /* Prepare the About announcement object descriptions */
-/*
-    vector<String> intfNames;
-    intfNames.push_back(SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE);
-    status = cloudCommAboutService.AddObjectDescription(SIPE2E_CLOUDCOMMENGINE_OBJECTPATH, intfNames);
-    if (ER_OK != status) {
-        Cleanup();
-        return status;
-    }
-    aboutService = &cloudCommAboutService;
-*/
-
     messageReceiverThread.Start(this);
     notificationReceiverThread.Start(this);
 
@@ -433,16 +418,6 @@ QStatus CloudCommEngineBusObject::Cleanup()
     }
 
     signalHandlersInfo.clear();
-
-    /* Prepare the About announcement object descriptions */
-/*
-    vector<String> intfNames;
-    intfNames.push_back(SIPE2E_CLOUDCOMMENGINE_ALLJOYNENGINE_INTERFACE);
-    if (aboutService) {
-        status = aboutService->RemoveObjectDescription(SIPE2E_CLOUDCOMMENGINE_OBJECTPATH, intfNames);
-        aboutService = NULL;
-    }
-*/
 
     ITStopReadCloudMessage();
     messageReceiverThread.Join();
@@ -531,23 +506,7 @@ void CloudCommEngineBusObject::CloudMethodCallRunable::Run()
     if (!cceBusObject || !agent) {
         return;
     }
-/*
-    String& calledAddr = arg->calledAddr;
-    size_t slash = calledAddr.find_first_of('/');
-    if (String::npos == slash || slash >= calledAddr.size() - 1) {
-        // The called addr format is not correct
-        QCC_LogError(ER_FAIL, ("The format of called address is not correct"));
-        status = agent->MethodReply(arg->msg, ER_FAIL);
-        if (ER_OK != status) {
-            QCC_LogError(status, ("Method Reply did not complete successfully"));
-        }
-        return;
-    }
-    String normalizedPeer = calledAddr.substr(0, slash);
-    String peer;
-    ObjPathStringToIllegalString(normalizedPeer, peer);
-    String addr = calledAddr.substr(slash + 1, calledAddr.size() - slash - 1);
-*/
+
     String argsStr("<args>\n");
     if (arg->inArgs && arg->inArgsNum > 0) {
         for (unsigned int i = 0; i < arg->inArgsNum; i++) {
@@ -562,7 +521,7 @@ void CloudCommEngineBusObject::CloudMethodCallRunable::Run()
         if (resBuf) {
             ITReleaseBuf(resBuf);
         }
-        QCC_LogError(ER_FAIL, ("Failed to send message to cloud"));
+        QCC_LogError(ER_FAIL, ("Failed to send message to cloud: \nstatus:%i\ncallType:%i\npeer:%s\ncalledAddr:%s\nargsStr:%s\n", itStatus, arg->callType, arg->peer.c_str(), arg->calledAddr.c_str(), argsStr.c_str()));
         status = agent->MethodReply(arg->msg, (QStatus)itStatus);
         if (ER_OK != status) {
             QCC_LogError(status, ("Method Reply did not complete successfully"));
@@ -623,7 +582,7 @@ void CloudCommEngineBusObject::CloudMethodCallRunable::Run()
         ITReleaseBuf(resBuf);
     } else {
         // No result received
-        status = cceBusObject->MethodReply(arg->msg, ER_OK);
+        status = agent->MethodReply(arg->msg, ER_OK);
     }
 }
 
@@ -684,11 +643,6 @@ void CloudCommEngineBusObject::LocalMethodCallRunable::Run(void)
 
 void CloudCommEngineBusObject::SaveProxyBusObject(_ProximalProxyBusObjectWrapper proxyWrapper)
 {
-/*
-    String normalizedBusName;
-    IllegalStringToObjPathString(proxyWrapper->proxy->GetServiceName(), normalizedBusName);
-    String busNameAndObjPath = normalizedBusName / *+ "/"* / + proxyWrapper->proxy->GetPath();
-*/
     String busNameAndObjPath = proxyWrapper->proxy->GetServiceName() + proxyWrapper->proxy->GetPath();
     proxyBusObjects.insert(pair<String, _ProximalProxyBusObjectWrapper>(busNameAndObjPath, proxyWrapper));
     for (size_t i = 0; i < proxyWrapper->children.size(); i++) {
@@ -727,6 +681,10 @@ ThreadReturn CloudCommEngineBusObject::MessageReceiverThreadFunc(void* arg)
                 continue;
             }
             *tmp = '\0';
+
+#ifndef NDEBUG
+            QCC_LogError(ER_OK, ("Received a message with type %s from %s\n", msgType, peer));
+#endif
 
             if (msgTypeN < gwConsts::customheader::RPC_MSG_TYPE_UPDATE_SIGNAL_HANDLER) {
                 // If the request is METHOD CALL or SIGNAL CALL
@@ -1041,27 +999,6 @@ QStatus CloudCommEngineBusObject::SubscribeCloudServiceToLocal(const qcc::String
 {
     QStatus status = ER_OK;
 
-/*
-    qcc::String normalizedServiceAddr;
-    IllegalStringToObjPathString(serviceAddr, normalizedServiceAddr);
-
-    String agentObjPath;
-    if (normalizedServiceAddr[0] != '/') {
-        agentObjPath = "/" + normalizedServiceAddr;
-    } else {
-        agentObjPath = normalizedServiceAddr;
-    }
-
-    String serviceRootPath = GetServiceRootPath(serviceIntrospectionXml);
-    if (!serviceRootPath.empty()) {
-        if (serviceRootPath[0] != '/') {
-            agentObjPath += "/" + serviceRootPath;
-        } else {
-            agentObjPath += serviceRootPath;
-        }
-    }
-*/
-
     // ServiceIndex will be like: thierry_luo@nane.cn/BusName
     String serviceIndex = serviceAddr + "/";
     String serviceBusName = GetServiceRootPath(serviceIntrospectionXml);
@@ -1217,6 +1154,12 @@ QStatus CloudCommEngineBusObject::LocalMethodCall(gwConsts::customheader::RPC_MS
         }
     }
 
+/*
+#ifndef NDEBUG
+    QCC_LogError(ER_OK, ("Trying to make loca method call:\ncallType:%i\ncalledAddr:%s\n", callType, addr.c_str()));
+#endif
+*/
+
     switch (callType) {
     case gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL:
         {
@@ -1299,19 +1242,6 @@ QStatus CloudCommEngineBusObject::LocalSignalCall(const qcc::String& peer, const
         QCC_LogError(status, ("The format of sender address is not correct"));
         return status;
     }
-/*
-    String senderAccount = senderAddr.substr(0, firstSlash);
-    String normalizedSenderAccount;
-    IllegalStringToObjPathString(senderAccount, normalizedSenderAccount);
-
-    size_t secondSlash = senderAddr.find_first_of('/', firstSlash + 1);
-    if (String::npos == secondSlash) {
-        status = ER_FAIL;
-        QCC_LogError(status, ("The format of sender address is not correct"));
-        return status;
-    }
-    String rootAgentBusObjectPath = normalizedSenderAccount + senderAddr.substr(firstSlash, secondSlash - firstSlash);
-*/
     String rootAgentBusObjectPath = peer + "/" + senderAddr.substr(0, firstSlash);
     std::map<qcc::String, CloudServiceAgentBusObject*>::iterator itCBO = cloudBusObjects.find(rootAgentBusObjectPath);
     if (itCBO == cloudBusObjects.end() || !itCBO->second) {
@@ -1354,11 +1284,6 @@ QStatus CloudCommEngineBusObject::LocalSignalCall(const qcc::String& peer, const
         QCC_LogError(status, ("The format of receiver address is not correct"));
         return status;
     }
-/*
-    String normalizedReceiverBusName = receiverAddr.substr(0, firstSlash);
-    String receiverBusName;
-    ObjPathStringToIllegalString(normalizedReceiverBusName, receiverBusName);
-*/
     String receiverBusName = receiverAddr.substr(0, firstSlash);
     SessionId receiverSessionId = StringToU32(receiverAddr.substr(firstSlash + 1, receiverAddr.size() - firstSlash - 1), 10);
 
@@ -1379,6 +1304,13 @@ QStatus CloudCommEngineBusObject::UpdateSignalHandlerInfoToLocal(const qcc::Stri
     while ('/' == localBusName[localBusName.length() - 1]) {
         localBusName.erase(localBusName.length() - 1, 1);
     }
+    size_t slash = localBusName.find_last_of('/');
+    if (slash == String::npos) {
+        QCC_LogError(ER_FAIL, ("Wrong called address format in UpdateSignalHandlerInfo call"));
+        return ER_FAIL;
+    }
+    String updateOrDelete = localBusName.substr(slash + 1, localBusName.size() - slash - 1);
+    localBusName.erase(slash, localBusName.size() - slash);
 
     // Store the SignalHandler Info, with localBusNameObjPath as key and peerBusName/sessionId as value
     std::map<qcc::String, std::map<qcc::String, std::vector<SignalHandlerInfo>>>::iterator itShiMap = signalHandlersInfo.find(localBusName);
@@ -1387,6 +1319,7 @@ QStatus CloudCommEngineBusObject::UpdateSignalHandlerInfoToLocal(const qcc::Stri
         signalHandlersInfo.insert(std::make_pair(localBusName, shiMap));
     }
     std::map<qcc::String, std::vector<SignalHandlerInfo>>& currShiMap = signalHandlersInfo[localBusName];
+
     std::map<qcc::String, std::vector<SignalHandlerInfo>>::iterator itSHI = currShiMap.find(peerAddr);
     if (itSHI == currShiMap.end()) {
         std::vector<SignalHandlerInfo> shiVec;
@@ -1394,8 +1327,22 @@ QStatus CloudCommEngineBusObject::UpdateSignalHandlerInfoToLocal(const qcc::Stri
     }
     std::vector<SignalHandlerInfo>& currShiVec = currShiMap[peerAddr];
 
-    SignalHandlerInfo peerSignalHandlerInfo = {peerAddr, peerBusName, peerSessionId};
-    currShiVec.push_back(peerSignalHandlerInfo);
+    if (updateOrDelete == "1") {
+        // Adding
+        SignalHandlerInfo peerSignalHandlerInfo = {peerAddr, peerBusName, peerSessionId};
+        currShiVec.push_back(peerSignalHandlerInfo);
+    } else {
+        // Deleting
+        // Trying to find the peerSessionId
+        std::vector<SignalHandlerInfo>::iterator itS = currShiVec.begin();
+        while (itS != currShiVec.end()) {
+            if (itS->sessionId == peerSessionId && itS->busName == peerBusName) {
+                currShiVec.erase(itS);
+                break;
+            }
+            itS++;
+        }
+    }
 
    return status;
 }
@@ -1405,17 +1352,88 @@ QStatus CloudCommEngineBusObject::CloudMethodCall(gwConsts::customheader::RPC_MS
 {
     QStatus status = ER_OK;
 
-    // The first arg is the called address
-/*
-    String calledAddr(addr);
-    while ('/' == calledAddr[calledAddr.length() - 1]) {
-        calledAddr.erase(calledAddr.length() - 1, 1);
-    }
-*/
-
     // Now call the cloud method by sending IMS message out
 
+    String argsStr("<args>\n");
+    if (inArgsArray && inArgsNum > 0) {
+        for (size_t i = 0; i < inArgsNum; i++) {
+            argsStr += ArgToXml(&inArgsArray[i], 0);
+        }
+    }
+    argsStr +=  "</args>";
+
+    char* resBuf = NULL;
+    int itStatus = ITSendCloudMessage(callType, peer.c_str(), NULL, addr.c_str(), argsStr.c_str(), &resBuf);
+    if (0 != itStatus) {
+        if (resBuf) {
+            ITReleaseBuf(resBuf);
+        }
+        QCC_LogError(ER_FAIL, ("Failed to send message to cloud: \nstatus:%i\ncallType:%i\npeer:%s\ncalledAddr:%s\nargsStr:%s\n", itStatus, callType, peer.c_str(), addr.c_str(), argsStr.c_str()));
+        status = agent->MethodReply(msg, (QStatus)itStatus);
+        if (ER_OK != status) {
+            QCC_LogError(status, ("Method Reply did not complete successfully"));
+        }
+        return ER_FAIL;
+    }
+    if (resBuf) {
+        MsgArg cloudReplyArgs[2];
+
+        StringSource source(resBuf);
+
+        XmlParseContext pc(source);
+        status = XmlElement::Parse(pc);
+        if (ER_OK != status) {
+            QCC_LogError(status, ("Error parsing arguments XML string"));
+            status = agent->MethodReply(msg, status);
+            if (ER_OK != status) {
+                QCC_LogError(status, ("Method Reply did not complete successfully"));
+            }
+            ITReleaseBuf(resBuf);
+            return status;
+        }
+        const XmlElement* rootEle = pc.GetRoot();
+        if (!rootEle) {
+            QCC_LogError(ER_FAIL, ("The message format is not correct"));
+            status = agent->MethodReply(msg, ER_FAIL);
+            if (ER_OK != status) {
+                QCC_LogError(status, ("Method Reply did not complete successfully"));
+            }
+            ITReleaseBuf(resBuf);
+            return ER_FAIL;
+        }
+
+        const std::vector<XmlElement*>& argsRootEles = rootEle->GetChildren();
+        if (!argsRootEles[0]) {
+            QCC_LogError(ER_FAIL, ("The reply args are not in correct format"));
+            status = agent->MethodReply(msg, ER_FAIL);
+            if (ER_OK != status) {
+                QCC_LogError(status, ("Method Reply did not complete successfully"));
+            }
+            ITReleaseBuf(resBuf);
+            return ER_FAIL;
+        }
+        const std::vector<XmlElement*>& argsEles = argsRootEles[0]->GetChildren();
+        size_t argsNum = argsEles.size();
+        MsgArg* argsArray = NULL;
+        if (argsNum > 0) {
+            argsArray = new MsgArg[argsNum];
+            for (size_t argIndx = 0; argIndx < argsNum; argIndx++) {
+                XmlToArg(argsEles[argIndx], argsArray[argIndx]);
+            }
+        }
+
+        status = agent->MethodReply(msg, argsArray, argsNum); // what if the argsNum==0? TBD
+        if (ER_OK != status) {
+            QCC_LogError(status, ("Method Reply did not complete successfully"));
+        }
+        ITReleaseBuf(resBuf);
+    } else {
+        // No result received
+        status = agent->MethodReply(msg, ER_OK);
+    }
+
     // Firstly try to find the stub for this method call, if failed, create one stub for it
+/*
     CloudMethodCallThreadArg* argList = new CloudMethodCallThreadArg(msg);
     argList->callType = callType;
     argList->inArgsNum = inArgsNum;
@@ -1435,6 +1453,7 @@ QStatus CloudCommEngineBusObject::CloudMethodCall(gwConsts::customheader::RPC_MS
     if (ER_OK != status) {
         QCC_LogError(status, ("Error running the CloudMethodCall thread maybe because of resource constraint"));
     }
+*/
     return status;
 }
 
@@ -1443,15 +1462,6 @@ QStatus CloudCommEngineBusObject::CloudSignalCall(const qcc::String& peer, const
 {
     QStatus status = ER_OK;
 
-/*
-    size_t slash = receiverAddr.find_first_of('/');
-    if (String::npos == slash) {
-        status = ER_FAIL;
-        QCC_LogError(status, ("The format of receiver address is not correct"));
-        return status;
-    }
-    String peer = receiverAddr.substr(0, slash);
-*/
     String peerAddr(senderAddr);
     peerAddr += "`";
 //     peerAddr += receiverAddr.substr(slash + 1, receiverAddr.size() - slash - 1);
@@ -1512,22 +1522,8 @@ QStatus CloudCommEngineBusObject::UpdateSignalHandlerInfoToCloud(const qcc::Stri
 {
     QStatus status = ER_OK;
 
-/*
-    String peer;
-    ObjPathStringToIllegalString(peerAddr, peer);
-    // The second arg is the peer BusName and ObjPath: BusName/ObjPath
-    String peerBusName(peerBusNameObjPath);
-    while ('/' == peerBusName[peerBusName.length() - 1]) {
-        peerBusName.erase(peerBusName.length() - 1, 1);
-    }
-*/
 
    String msgBuf = "<SignalHandlerInfo busName=\"";
-/*
-   String normalizedLocalBusName;
-   IllegalStringToObjPathString(localBusName, normalizedLocalBusName);
-   msgBuf += normalizedLocalBusName;
-*/
    msgBuf += localBusName;
    msgBuf += "\"";
    msgBuf += " sessionId=\"";

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2014-2015, Beijing HengShengDongYang Technology Ltd. All rights reserved.
+ * Copyright AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -51,22 +51,22 @@ enum IMS_TRANSPORT_STATUS_ENUM {
 static const char* DEFAULT_REALM = "nane.cn";
 static const unsigned short DEFAULT_PCSCF_PORT = 4060;
 
-static const unsigned int MAX_SIP_CONTENT_LEN = 32000; // maximum of SIP message content length
-static const unsigned int MAX_SIP_ADDR_LEN = 128; // maximum of SIP address length
-static const unsigned int MAX_RPC_MSG_CALLID_LEN = 128; // maximum of CallID length of RPC message
+static const uint32_t MAX_SIP_CONTENT_LEN = 32000; // maximum of SIP message content length
+static const uint32_t MAX_SIP_ADDR_LEN = 128; // maximum of SIP address length
+static const uint32_t MAX_RPC_MSG_CALLID_LEN = 128; // maximum of CallID length of RPC message
 
-static const unsigned int RPC_REQ_TIMEOUT = 30000; // timeout in ms of request-response over non-proximal network
+static const uint32_t RPC_REQ_TIMEOUT = 30000; // timeout in ms of request-response over non-proximal network
 
-static const unsigned int REGISTRATION_DEFAULT_EXPIRES = 300; // expires of SIP registration binding in seconds
-static const unsigned int REGISTRATION_DEFAULT_TIMEOUT = 5000; // timeout of SIP (un)registration in ms
+static const uint32_t REGISTRATION_DEFAULT_EXPIRES = 300; // expires of SIP registration binding in seconds
+static const uint32_t REGISTRATION_DEFAULT_TIMEOUT = 5000; // timeout of SIP (un)registration in ms
 
-static const unsigned int PUBLICATION_DEFAULT_TIMEOUT = 5000; // timeout of SIP (un)publish in ms
-static const unsigned int SUBSCRIPTION_DEFAULT_TIMEOUT = 5000; // timeout of SIP (un)subscribe in ms
+static const uint32_t PUBLICATION_DEFAULT_TIMEOUT = 5000; // timeout of SIP (un)publish in ms
+static const uint32_t SUBSCRIPTION_DEFAULT_TIMEOUT = 5000; // timeout of SIP (un)subscribe in ms
 
-static const unsigned int SIPSTACK_HEARTBEAT_INTERVAL = 30000; // heartbeat interval for SIP stack in ms, sending OPTIONS periodically
-static const unsigned int SIPSTACK_HEARTBEAT_EXPIRES = 2000; // heartbeat expires for SIP stack in ms, waiting for OPTIONS response
+static const uint32_t SIPSTACK_HEARTBEAT_INTERVAL = 30000; // heartbeat interval for SIP stack in ms, sending OPTIONS periodically
+static const uint32_t SIPSTACK_HEARTBEAT_EXPIRES = 2000; // heartbeat expires for SIP stack in ms, waiting for OPTIONS response
 
-static const unsigned int SIPSTACK_SUBSCRIPTION_INTERVAL = 5000; // heartbeat interval for SIP stack in ms, sending OPTIONS periodically
+static const uint32_t SIPSTACK_SUBSCRIPTION_INTERVAL = 5000; // heartbeat interval for SIP stack in ms, sending OPTIONS periodically
 
 static const char* DEFAULT_NAMESPACE_URI = "http://nane.cn/sipe2e";
 static const char* DEFAULT_NAMESPACE_PREFIX = "sipe2e";

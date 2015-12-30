@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2014-2015, Beijing HengShengDongYang Technology Ltd. All rights reserved.
+ * Copyright AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -38,13 +38,13 @@ namespace gateway {
 
 
 /**
-    * CloudServiceAgentBusObject class
-    * This is the Agent BusObject exposing services/interfaces on behalf of cloud services
-    * Every Agent BusObject is created while subscribing a remote service (either cloud service
-    * or service provided by devices in other proximal networks).
-    * Every Agent BusObject is on its specific BusAttachment which is different from the one
-    * of CloudCommEngineBusObject instance.
-    */
+  * CloudServiceAgentBusObject class
+  * This is the Agent BusObject exposing services/interfaces on behalf of cloud services
+  * Every Agent BusObject is created while subscribing a remote service (either cloud service
+  * or service provided by devices in other proximal networks).
+  * Every Agent BusObject is on its specific BusAttachment which is different from the one
+  * of CloudCommEngineBusObject instance.
+  */
 class CloudServiceAgentBusObject : public ajn::BusObject
 {
     friend class CloudCommEngineBusObject;
@@ -58,39 +58,55 @@ public:
 
 public:
     /**
-        * Common method handler for all methods of cloud service
-        * @param member - the member (method) of the interface that was executed
-        * @param msg - the Message of the method
-        */
+     * Common method handler for all methods of cloud service
+     * @param member - the member (method) of the interface that was executed
+     * @param msg - the Message of the method
+     */
     void CommonMethodHandler(const ajn::InterfaceDescription::Member* member, ajn::Message& msg);
 
 public:
     /**
-        *    Parse the introspection XML string and create/activate/add interfaces included to this BusObject
-        * Meantime add method handler for all methods
-        * @param xml - the introspection XML string describing the interfaces and children interfaces
-        * @param propertyStore - fill in the propertyStore based on the about data in the XML
-        */
+     *    Parse the introspection XML string and create/activate/add interfaces included to this BusObject
+     * Meantime add method handler for all methods
+     * @param xml - the introspection XML string describing the interfaces and children interfaces
+     * @param propertyStore - fill in the propertyStore based on the about data in the XML
+     */
     QStatus ParseXml(const char* xml, ajn::BusAttachment* proxyBus);
 
     /**
-        * Prepare the agent AllJoyn executing environment, including BusAttachment, AboutService
-        * @param _bus - the BusAttachment that the Agent BusObject is registers on. if it's NULL, 
-        *                           then 
-        */
+     * Compare with specified introspection XML string, if equal, return true, otherwise false
+     * @param serviceIntrospectionXml - the service introspection XML string
+     * @param isTopLevel - if the AgentBusObject is the top-level parent BusObject or not
+     */
+    bool Compare(const qcc::String& serviceIntrospectionXml);
+
+    /**
+     * Compare with specified introspection Node XmlElemnt, if equal, return true, otherwise false
+     * @param nodeElement - the XmlElemnt node, some child node of service or other node
+     */
+    bool Compare(const qcc::XmlElement* nodeElement);
+
+    /**
+     * Prepare the agent AllJoyn executing environment, including BusAttachment, AboutService
+     * @param _bus - the BusAttachment that the Agent BusObject is registers on. if it's NULL, 
+     *                           then 
+     */
     QStatus PrepareAgent(AllJoynContext* _context, const qcc::String& serviceIntrospectionXml);
 
     /**
-        * Announce the BusObject and all its children
-        */
+     * Announce the BusObject and all its children
+     */
     QStatus Announce();
 
     /**
-        * Clean up the AllJoyn execution context
-        * @param topLevel - true indicates that this object is top level parent
-        */
+     * Clean up the AllJoyn execution context
+     * @param topLevel - true indicates that this object is top level parent
+     */
     QStatus Cleanup(bool topLevel = true);
 
+    /**
+     * Session Listeners' callbacks
+     */
     static void LocalSessionJoined(void* arg, ajn::SessionPort sessionPort, ajn::SessionId id, const char* joiner);
     static void LocalSessionLost(void* arg, ajn::SessionId sessionId, ajn::SessionListener::SessionLostReason reason);
 
@@ -110,21 +126,21 @@ protected:
 
 private:
     /**
-        * @internal
-        *    Parse the node in the introspection XML and create/activate/add interfaces included to this BusObject
-        * Meantime add method handler for all methods
-        * @param root - the node xml root element of the introspection XML string
-        * @param bus - the BusAttachment that the agent BusObject will be registered in
-        */
+     * @internal
+     *    Parse the node in the introspection XML and create/activate/add interfaces included to this BusObject
+     * Meantime add method handler for all methods
+     * @param root - the node xml root element of the introspection XML string
+     * @param bus - the BusAttachment that the agent BusObject will be registered in
+     */
     QStatus ParseNode(const qcc::XmlElement* root, ajn::BusAttachment* proxyBus);
 
     /**
-        * @internal
-        *    Parse a single interface in the introspection XML and create/activate/add interfaces included to this BusObject
-        * Meantime add method handler for all methods
-        * @param root - the interface root element of the introspection XML string
-        * @param bus - the BusAttachment that the agent BusObject will be registered in
-        */
+     * @internal
+     *    Parse a single interface in the introspection XML and create/activate/add interfaces included to this BusObject
+     * Meantime add method handler for all methods
+     * @param root - the interface root element of the introspection XML string
+     * @param bus - the BusAttachment that the agent BusObject will be registered in
+     */
     QStatus ParseInterface(const qcc::XmlElement* root, ajn::BusAttachment* proxyBus);
 
 protected:

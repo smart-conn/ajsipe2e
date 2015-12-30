@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2014-2015, Beijing HengShengDongYang Technology Ltd. All rights reserved.
+ * Copyright AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -135,7 +135,7 @@ public:
      * @param msgBuf - 
      * @param resMsgBuf - 
      */
-    IStatus SendCloudMessage(int msgType,
+    IStatus SendCloudMessage(int32_t msgType,
         const char* peer,
         const char* callId,
         const char* addr,
@@ -278,7 +278,7 @@ private:
      * This is the queue to pass the command to the registration thread abovementioned.
      * The integer passed in means the registration expiration seconds.
      */
-    SyncQueue<unsigned int> regCmdQueue;
+    SyncQueue<uint32_t> regCmdQueue;
 
     /**
      * TBD
@@ -297,7 +297,7 @@ private:
     std::condition_variable condUnregister;
 
     /* */
-    unsigned int regExpires; // in seconds
+    uint32_t regExpires; // in seconds
 
     /** 
      * After sending out the request message, the sender thread will wait for the response.

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2014-2015, Beijing HengShengDongYang Technology Ltd. All rights reserved.
+ * Copyright AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -19,14 +19,15 @@
 #include "CloudCommEngine/IMSTransport/IMSTransportConstants.h"
 #include "CloudCommEngine/IMSTransport/pidf.h"
 
-#include "Common/SimpleTimer.h"
 #include "Common/GuidUtil.h"
 #include "Common/sha256.h"
+#include "Common/CommonUtils.h"
 
 #include <qcc/XmlElement.h>
 #include <qcc/StringSource.h>
 #include <qcc/StringUtil.h>
 #include <alljoyn/Init.h>
+#include <alljoyn/MsgArg.h>
 
 #include <mutex>
 
@@ -45,6 +46,7 @@
 
 
 using namespace qcc;
+using namespace ajn;
 
 namespace sipe2e {
 namespace gateway {
@@ -464,23 +466,53 @@ IStatus IMSTransport::PublishService(const char* introspectionXml)
     }
     String appId, deviceId;
     bool appIdFound = false, deviceIdFound = false;
-    for (size_t aboutDataIndx = 0; aboutDataIndx < aboutDatas.size(); aboutDataIndx++) {
-        const XmlElement* aboutData = aboutDatas[aboutDataIndx];
-        if (aboutData) {
-            const String& key = aboutData->GetAttribute("key");
-            if (key == "AppId") {
-                appId = aboutData->GetAttribute("value");
-                appIdFound = true;
-            } else if (key == "DeviceId") {
-                deviceId = aboutData->GetAttribute("value");
-                deviceIdFound = true;
+    MsgArg aboutArg;
+    QStatus status = XmlToArg(aboutDatas[0], aboutArg);
+    if (ER_OK != status) {
+        return IC_INTROSPECTION_XML_PARSING;
+    }
+    size_t numAboutEntries = 0;
+    MsgArg* aboutEntries = NULL;
+    status = aboutArg.Get("a{sv}", &numAboutEntries, &aboutEntries);
+    if (ER_OK != status) {
+        return IC_INTROSPECTION_XML_PARSING;
+    }
+    for (size_t aboutDataIndx = 0; aboutDataIndx < numAboutEntries; aboutDataIndx++) {
+        const char* aboutEntryName = NULL;
+        MsgArg* aboutEntryArg = NULL;
+        if (ER_OK == aboutEntries[aboutDataIndx].Get("{sv}", &aboutEntryName, &aboutEntryArg)
+            && aboutEntryName && aboutEntryArg) {
+            if (!strcmp(aboutEntryName, "AppId")) {
+//               <dict_entry>
+//                 <string>AppId</string>
+//                 <variant type="ay">
+//                   <array type="byte">126 200 38 112 217 48 64 193 176 133 212 225 238 55 163 97</array>
+//                 </variant>
+//               </dict_entry>
+                size_t numBytes = 0;
+                uint8_t* appIdBytes = NULL;
+                if (ER_OK == aboutEntryArg->Get("ay", &numBytes, &appIdBytes) && numBytes > 0 && appIdBytes) {
+                    appId = BytesToHexString(appIdBytes, numBytes);
+                    appIdFound = true;
+                }
+            } else if (!strcmp(aboutEntryName, "DeviceId")) {
+//               <dict_entry>
+//                 <string>DeviceId</string>
+//                 <variant type="s">
+//                   <string>3662ec0e-7977-455e-90d2-58801ee979eb</string>
+//                 </variant>
+//               </dict_entry>
+                const char* deviceIdStr = NULL;
+                if (aboutEntryArg->typeId == ALLJOYN_STRING) {
+                    deviceId = aboutEntryArg->v_string.str;
+                    deviceIdFound = true;
+                }
             }
         }
         if (appIdFound && deviceIdFound) {
             break;
         }
     }
-
     
     String serviceId = appId + "@" + deviceId + "@";
     serviceId += sha256(introspectionXml).c_str();
@@ -696,7 +728,7 @@ IStatus IMSTransport::SendCloudMessage(int msgType,
             // after sending the request out, the sending thread will be blocked to wait for the response for some time
             if (msgType == gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL
                 || msgType == gwConsts::customheader::RPC_MSG_TYPE_PROPERTY_CALL) {
-                // only method call will be hold waiting for the answer
+                // only method call & property call will be hold waiting for the answer
                 std::shared_ptr<SyncContext> syncCtx(new SyncContext());
                 syncCtx->content = NULL;
                 {
@@ -765,7 +797,7 @@ IStatus IMSTransport::SendCloudMessage(int msgType,
 
 void IMSTransport::RegThreadFunc()
 {
-    unsigned int expires = gwConsts::REGISTRATION_DEFAULT_EXPIRES;
+    uint32_t expires = gwConsts::REGISTRATION_DEFAULT_EXPIRES;
     IMSTransport* ims = IMSTransport::GetInstance();
     while (ims->regCmdQueue.TryDequeue(expires)) {
         ims->regSession->setExpires(expires);

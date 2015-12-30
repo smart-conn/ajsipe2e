@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2014-2015, Beijing HengShengDongYang Technology Ltd. All rights reserved.
+ * Copyright AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -35,13 +35,6 @@
 
 #include "Common/GatewayStd.h"
 #include "CloudCommEngine/IMSTransport/IMSTransportConstants.h"
-
-struct axutil_env;
-typedef struct axutil_env axutil_env_t;
-struct axutil_thread_t;
-typedef struct axutil_thread_t axutil_thread_t;
-struct axiom_node;
-typedef struct axiom_node axiom_node_t;
 
 
 namespace ajn {
@@ -82,7 +75,7 @@ public:
     {
         qcc::String addr;
         qcc::String busName;
-        unsigned int sessionId;
+        ajn::SessionId sessionId;
     } SignalHandlerInfo;
 
         /**
@@ -182,26 +175,26 @@ private:
     QStatus UnsubscribeCloudServiceFromLocal(const qcc::String& serviceAddr, const qcc::String& serviceIntrospectionXml);
 
     QStatus LocalMethodCall(gwConsts::customheader::RPC_MSG_TYPE_ENUM callType, const qcc::String& addr, size_t inArgsNum, const ajn::MsgArg* inArgsArray, const qcc::String& cloudSessionId, 
-        size_t& outArgsNum, ajn::MsgArg*& outArgsArray, unsigned int& localSessionId);
+        size_t& outArgsNum, ajn::MsgArg*& outArgsArray, ajn::SessionId& localSessionId);
 
     QStatus LocalSignalCall(const qcc::String& peer, const qcc::String& senderAddr, const qcc::String& receiverAddr,
         size_t inArgsNum, ajn::MsgArg* inArgsArray, const qcc::String& cloudSessionId);
 
     QStatus UpdateSignalHandlerInfoToLocal(const qcc::String& localBusNameObjPath, const qcc::String& peerAddr, 
-        const qcc::String& peerBusName, unsigned int peerSessionId);
+        const qcc::String& peerBusName, ajn::SessionId peerSessionId);
 
-    QStatus CloudMethodCall(gwConsts::customheader::RPC_MSG_TYPE_ENUM callType, const qcc::String& peer, const qcc::String& addr, size_t inArgsNum, const ajn::MsgArg* inArgsArray, unsigned int localSessionId, 
+    QStatus CloudMethodCall(gwConsts::customheader::RPC_MSG_TYPE_ENUM callType, const qcc::String& peer, const qcc::String& addr, size_t inArgsNum, const ajn::MsgArg* inArgsArray, ajn::SessionId localSessionId, 
         CloudServiceAgentBusObject* agent, ajn::Message msg);
 
     QStatus CloudSignalCall(const qcc::String& peer, const qcc::String& senderAddr, const qcc::String& receiverAddr,
-        size_t inArgsNum, const ajn::MsgArg* inArgsArray, unsigned int localSessionId);
+        size_t inArgsNum, const ajn::MsgArg* inArgsArray, ajn::SessionId localSessionId);
 
     QStatus PublishLocalServiceToCloud(const qcc::String& serviceIntrospectionXml);
 
     QStatus DeleteLocalServiceFromCloud(const qcc::String& serviceIntrospectionXml);
 
     QStatus UpdateSignalHandlerInfoToCloud(const qcc::String& peerAddr, const qcc::String& peerBusNameObjPath, 
-        const qcc::String& localBusName, unsigned int localSessionId);
+        const qcc::String& localBusName, ajn::SessionId localSessionId);
 
 private:
     /**

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2014-2015, Beijing HengShengDongYang Technology Ltd. All rights reserved.
+ * Copyright AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -262,7 +262,7 @@ int IMSTransportSipCallback::OnMessagingEvent(const MessagingEvent* e)
                         }
 
 
-                        unsigned int contentLen = ((SipMessage*)msg)->getSipContentLength();
+                        uint32_t contentLen = ((SipMessage*)msg)->getSipContentLength();
 #ifndef NDEBUG
                         printf("Received a SIP MESSAGE:\nmsgType:%s\npeer:%s\ncontentLen:%i\n", msgType, peer, contentLen);
 #endif
@@ -398,7 +398,7 @@ int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
                             subState = "1";
                         }
 
-                        unsigned int contentLen = ((SipMessage*)msg)->getSipContentLength();
+                        uint32_t contentLen = ((SipMessage*)msg)->getSipContentLength();
                         char* serviceXml = new char[contentLen + 1 + gwConsts::MAX_SIP_ADDR_LEN + 1];
                         strcpy(serviceXml, peer);
                         strcat(serviceXml, "^");

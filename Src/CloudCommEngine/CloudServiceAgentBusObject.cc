@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2014-2015, Beijing HengShengDongYang Technology Ltd. All rights reserved.
+ * Copyright AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -271,15 +271,6 @@ QStatus CloudServiceAgentBusObject::ParseXml(const char* xml, BusAttachment* pro
                         }
                     } else if (elemName == "about") {
                         /* Fill in the about data */
-/*
-                        vector<XmlElement*>::const_iterator itAboutData = elem->GetChildren().begin();
-                        for (;itAboutData != elem->GetChildren().end(); itAboutData++) {
-                            const XmlElement* elemAboutData = *itAboutData;
-                            const String& aboutKey = elemAboutData->GetAttribute("key");
-                            const String& aboutValue = elemAboutData->GetAttribute("value");
-                            FillPropertyStore(&propertyStore, aboutKey, aboutValue);
-                        }
-*/
                         const std::vector<XmlElement*>& aboutDataEles = elem->GetChildren();
                         if (aboutDataEles.size() == 0) {
                             continue;
@@ -702,6 +693,66 @@ QStatus CloudServiceAgentBusObject::ParseInterface(const XmlElement* root, BusAt
     return status;
 }
 
+bool CloudServiceAgentBusObject::Compare(const qcc::String& serviceIntrospectionXml)
+{
+    QStatus status = ER_OK;
+    StringSource source(serviceIntrospectionXml);
+
+    XmlParseContext pc(source);
+    status = XmlElement::Parse(pc);
+    if (ER_OK == status) {
+        const XmlElement* root = pc.GetRoot();
+        if (root) {
+            // This is the root BusObject, we should only compare their About Data, and all its children
+            const XmlElement* aboutEle = root->GetChild(String("about"));
+            if (aboutEle) {
+                const std::vector<XmlElement*>& aboutDataEles = aboutEle->GetChildren();
+                if (aboutDataEles.size() == 0) {
+                    return false;
+                }
+                MsgArg aboutData;
+                status = XmlToArg(aboutDataEles[0], aboutData);
+                if (ER_OK != status) {
+                    QCC_LogError(status, ("Error while parsing the announced about data"));
+                    return false;
+                }
+                if (context.aboutData && aboutData == *context.aboutData) {
+                    std::vector<const XmlElement*> nodeChildren = root->GetChildren(String("node"));
+                    if (nodeChildren.size() != children.size()) {
+                        return false;
+                    }
+                    for (size_t nodeIndx = 0; nodeIndx < nodeChildren.size(); nodeIndx++) {
+                        if (!children[nodeIndx]->Compare(nodeChildren[nodeIndx])) {
+                            return false;
+                        }
+                    }
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    } else {
+        return false;
+    }
+    return true;
+}
+
+bool CloudServiceAgentBusObject::Compare(const qcc::XmlElement* nodeElement)
+{
+    if (!nodeElement) {
+        return false;
+    }
+
+    // first, the ObjPath must be the same
+    // TBD
+    // And secondly, all chilren interfaces must be the same
+
+    return true;
+}
 
 QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, const qcc::String& serviceIntrospectionXml)
 {

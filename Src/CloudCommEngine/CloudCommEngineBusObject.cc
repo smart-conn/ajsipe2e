@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2014-2015, Beijing HengShengDongYang Technology Ltd. All rights reserved.
+ * Copyright AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -24,8 +24,6 @@
 #include "Common/CommonUtils.h"
 
 #include <alljoyn/AllJoynStd.h>
-// #include <alljoyn/about/AboutService.h>
-// #include <alljoyn/about/AnnouncementRegistrar.h>
 
 #include "CloudCommEngine/CloudCommEngineBusObject.h"
 #include "Common/GatewayStd.h"
@@ -53,7 +51,7 @@ typedef struct _CloudMethodCallThreadArg
 {
     gwConsts::customheader::RPC_MSG_TYPE_ENUM callType;
     MsgArg* inArgs;
-    unsigned int inArgsNum;
+    uint32_t inArgsNum;
     String peer;
     String calledAddr;
     CloudServiceAgentBusObject* agent;
@@ -167,39 +165,6 @@ void CloudCommEngineBusObject::LocalServiceAnnounceHandler::AnnounceHandlerTask:
     /* Save the announcement data to XML */
     introspectionXml += "<about>\n";
     introspectionXml += ArgToXml(&announceData.aboutDataArg, 0);
-/*
-    for (services::AnnounceHandler::AboutData::const_iterator itAboutData = announceData.aboutData.begin();
-        itAboutData != announceData.aboutData.end(); ++itAboutData) {
-            introspectionXml += "<aboutData key=\"";
-            introspectionXml += itAboutData->first;
-            introspectionXml += "\" value=\"";
-            MsgArg aboutValue = itAboutData->second;
-            switch (aboutValue.typeId) {
-            case ALLJOYN_STRING:
-                {
-                    introspectionXml += aboutValue.v_string.str;
-                }
-                break;
-            case ALLJOYN_BYTE_ARRAY:
-                {
-                    uint8_t* buf = NULL;
-                    size_t numElem = 0;
-                    aboutValue.Get("ay", &numElem, &buf);
-                    if (buf && 0 < numElem) {
-                        for (size_t i = 0; i < numElem; i++) {
-                            char destBuf[8];
-                            sprintf(destBuf, "%X", buf[i]);
-                            introspectionXml += (const char*)destBuf;
-                        }
-                    }
-                }
-                break;
-            default:
-                break;
-            }
-            introspectionXml += "\"/>\n";
-    }
-*/
     introspectionXml += "</about>\n";
 
     // The objectDescsArg 's type signature is "a(oas)"
@@ -509,7 +474,7 @@ void CloudCommEngineBusObject::CloudMethodCallRunable::Run()
 
     String argsStr("<args>\n");
     if (arg->inArgs && arg->inArgsNum > 0) {
-        for (unsigned int i = 0; i < arg->inArgsNum; i++) {
+        for (uint32_t i = 0; i < arg->inArgsNum; i++) {
             argsStr += ArgToXml(&arg->inArgs[i], 0);
         }
     }
@@ -611,7 +576,7 @@ void CloudCommEngineBusObject::LocalMethodCallRunable::Run(void)
 
     size_t outArgsNum = 0;
     ajn::MsgArg* outArgsArray = NULL;
-    unsigned int localSessionId = 0;
+    SessionId localSessionId = 0;
 
     status = arg->owner->LocalMethodCall(arg->msgType, arg->addr, arg->inArgsNum, arg->inArgs, arg->cloudSessionId, outArgsNum, outArgsArray, localSessionId);
 
@@ -659,7 +624,11 @@ ThreadReturn CloudCommEngineBusObject::MessageReceiverThreadFunc(void* arg)
     while (0 == ITReadCloudMessage(&msgBuf)) {
         if (msgBuf) {
             QStatus status = ER_OK;
-            // There are maybe two types of incoming MESSAGE, one of which is Method Calls and the other is Signal
+            // There are maybe some types of incoming MESSAGE:
+            //    Method Calls: common method calls
+            //    Property Calls: Property Get/GetAll/Set calls
+            //    Signal Calls: emit signals to remote signal handlers
+            //    Update Signal Handler Info: send the information of peers that registered signal handlers for signals for interfaces of remote peers
             // Here we'll have to deal with these two situations
             char* msgType = msgBuf;
             char* tmp = strchr(msgType, '^');
@@ -687,7 +656,7 @@ ThreadReturn CloudCommEngineBusObject::MessageReceiverThreadFunc(void* arg)
 #endif
 
             if (msgTypeN < gwConsts::customheader::RPC_MSG_TYPE_UPDATE_SIGNAL_HANDLER) {
-                // If the request is METHOD CALL or SIGNAL CALL
+                // If the request is METHOD CALL, or PROPERTY CALL, or SIGNAL CALL
                 char* callId = tmp + 1;
                 tmp = strchr(callId, '^');
                 if (!tmp) {
@@ -785,10 +754,6 @@ ThreadReturn CloudCommEngineBusObject::MessageReceiverThreadFunc(void* arg)
                             ITReleaseBuf(msgBuf);
                             continue;
                         }
-/*
-                        String senderAddr(peer);
-                        senderAddr += "/";
-*/
                         String senderAddr = senderReceiverAddr.substr(0, dot);
                         String receiverAddr = senderReceiverAddr.substr(dot + 1, senderReceiverAddr.size() - dot - 1);
 
@@ -951,7 +916,7 @@ ThreadReturn CloudCommEngineBusObject::NotificationReceiverThreadFunc(void* arg)
                     ims::status& _status = _tuple.GetStatus();
 
                     // TBD: in case of duplicate subscriptions, here introspection XML should be stored for later
-                    // comparison, if it's exactly the same as some previous subscription, should just ingnore it
+                    // comparison, if it's exactly the same as some previous subscription, should just ignore it
                     if (nSubState && _status.GetBasicStatus() == ims::basic::open) {
                         // if the status is open, then subscribe it
                         status = cceBusObject->SubscribeCloudServiceToLocal(peer, serviceIntrospectionXml);
@@ -1011,6 +976,11 @@ QStatus CloudCommEngineBusObject::SubscribeCloudServiceToLocal(const qcc::String
         /* if the cloud service has been subscribed to local, then deleted the service mapping */
         CloudServiceAgentBusObject* oldCloudBusObject = cloudBusObjectIt->second;
         if (oldCloudBusObject) {
+            if (oldCloudBusObject->Compare(serviceIntrospectionXml)) {
+                // if the service is exactly the same as the previously registered AgentBusObject, just ignore it and return success
+                return status;
+            }
+            // Otherwise, we should delete the old AgentBusObject and recreate it according to the latest service introspection Xml
             oldCloudBusObject->Cleanup(true);
             delete oldCloudBusObject;
         }
@@ -1100,7 +1070,7 @@ QStatus CloudCommEngineBusObject::UnsubscribeCloudServiceFromLocal(const qcc::St
 }
 
 QStatus CloudCommEngineBusObject::LocalMethodCall(gwConsts::customheader::RPC_MSG_TYPE_ENUM callType, const qcc::String& addr, size_t inArgsNum, const ajn::MsgArg* inArgsArray,
-                                                  const qcc::String& cloudSessionId, size_t& outArgsNum, ajn::MsgArg*& outArgsArray, unsigned int& localSessionId)
+                                                  const qcc::String& cloudSessionId, size_t& outArgsNum, ajn::MsgArg*& outArgsArray, SessionId& localSessionId)
 {
     QStatus status = ER_OK;
 
@@ -1154,11 +1124,6 @@ QStatus CloudCommEngineBusObject::LocalMethodCall(gwConsts::customheader::RPC_MS
         }
     }
 
-/*
-#ifndef NDEBUG
-    QCC_LogError(ER_OK, ("Trying to make loca method call:\ncallType:%i\ncalledAddr:%s\n", callType, addr.c_str()));
-#endif
-*/
 
     switch (callType) {
     case gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL:
@@ -1242,8 +1207,8 @@ QStatus CloudCommEngineBusObject::LocalSignalCall(const qcc::String& peer, const
         QCC_LogError(status, ("The format of sender address is not correct"));
         return status;
     }
-    String rootAgentBusObjectPath = peer + "/" + senderAddr.substr(0, firstSlash);
-    std::map<qcc::String, CloudServiceAgentBusObject*>::iterator itCBO = cloudBusObjects.find(rootAgentBusObjectPath);
+    String rootAgentBusObjectIndx = peer + "/" + senderAddr.substr(0, firstSlash);
+    std::map<qcc::String, CloudServiceAgentBusObject*>::iterator itCBO = cloudBusObjects.find(rootAgentBusObjectIndx);
     if (itCBO == cloudBusObjects.end() || !itCBO->second) {
         status = ER_FAIL;
         QCC_LogError(status, ("The format of sender address is not correct"));
@@ -1295,7 +1260,7 @@ QStatus CloudCommEngineBusObject::LocalSignalCall(const qcc::String& peer, const
     return status;
 }
 
-QStatus CloudCommEngineBusObject::UpdateSignalHandlerInfoToLocal(const qcc::String& localBusNameObjPath, const qcc::String& peerAddr, const qcc::String& peerBusName, unsigned int peerSessionId)
+QStatus CloudCommEngineBusObject::UpdateSignalHandlerInfoToLocal(const qcc::String& localBusNameObjPath, const qcc::String& peerAddr, const qcc::String& peerBusName, SessionId peerSessionId)
 {
     QStatus status = ER_OK;
 
@@ -1347,7 +1312,7 @@ QStatus CloudCommEngineBusObject::UpdateSignalHandlerInfoToLocal(const qcc::Stri
    return status;
 }
 
-QStatus CloudCommEngineBusObject::CloudMethodCall(gwConsts::customheader::RPC_MSG_TYPE_ENUM callType, const qcc::String& peer, const qcc::String& addr, size_t inArgsNum, const ajn::MsgArg* inArgsArray, unsigned int localSessionId, 
+QStatus CloudCommEngineBusObject::CloudMethodCall(gwConsts::customheader::RPC_MSG_TYPE_ENUM callType, const qcc::String& peer, const qcc::String& addr, size_t inArgsNum, const ajn::MsgArg* inArgsArray, SessionId localSessionId, 
                                                   CloudServiceAgentBusObject* agent, ajn::Message msg)
 {
     QStatus status = ER_OK;
@@ -1458,7 +1423,7 @@ QStatus CloudCommEngineBusObject::CloudMethodCall(gwConsts::customheader::RPC_MS
 }
 
 QStatus CloudCommEngineBusObject::CloudSignalCall(const qcc::String& peer, const qcc::String& senderAddr, const qcc::String& receiverAddr,
-                                                  size_t inArgsNum, const ajn::MsgArg* inArgsArray, unsigned int localSessionId)
+                                                  size_t inArgsNum, const ajn::MsgArg* inArgsArray, SessionId localSessionId)
 {
     QStatus status = ER_OK;
 
@@ -1518,7 +1483,7 @@ QStatus CloudCommEngineBusObject::DeleteLocalServiceFromCloud(const qcc::String&
 }
 
 QStatus CloudCommEngineBusObject::UpdateSignalHandlerInfoToCloud(const qcc::String& peerAddr, const qcc::String& peerBusNameObjPath, 
-                                                                 const qcc::String& localBusName, unsigned int localSessionId)
+                                                                 const qcc::String& localBusName, SessionId localSessionId)
 {
     QStatus status = ER_OK;
 

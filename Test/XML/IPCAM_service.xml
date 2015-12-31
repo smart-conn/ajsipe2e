@@ -1,0 +1,95 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<presence entity="pres:renwei@nane.cn">
+  <tuple id="7EC82670D93040C1B085D4E1EE37A361@3662ec0e-7977-455e-90d2-58801ee979eb@42738462929d50732e4600377a8fa0fc1d90097f779f7ab32960b35216a87277">
+    <status>
+      <basic>open</basic>
+    </status>
+    <service name=":89UPffp5.2" xmlns="http://nane.cn/sipe2e">
+      <about>
+        <array type="{sv}">
+          <dict_entry>
+            <string>AppId</string>
+            <variant type="ay">
+              <array type="byte">126 200 38 112 217 48 64 193 176 133 212 225 238 55 163 97</array>
+            </variant>
+          </dict_entry>
+          <dict_entry>
+            <string>AppName</string>
+            <variant type="s">
+              <string>IP Camera Control</string>
+            </variant>
+          </dict_entry>
+          <dict_entry>
+            <string>DefaultLanguage</string>
+            <variant type="s">
+              <string>en</string>
+            </variant>
+          </dict_entry>
+          <dict_entry>
+            <string>DeviceId</string>
+            <variant type="s">
+              <string>3662ec0e-7977-455e-90d2-58801ee979eb</string>
+            </variant>
+          </dict_entry>
+          <dict_entry>
+            <string>DeviceName</string>
+            <variant type="s">
+              <string>IP_Cam</string>
+            </variant>
+          </dict_entry>
+          <dict_entry>
+            <string>Manufacturer</string>
+            <variant type="s">
+              <string>Company</string>
+            </variant>
+          </dict_entry>
+          <dict_entry>
+            <string>ModelNumber</string>
+            <variant type="s">
+              <string>Wxfy388i</string>
+            </variant>
+          </dict_entry>
+        </array>
+      </about>
+      <node name="/ControlPanel/IpCam/HTTPControl">
+        <interface name="org.alljoyn.ControlPanel.HTTPControl">
+          <method name="GetRootURL">
+            <arg direction="out" name="Url" type="s"/>
+          </method>
+          <property access="read" name="Version" type="q"/>
+        </interface>
+      </node>
+      <node name="/ControlPanel/IpCam/rootContainer" port="1000">
+        <interface name="org.alljoyn.ControlPanel.ControlPanel">
+          <property access="read" name="Version" type="q"/>
+        </interface>
+        <node name="en">
+          <interface name="org.alljoyn.ControlPanel.Container">
+            <signal name="MetadataChanged"/>
+            <property access="read" name="OptParams" type="a{qv}"/>
+            <property access="read" name="States" type="u"/>
+            <property access="read" name="Version" type="q"/>
+          </interface>
+          <node name="ipCamStartAction">
+            <interface name="org.alljoyn.ControlPanel.Action">
+              <method name="Exec"/>
+              <signal name="MetadataChanged"/>
+              <property access="read" name="OptParams" type="a{qv}"/>
+              <property access="read" name="States" type="u"/>
+              <property access="read" name="Version" type="q"/>
+            </interface>
+          </node>
+          <node name="ipCamFlipAction">
+            <interface name="org.alljoyn.ControlPanel.Action">
+              <method name="Exec"/>
+              <signal name="MetadataChanged"/>
+              <property access="read" name="OptParams" type="a{qv}"/>
+              <property access="read" name="States" type="u"/>
+              <property access="read" name="Version" type="q"/>
+            </interface>
+          </node>
+        </node>
+      </node>
+    </service>
+  </tuple>
+</presence>

@@ -5,9 +5,17 @@
       <Configuration>Debug_1504</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug_1504|x64">
+      <Configuration>Debug_1504</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Release_1504|Win32">
       <Configuration>Release_1504</Configuration>
       <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release_1504|x64">
+      <Configuration>Release_1504</Configuration>
+      <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -22,7 +30,20 @@
     <PlatformToolset>v110</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_1504|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_1504|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_1504|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v110</PlatformToolset>
@@ -35,14 +56,26 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug_1504|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug_1504|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release_1504|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_1504|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_1504|Win32'">
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_1504|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_1504|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_1504|x64'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_1504|Win32'">
@@ -52,13 +85,30 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;QCC_OS_GROUP_WINDOWS;_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;SIPE2E_GATEWAY_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SDK_1504_HOME_DEBUG)\inc;$(ALLJOYN_SDK_1504_HOME_DEBUG)\inc\alljoyn;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\sample_apps\cpp\samples_common;$(DOUBANGO_HOME)\bindings\_common;$(DOUBANGO_HOME)\thirdparties\win32\include;$(DOUBANGO_HOME)\tinySIP\include;$(DOUBANGO_HOME)\tinyMEDIA\include;$(DOUBANGO_HOME)\tinySDP\include;$(DOUBANGO_HOME)\tinyDAV\include;$(DOUBANGO_HOME)\tinySAK\src;$(DOUBANGO_HOME)\tinyNET\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\sample_apps\cpp\samples_common;$(ALLJOYN_SRC_1504_HOME_CPP_DBG_INC_X86);$(ALLJOYN_SRC_1504_HOME_CPP_DBG_INC_X86)\alljoyn;$(DOUBANGO_HOME)\bindings\_common;$(DOUBANGO_HOME)\thirdparties\win32\include;$(DOUBANGO_HOME)\tinySIP\include;$(DOUBANGO_HOME)\tinyMEDIA\include;$(DOUBANGO_HOME)\tinySDP\include;$(DOUBANGO_HOME)\tinyDAV\include;$(DOUBANGO_HOME)\tinySAK\src;$(DOUBANGO_HOME)\tinyNET\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(DOUBANGO_HOME)\bindings\vs_2005\csharp\Debug;$(ALLJOYN_SDK_1504_HOME_DEBUG)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(DOUBANGO_HOME)\bindings\vs_2005\csharp\Debug;$(ALLJOYN_SRC_1504_HOME_CPP_DBG_LIB_X86);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>alljoyn.lib;tinyWRAP.lib;ws2_32.lib;Secur32.lib;crypt32.lib;Bcrypt.lib;Ncrypt.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_1504|x64'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;QCC_OS_GROUP_WINDOWS;_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;SIPE2E_GATEWAY_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\build\win7\x86_64\debug\dist\cpp\inc\alljoyn;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\build\win7\x86_64\debug\dist\cpp\inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\sample_apps\cpp\samples_common;$(DOUBANGO_HOME)\bindings\_common;$(DOUBANGO_HOME)\thirdparties\win32\include;$(DOUBANGO_HOME)\tinySIP\include;$(DOUBANGO_HOME)\tinyMEDIA\include;$(DOUBANGO_HOME)\tinySDP\include;$(DOUBANGO_HOME)\tinyDAV\include;$(DOUBANGO_HOME)\tinySAK\src;$(DOUBANGO_HOME)\tinyNET\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CallingConvention>Cdecl</CallingConvention>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(DOUBANGO_HOME)\bindings\vs_2005\csharp\Debug;$(ALLJOYN_SRC_1504_HOME_CPP_DBG_LIB);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>alljoyn.lib;tinyWRAP.lib;ws2_32.lib;Secur32.lib;crypt32.lib;Bcrypt.lib;Ncrypt.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -82,13 +132,33 @@
       <AdditionalDependencies>tinyWRAP.lib;alljoyn.lib;ws2_32.lib;Secur32.lib;crypt32.lib;Bcrypt.lib;Ncrypt.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_1504|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;QCC_OS_GROUP_WINDOWS;WIN32_LEAN_AND_MEAN;SIPE2E_GATEWAY_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SDK_1504_HOME_RELEASE)\inc;$(ALLJOYN_SDK_1504_HOME_RELEASE)\inc\alljoyn;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\sample_apps\cpp\samples_common;$(DOUBANGO_HOME)\bindings\_common;$(DOUBANGO_HOME)\thirdparties\win32\include;$(DOUBANGO_HOME)\tinySIP\include;$(DOUBANGO_HOME)\tinyMEDIA\include;$(DOUBANGO_HOME)\tinySDP\include;$(DOUBANGO_HOME)\tinyDAV\include;$(DOUBANGO_HOME)\tinySAK\src;$(DOUBANGO_HOME)\tinyNET\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(DOUBANGO_HOME)\bindings\vs_2005\csharp\Release;$(ALLJOYN_SDK_1504_HOME_RELEASE)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>tinyWRAP.lib;alljoyn.lib;ws2_32.lib;Secur32.lib;crypt32.lib;Bcrypt.lib;Ncrypt.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\..\..\AllSeen Alliance\v15.04\source\services\base\sample_apps\cpp\samples_common\AJInitializer.cc" />
     <ClCompile Include="..\..\..\..\Src\CloudCommEngine\IMSTransport\IMSTransport.cc" />
     <ClCompile Include="..\..\..\..\Src\CloudCommEngine\IMSTransport\IMSTransportExport.cc" />
     <ClCompile Include="..\..\..\..\Src\CloudCommEngine\IMSTransport\IMSTransportSipCallback.cc" />
     <ClCompile Include="..\..\..\..\Src\CloudCommEngine\IMSTransport\pidf.cc" />
     <ClCompile Include="..\..\..\..\Src\Common\CommonUtils.cc" />
+    <ClCompile Include="..\..\..\..\Src\Common\AJInitializer.cc" />
     <ClCompile Include="..\..\..\..\Src\Common\GuidUtil.cc" />
     <ClCompile Include="..\..\..\..\Src\Common\sha256.cc" />
   </ItemGroup>

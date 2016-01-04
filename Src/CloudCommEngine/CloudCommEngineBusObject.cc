@@ -597,6 +597,17 @@ void CloudCommEngineBusObject::LocalMethodCallRunable::Run(void)
         if (0 != itStatus) {
             QCC_LogError(ER_FAIL, ("Failed to send message to cloud"));
         }
+
+        switch (arg->msgType) {
+        case gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL:
+            delete[] outArgsArray;
+            break;
+        case gwConsts::customheader::RPC_MSG_TYPE_PROPERTY_CALL:
+            delete outArgsArray;
+            break;
+        default:
+            break;
+        }
     } else {
         // The reply message is not correct
         // Reply with empty message
@@ -1135,6 +1146,9 @@ QStatus CloudCommEngineBusObject::LocalMethodCall(gwConsts::customheader::RPC_MS
                     inArgs[i] = inArgsArray[i];
                 }
             }
+#ifndef NDEBUG
+            QCC_LogError(ER_OK, ("Incoming method call"));
+#endif
 
             // cloudSessionId: not used yet
 
@@ -1154,13 +1168,18 @@ QStatus CloudCommEngineBusObject::LocalMethodCall(gwConsts::customheader::RPC_MS
 
             const MsgArg* outArgsArrayTmp = NULL;
             replyMsg->GetArgs(outArgsNum, outArgsArrayTmp);
-            if (outArgsArrayTmp) {
+            if (outArgsNum > 0 && outArgsArrayTmp) {
+                outArgsArray = new MsgArg[outArgsNum];
                 for (size_t i = 0; i < outArgsNum; i++) {
                     outArgsArray[i] = outArgsArrayTmp[i];
                 }
             }
 
             localSessionId = replyMsg->GetSessionId();
+#ifndef NDEBUG
+            QCC_LogError(ER_OK, ("Incoming method call success with %i return args", outArgsNum));
+#endif
+
         }
         break;
     case gwConsts::customheader::RPC_MSG_TYPE_PROPERTY_CALL:
@@ -1333,7 +1352,7 @@ QStatus CloudCommEngineBusObject::CloudMethodCall(gwConsts::customheader::RPC_MS
         if (resBuf) {
             ITReleaseBuf(resBuf);
         }
-        QCC_LogError(ER_FAIL, ("Failed to send message to cloud: \nstatus:%i\ncallType:%i\npeer:%s\ncalledAddr:%s\nargsStr:%s\n", itStatus, callType, peer.c_str(), addr.c_str(), argsStr.c_str()));
+//         QCC_LogError(ER_FAIL, ("Failed to send message to cloud: \nstatus:%i\ncallType:%i\npeer:%s\ncalledAddr:%s\nargsStr:%s\n", itStatus, callType, peer.c_str(), addr.c_str(), argsStr.c_str()));
         status = agent->MethodReply(msg, (QStatus)itStatus);
         if (ER_OK != status) {
             QCC_LogError(status, ("Method Reply did not complete successfully"));

@@ -1185,14 +1185,12 @@ QStatus CloudCommEngineBusObject::LocalMethodCall(gwConsts::customheader::RPC_MS
     case gwConsts::customheader::RPC_MSG_TYPE_PROPERTY_CALL:
         {
             if (methodName == "Get") {
-                outArgsArray = new MsgArg(ALLJOYN_VARIANT); // memory leaks, TBD
-                outArgsArray->v_variant.val = new MsgArg();
-                status = proxyWrapper->proxy->GetProperty(intfName.c_str(), inArgsArray[1].v_string.str, *(outArgsArray->v_variant.val));
+                outArgsArray = new MsgArg();
+                status = proxyWrapper->proxy->GetProperty(intfName.c_str(), inArgsArray[1].v_string.str, *outArgsArray);
                 outArgsNum = 1;
             } else if (methodName == "GetAll") {
-                outArgsArray = new MsgArg(ALLJOYN_VARIANT); // memory leaks, TBD
-                outArgsArray->v_variant.val = new MsgArg();
-                status = proxyWrapper->proxy->GetAllProperties(intfName.c_str(), *(outArgsArray->v_variant.val));
+                outArgsArray = new MsgArg();
+                status = proxyWrapper->proxy->GetAllProperties(intfName.c_str(), *outArgsArray);
                 outArgsNum = 1;
             } else if (methodName == "Set") {
                 status = proxyWrapper->proxy->SetProperty(intfName.c_str(), inArgsArray[1].v_string.str, *(inArgsArray[2].v_variant.val));
@@ -1352,7 +1350,7 @@ QStatus CloudCommEngineBusObject::CloudMethodCall(gwConsts::customheader::RPC_MS
         if (resBuf) {
             ITReleaseBuf(resBuf);
         }
-//         QCC_LogError(ER_FAIL, ("Failed to send message to cloud: \nstatus:%i\ncallType:%i\npeer:%s\ncalledAddr:%s\nargsStr:%s\n", itStatus, callType, peer.c_str(), addr.c_str(), argsStr.c_str()));
+        QCC_LogError(ER_FAIL, ("Failed to send message to cloud: \nstatus:%i\ncallType:%i\npeer:%s\ncalledAddr:%s\nargsStr:%s\n", itStatus, callType, peer.c_str(), addr.c_str(), argsStr.c_str()));
         status = agent->MethodReply(msg, (QStatus)itStatus);
         if (ER_OK != status) {
             QCC_LogError(status, ("Method Reply did not complete successfully"));
@@ -1396,19 +1394,22 @@ QStatus CloudCommEngineBusObject::CloudMethodCall(gwConsts::customheader::RPC_MS
             ITReleaseBuf(resBuf);
             return ER_FAIL;
         }
-        const std::vector<XmlElement*>& argsEles = argsRootEles[0]->GetChildren();
-        size_t argsNum = argsEles.size();
+
+        size_t argsNum = argsRootEles.size();
         MsgArg* argsArray = NULL;
         if (argsNum > 0) {
             argsArray = new MsgArg[argsNum];
             for (size_t argIndx = 0; argIndx < argsNum; argIndx++) {
-                XmlToArg(argsEles[argIndx], argsArray[argIndx]);
+                XmlToArg(argsRootEles[argIndx], argsArray[argIndx]);
             }
         }
 
         status = agent->MethodReply(msg, argsArray, argsNum); // what if the argsNum==0? TBD
         if (ER_OK != status) {
             QCC_LogError(status, ("Method Reply did not complete successfully"));
+        }
+        if (argsArray) {
+            delete[] argsArray;
         }
         ITReleaseBuf(resBuf);
     } else {

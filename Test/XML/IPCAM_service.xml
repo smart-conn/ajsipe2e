@@ -1,10 +1,10 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <presence entity="pres:renwei@nane.cn">
-  <tuple id="7EC82670D93040C1B085D4E1EE37A361@3662ec0e-7977-455e-90d2-58801ee979eb@42738462929d50732e4600377a8fa0fc1d90097f779f7ab32960b35216a87277">
+  <tuple id="7EC82670D93040C1B085D4E1EE37A361@3662ec0e-7977-455e-90d2-58801ee979eb@d49df22131004df62558c06923d63265bc66d378e73c1820fa18d3e7f3899be6">
     <status>
       <basic>open</basic>
     </status>
-    <service name=":89UPffp5.2" xmlns="http://nane.cn/sipe2e">
+    <service name=":tCLtc4GP.2" xmlns="http://nane.cn/sipe2e">
       <about>
         <array type="{sv}">
           <dict_entry>

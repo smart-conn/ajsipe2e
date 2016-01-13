@@ -803,6 +803,8 @@ QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, const
         if (status != ER_OK && status != ER_ALLJOYN_BINDSESSIONPORT_REPLY_ALREADY_EXISTS) {
             Cleanup(_context ? false : true);
             return status;
+        } else if (status == ER_ALLJOYN_BINDSESSIONPORT_REPLY_ALREADY_EXISTS) {
+            status = ER_OK;
         }
     }
 
@@ -819,11 +821,13 @@ QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, const
 //     context.about->AddObjectDescription(this->GetPath(), interfaces);
 
     /* Register itself on the bus */
+/*
     status = context.bus->RegisterBusObject(*this, false); // security will be considered in the future
     if (status != ER_OK) {
         Cleanup(_context ? false : true);
         return status;
     }
+*/
 
     /* Prepare the context for all children objects */
 /*
@@ -838,6 +842,24 @@ QStatus CloudServiceAgentBusObject::PrepareAgent(AllJoynContext* _context, const
     }
 */
 
+    return status;
+}
+
+QStatus CloudServiceAgentBusObject::RegisterAgent()
+{
+    QStatus status = ER_OK;
+
+    printf("registering agent: %s\n", GetPath());
+    status = context.bus->RegisterBusObject(*this, false);
+    if (ER_OK != status) {
+        return status;
+    }
+    for (size_t i = 0; i < children.size(); i++) {
+        status = children[i]->RegisterAgent();
+        if (ER_OK != status) {
+            return status;
+        }
+    }
     return status;
 }
 

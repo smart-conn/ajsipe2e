@@ -93,6 +93,8 @@ public:
      */
     QStatus PrepareAgent(AllJoynContext* _context, const qcc::String& serviceIntrospectionXml);
 
+    QStatus RegisterAgent();
+
     /**
      * Announce the BusObject and all its children
      */

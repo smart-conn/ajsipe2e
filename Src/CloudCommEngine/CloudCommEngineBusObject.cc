@@ -1010,6 +1010,14 @@ QStatus CloudCommEngineBusObject::SubscribeCloudServiceToLocal(const qcc::String
         agentBusObject = NULL;
         return status;
     }
+    status = agentBusObject->RegisterAgent();
+    if (ER_OK != status) {
+        QCC_LogError(status, ("Error while registering CloudServiceAgentBusObject"));
+        agentBusObject->Cleanup(true);
+        delete agentBusObject;
+        agentBusObject = NULL;
+        return status;
+    }
     status = agentBusObject->Announce();
     if (ER_OK != status) {
         QCC_LogError(status, ("Error while announcing the Agent BusObjects"));

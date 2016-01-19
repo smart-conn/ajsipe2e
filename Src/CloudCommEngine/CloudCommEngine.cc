@@ -223,9 +223,9 @@ int CDECL_CALL main(int argc, char** argv, char** envArg)
 
 start:
     // Initialize the IMSTransport
-    if (0 != ITInitialize())
+    while (0 != ITInitialize())
     {
-        return ER_FAIL;
+        qcc::Sleep(200);
     }
 
     while (gwConsts::IMS_TRANSPORT_STATUS_REGISTERED != ITGetStatus()) {

@@ -1035,27 +1035,14 @@ QStatus CloudCommEngineBusObject::UnsubscribeCloudServiceFromLocal(const qcc::St
 {
     QStatus status = ER_OK;
 
-    qcc::String normalizedServiceAddr;
-    IllegalStringToObjPathString(serviceAddr, normalizedServiceAddr);
-
-    String agentObjPath;
-    if (normalizedServiceAddr[0] != '/') {
-        agentObjPath = "/" + normalizedServiceAddr;
-    } else {
-        agentObjPath = normalizedServiceAddr;
-    }
     if (serviceIntrospectionXml.size() > 0) {
-        String serviceRootPath = GetServiceRootPath(serviceIntrospectionXml);
-        if (!serviceRootPath.empty()) {
-            if (serviceRootPath[0] != '/') {
-                agentObjPath += "/" + serviceRootPath;
-            } else {
-                agentObjPath += serviceRootPath;
-            }
-        }
+		// ServiceIndex will be like: thierry_luo@nane.cn/BusName
+		String serviceIndex = serviceAddr + "/";
+        String serviceBusName = GetServiceRootPath(serviceIntrospectionXml);
+		serviceIndex += serviceBusName;
 
-        /* Check if the cloud service has been subscribed to local already */
-        map<String, CloudServiceAgentBusObject*>::iterator cloudBusObjectIt = cloudBusObjects.find(agentObjPath);
+		/* Check if the cloud service has been subscribed to local already */
+        map<String, CloudServiceAgentBusObject*>::iterator cloudBusObjectIt = cloudBusObjects.find(serviceIndex);
         if (cloudBusObjectIt != cloudBusObjects.end()) {
             /* if the cloud service has been subscribed to local, then deleted the service mapping */
             CloudServiceAgentBusObject* oldCloudBusObject = cloudBusObjectIt->second;
@@ -1070,7 +1057,7 @@ QStatus CloudCommEngineBusObject::UnsubscribeCloudServiceFromLocal(const qcc::St
         vector<map<String, CloudServiceAgentBusObject*>::iterator> vecDelete;
         map<String, CloudServiceAgentBusObject*>::iterator cloudBusObjectIt = cloudBusObjects.begin();
         while (cloudBusObjectIt != cloudBusObjects.end()) {
-            if (!cloudBusObjectIt->first.compare(0, normalizedServiceAddr.size(), normalizedServiceAddr)) {
+            if (!cloudBusObjectIt->first.compare(0, serviceAddr.size(), serviceAddr)) {
                 CloudServiceAgentBusObject* oldCloudBusObject = cloudBusObjectIt->second;
                 if (oldCloudBusObject) {
                     oldCloudBusObject->Cleanup(true);

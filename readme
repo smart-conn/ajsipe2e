@@ -1,5 +1,8 @@
 gateway_sw contains two VS sub projects:
-
 1. CloudCommEngine
-
 2. IMSTransport
+
+TODOs
+1. Currently the IMSTransport depends on Doubango and this dependency will be removed before the release.
+2. Will use scons to add the build option on other platforms like Linux.
+3. Will modify the connector to be compatible with the gateway agent framework.

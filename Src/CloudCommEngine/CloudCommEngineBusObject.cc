@@ -276,6 +276,7 @@ QStatus CloudCommEngineBusObject::Init(BusAttachment& cloudCommBus/*, ajn::About
         Cleanup();
     }
 
+// 	proxyContext.bus = &cloudCommBus;
     proxyContext.bus = new BusAttachment((this->GetName() + "ForProxy").c_str(), true);
     if (!proxyContext.bus) {
         Cleanup();
@@ -380,6 +381,10 @@ QStatus CloudCommEngineBusObject::Cleanup()
     if (proxyContext.bus && proxyContext.busListener) {
         proxyContext.bus->UnregisterBusListener(*proxyContext.busListener);
         proxyContext.bus->UnbindSessionPort(proxyContext.busListener->getSessionPort());
+		delete proxyContext.busListener;
+		proxyContext.busListener = NULL;
+		delete proxyContext.bus;
+		proxyContext.bus = NULL;
     }
 
     signalHandlersInfo.clear();
@@ -663,7 +668,7 @@ ThreadReturn CloudCommEngineBusObject::MessageReceiverThreadFunc(void* arg)
             *tmp = '\0';
 
 #ifndef NDEBUG
-            QCC_LogError(ER_OK, ("Received a message with type %s from %s\n", msgType, peer));
+            QCC_DbgHLPrintf(("Received a message with type %s from %s\n", msgType, peer));
 #endif
 
             if (msgTypeN < gwConsts::customheader::RPC_MSG_TYPE_UPDATE_SIGNAL_HANDLER) {
@@ -1141,9 +1146,6 @@ QStatus CloudCommEngineBusObject::LocalMethodCall(gwConsts::customheader::RPC_MS
                     inArgs[i] = inArgsArray[i];
                 }
             }
-#ifndef NDEBUG
-            QCC_LogError(ER_OK, ("Incoming method call"));
-#endif
 
             // cloudSessionId: not used yet
 
@@ -1172,7 +1174,7 @@ QStatus CloudCommEngineBusObject::LocalMethodCall(gwConsts::customheader::RPC_MS
 
             localSessionId = replyMsg->GetSessionId();
 #ifndef NDEBUG
-            QCC_LogError(ER_OK, ("Incoming method call success with %i return args", outArgsNum));
+            QCC_DbgHLPrintf(("Incoming method call success with %i return args", outArgsNum));
 #endif
 
         }

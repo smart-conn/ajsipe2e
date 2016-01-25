@@ -99,6 +99,9 @@ String ProximalProxyBusObjectWrapper::GenerateProxyIntrospectionXml(ajn::Session
         QCC_LogError(ER_OK, ("Top-level ProxyBusObject is not NULL"));
         return ER_OK;
     }
+#ifndef NDEBUG
+	QCC_DbgHLPrintf(("Entering ProximalProxyBusObjectWrapper::GenerateProxyIntrospectionXml(%i, %i)", wellKnownPort, topLevel));
+#endif
 
     String introXml("");
     const String close = "\">\n";
@@ -134,6 +137,10 @@ String ProximalProxyBusObjectWrapper::GenerateProxyIntrospectionXml(ajn::Session
                 //    4. org::allseen::Introspectable::InterfaceName
                 // because these interfaces will by default be implemented by every BusObject
                 const char* intfName = intf->GetName();
+
+#ifndef NDEBUG
+				QCC_DbgHLPrintf(("Iterate over the Interface '%s'", intfName));
+#endif
                 if (intf && intfName 
                     && strcmp(intfName, org::freedesktop::DBus::InterfaceName)
                     && strcmp(intfName, org::freedesktop::DBus::Peer::InterfaceName)
@@ -149,8 +156,32 @@ String ProximalProxyBusObjectWrapper::GenerateProxyIntrospectionXml(ajn::Session
                             wellKnownPort = services::nsConsts::AJ_NOTIFICATION_PRODUCER_SERVICE_PORT;
                         }
 
-                        String intfXml = intf->Introspect();
+						size_t numMembers = intf->GetMembers();
+						if (numMembers > 0) {
+							const InterfaceDescription::Member** members = new const InterfaceDescription::Member*[numMembers];
+							intf->GetMembers(members, numMembers);
+							for (size_t i = 0; i < numMembers; i++) {
+								const InterfaceDescription::Member* currMember = members[i];
+#ifndef NDEBUG
+								QCC_DbgHLPrintf(("Iterate over the Member '%s' with memberType=%i", currMember->name.c_str(), currMember->memberType));
+#endif
+								if (currMember && currMember->memberType == MESSAGE_SIGNAL) {
+									QStatus status = proxyBus->RegisterSignalHandler(this,
+										static_cast<MessageReceiver::SignalHandler>(&ProximalProxyBusObjectWrapper::CommonSignalHandler),
+										currMember, 0);
+#ifndef NDEBUG
+									QCC_DbgHLPrintf(("Register Signal Handler for signal '%s' of interface '%s'", currMember->name.c_str(), intf->GetName()));
+#endif
+									if (ER_OK != status) {
+										QCC_LogError(status, ("Could not Register Signal Handler for ProximalServiceProxyBusObject"));
+									}
+								}
+							}
+							delete[] members;
+						}
 
+                        String intfXml = intf->Introspect();
+/*
                         StringSource source(intfXml);
                         XmlParseContext pc(source);
                         if (ER_OK == XmlElement::Parse(pc)) {
@@ -163,12 +194,16 @@ String ProximalProxyBusObjectWrapper::GenerateProxyIntrospectionXml(ajn::Session
                                         static_cast<MessageReceiver::SignalHandler>(&ProximalProxyBusObjectWrapper::CommonSignalHandler),
                                         intf->GetMember(signalEle->GetAttribute("name").c_str()),
                                         0);
+#ifndef NDEBUG
+									QCC_DbgHLPrintf(("Register Signal Handler for signal '%s' of interface '%s'", signalEle->GetAttribute("name").c_str(), intfEle->GetAttribute("name").c_str()));
+#endif
                                     if (ER_OK != status) {
                                         QCC_LogError(status, ("Could not Register Signal Handler for ProximalServiceProxyBusObject"));
                                     }
                                 }
                             }
                         }
+*/
 
                         intfsXml += intfXml;
                         intfsXml += "\n";
@@ -203,6 +238,9 @@ void ProximalProxyBusObjectWrapper::CommonSignalHandler(const InterfaceDescripti
         QCC_LogError(ER_FAIL, ("No CloudCommEngine present"));
         return;
     }
+#ifndef NDEBUG
+	QCC_DbgHLPrintf(("Incoming Signal from member '%s' with srcPath '%s'", member->name.c_str(), srcPath));
+#endif
 
     /* Retrieve all arguments of the signal call */
     size_t  numArgs = 0;

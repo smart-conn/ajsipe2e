@@ -134,7 +134,7 @@ IMSTransport::~IMSTransport()
     if (stack) {
         stack->stop();
         stack->deInitialize();
-        delete stack;
+//         delete stack;
         stack = NULL;
     }
     if (sipCB) {
@@ -269,7 +269,7 @@ IStatus IMSTransport::Init()
     }
 
     sipCB = new IMSTransportSipCallback();
-    stack = new SipStack(sipCB, realm.c_str(), impi.c_str(), impu.c_str());
+	stack = SipStack::makeInstance(sipCB, realm.c_str(), impi.c_str(), impu.c_str(), 5060);
     if (password.size() > 0) {
         stack->setPassword(password.c_str());
     }
@@ -561,7 +561,7 @@ IStatus IMSTransport::PublishService(const char* introspectionXml)
         pubSession->setToUri(impu.c_str());
         isNewCreated = true;
     }
-    if (pubSession->publish(presenceXml.c_str(), presenceXml.size())) {
+    if (pubSession->publish(presenceXml.c_str())) {
     // Wait for the response of the PUBLISH
         std::unique_lock<std::mutex> lock(imsIns->mtxPublish);
         if (condPublish.wait_for(lock, std::chrono::milliseconds(gwConsts::PUBLICATION_DEFAULT_TIMEOUT))) {
@@ -720,7 +720,7 @@ IStatus IMSTransport::SendCloudMessage(int msgType,
             ajn::services::GuidUtil::GetInstance()->GenerateGUID(&callIdStr);
             msgSession.addHeader(gwConsts::customheader::RPC_CALL_ID, callIdStr.c_str());
             msgSession.addHeader(gwConsts::customheader::RPC_ADDR, addr);
-            if (!msgSession.send(msgBuf, strlen(msgBuf))) {
+            if (!msgSession.send(msgBuf)) {
                 // if error sending out the message
                 return IC_TRANSPORT_FAIL;
             }
@@ -767,7 +767,7 @@ IStatus IMSTransport::SendCloudMessage(int msgType,
                 return IC_BAD_ARG_3;
             }
             msgSession.addHeader(gwConsts::customheader::RPC_CALL_ID, callId);
-            if (!msgSession.send(msgBuf, strlen(msgBuf))) {
+            if (!msgSession.send(msgBuf)) {
                 // if error sending out the message
                 return IC_TRANSPORT_FAIL;
             }
@@ -783,7 +783,7 @@ IStatus IMSTransport::SendCloudMessage(int msgType,
             qcc::String callIdStr;
             ajn::services::GuidUtil::GetInstance()->GenerateGUID(&callIdStr);
             msgSession.addHeader(gwConsts::customheader::RPC_CALL_ID, callIdStr.c_str());
-            if (!msgSession.send(msgBuf, strlen(msgBuf))) {
+            if (!msgSession.send(msgBuf)) {
                 // if error sending out the message
                 return IC_TRANSPORT_FAIL;
             }

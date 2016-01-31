@@ -19,9 +19,9 @@
 #include "CloudCommEngine/IMSTransport/IMSTransportConstants.h"
 #include "CloudCommEngine/IMSTransport/IMSTransport.h"
 
-#include <SipStack.h>
-#include <SipMessage.h>
-#include <SipSession.h>
+#include "CloudCommEngine/IMSTransport/Sofia/SipStack.h"
+#include "CloudCommEngine/IMSTransport/Sofia/SipMessage.h"
+#include "CloudCommEngine/IMSTransport/Sofia/SipSession.h"
 
 
 namespace sipe2e {

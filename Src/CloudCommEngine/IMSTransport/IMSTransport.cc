@@ -31,8 +31,8 @@
 
 #include <mutex>
 
-#include <SipStack.h>
-#include <SipSession.h>
+#include "CloudCommEngine/IMSTransport/Sofia/SipStack.h"
+#include "CloudCommEngine/IMSTransport/Sofia/SipSession.h"
 
 #if defined( _MSC_VER )
 #include <direct.h>        // _getcwd
@@ -55,7 +55,7 @@ static IMSTransport* imsIns = new IMSTransport();
 
 
 IMSTransport::IMSTransport()
-    : stack(NULL), sipCB(NULL), imsTransportStatus(gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED),
+    : stack(NULL), stackMainLoopThread(NULL), sipCB(NULL), imsTransportStatus(gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED),
     realm(gwConsts::DEFAULT_REALM), pcscfPort(gwConsts::DEFAULT_PCSCF_PORT),
     regSession(NULL), opSession(NULL), 
     regThread(NULL), timerHeartBeat(new Timer(String("HeartBeat"))), timerSub(new Timer(String("Subscribe"))), 
@@ -134,8 +134,9 @@ IMSTransport::~IMSTransport()
     if (stack) {
         stack->stop();
         stack->deInitialize();
-//         delete stack;
+// 		delete stack;
         stack = NULL;
+		stackMainLoopThread->join();
     }
     if (sipCB) {
         delete sipCB;
@@ -270,6 +271,10 @@ IStatus IMSTransport::Init()
 
     sipCB = new IMSTransportSipCallback();
 	stack = SipStack::makeInstance(sipCB, realm.c_str(), impi.c_str(), impu.c_str(), 5060);
+
+	stackMainLoopThread = new std::thread(IMSTransport::StackMainLoop);
+	
+
     if (password.size() > 0) {
         stack->setPassword(password.c_str());
     }
@@ -793,6 +798,16 @@ IStatus IMSTransport::SendCloudMessage(int msgType,
         break;
     }
     return IC_OK;
+}
+
+void IMSTransport::StackMainLoop()
+{
+	SipStack* stack = SipStack::getInstance();
+	if (!stack->start()) {
+#ifndef NDEBUG
+		printf("Failed to start the stack!\n");
+#endif
+	}
 }
 
 void IMSTransport::RegThreadFunc()

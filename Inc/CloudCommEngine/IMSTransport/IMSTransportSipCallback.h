@@ -17,7 +17,7 @@
 #ifndef IMSTRANSPORTSIPCALLBACK_H_
 #define IMSTRANSPORTSIPCALLBACK_H_
 
-#include <SipCallback.h>
+#include "CloudCommEngine/IMSTransport/Sofia/SipCallback.h"
 
 namespace sipe2e {
 namespace gateway {

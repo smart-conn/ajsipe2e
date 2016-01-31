@@ -143,6 +143,11 @@ public:
         char** resMsgBuf);
 
 private:
+	/**
+	 * 
+	 * @param - 
+	 */
+	static void StackMainLoop();
     /**
      * The thread function for registration task
      * @param - 
@@ -205,6 +210,8 @@ private:
 private:
     /* The stack that supports the whole IMS communications */
     SipStack* stack;
+	/* The thread that runs the main loop the stack logics */
+	std::thread* stackMainLoopThread;
     /* Callback for receiving incoming messages */
     IMSTransportSipCallback* sipCB;
 

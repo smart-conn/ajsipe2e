@@ -20,7 +20,6 @@
 #include "CloudCommEngine/IMSTransport/IMSTransport.h"
 
 #include <SipStack.h>
-#include <SipEvent.h>
 #include <SipMessage.h>
 #include <SipSession.h>
 
@@ -44,6 +43,7 @@ int IMSTransportSipCallback::OnDialogEvent(const DialogEvent* e)
 
 int IMSTransportSipCallback::OnStackEvent(const StackEvent* e)
 {
+/*
     switch (e->getCode())
     {
     case tsip_event_code_stack_starting:
@@ -80,111 +80,101 @@ int IMSTransportSipCallback::OnStackEvent(const StackEvent* e)
         {
             // when connection stopped due to, say, wireless issue
             // should report to the upper layer and the upper layer could remove the whole stack and reconstruct it
-/*
-            IMSTransport* ims = IMSTransport::GetInstance();
-            for (int i = 0; i < 5; i++) {
-                if (ims->stack->/ *deInitialize* /stop()) {
-                    break;
-                }
-            }
-            for (int i = 0; i < 5; i++) {
-                if (ims->stack->/ *initialize* /start()) {
-                    break;
-                }
-            }
-*/
         }
         break;
     default:
         break;
     }
+*/
     return 0;
 }
 
 int IMSTransportSipCallback::OnRegistrationEvent(const RegistrationEvent* e)
 {
-    switch (e->getType())
-    {
-    default:
-    case tsip_i_newreg:
-    case tsip_i_register:
-        break;
-    case tsip_ao_register: // the response to the outgoing registration request
-        {
-            SipMessage* msg = (SipMessage*)e->getSipMessage();
-            short resCode = msg->getResponseCode();
-            IMSTransport* ims = IMSTransport::GetInstance();
-            if (resCode >= 300 && resCode < 400) {
-                // error occurs while trying to registering the UAC
-                // retry to register immediately
-                ims->regCmdQueue.Enqueue(ims->regExpires);
-            } else if (resCode >= 401) {
-                ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
-            } else if (resCode >= 200) {
-                // REGISTER successfully
-                ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_REGISTERED;
-                // The 'Service-Route' header will be like:
-                //     Service-Route: <sip:orig@scscf.nane.cn:6060;lr>
-                char* serviceRoute = msg->getSipHeaderValue("Service-Route");
-                if (serviceRoute) {
-                    char* atSymbol = strchr(serviceRoute, '@');
-                    if (atSymbol) {
-                        ims->scscf = atSymbol + 1;
-                        size_t colon = ims->scscf.find_first_of(':');
-                        if (colon != qcc::String::npos) {
-                            ims->scscf.erase(colon, ims->scscf.size() - colon);
-                        }
-                    }
-                }
-            }
-        }
-        break;
-    case tsip_ao_unregister: // the response to the outgoing unregistration request
-        {
-            SipMessage* msg = (SipMessage*)e->getSipMessage();
-            short resCode = msg->getResponseCode();
-            if (resCode >= 200 && resCode < 300) {// unregister successful
-                IMSTransport* ims = IMSTransport::GetInstance();
-                ims->condUnregister.notify_one();
-                ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
-            } else { // unregister failed
-            }
-        }
-        break;
-    case tsip_i_unregister: // network initiated unregister ?
-        {
-            // to be continued
-        }
-        break;
-    }
+	switch (e->GetType()) {
+	case nua_event_t::nua_r_register:
+		{
+			SipMessage* msg = e->GetSipMessage();
+			if (!msg) {
+				return -1;
+			}
+			int resCode = msg->getResponseCode();
+			IMSTransport* ims = IMSTransport::GetInstance();
+			if (resCode >= 300 && resCode < 400) {
+				// error occurs while trying to registering the UAC
+				// retry to register immediately
+				ims->regCmdQueue.Enqueue(ims->regExpires);
+			} else if (resCode >= 401) {
+				ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
+			} else if (resCode >= 200) {
+				// REGISTER successfully
+				ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_REGISTERED;
+				// The 'Service-Route' header will be like:
+				//     Service-Route: <sip:orig@scscf.nane.cn:6060;lr>
+				char* serviceRoute = msg->getSipHeaderValue("Service-Route");
+				if (serviceRoute) {
+					char* atSymbol = strchr(serviceRoute, '@');
+					if (atSymbol) {
+						ims->scscf = atSymbol + 1;
+						size_t colon = ims->scscf.find_first_of(':');
+						if (colon != qcc::String::npos) {
+							ims->scscf.erase(colon, ims->scscf.size() - colon);
+						}
+					}
+				}
+			}
+			delete msg;
+		}
+		break;
+	case nua_event_t::nua_r_unregister:
+		{
+			SipMessage* msg = e->GetSipMessage();
+			if (!msg) {
+				return -1;
+			}
+			int resCode = msg->getResponseCode();
+			if (resCode >= 200 && resCode < 300) {// unregister successful
+				IMSTransport* ims = IMSTransport::GetInstance();
+				ims->condUnregister.notify_one();
+				ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
+			} else { // unregister failed
+			}
+			delete msg;
+		}
+		break;
+	default:
+		break;
+	}
+
     return 0;
 }
 
 int IMSTransportSipCallback::OnOptionsEvent(const OptionsEvent* e)
 {
-    switch (e->getType())
+    switch (e->GetType())
     {
-    case tsip_i_options:
+	case nua_event_t::nua_i_options:
         {
-            OptionsSession* opSessionI = (OptionsSession*)e->getSession();
-            if (opSessionI == NULL)
+			IMSTransport* ims = IMSTransport::GetInstance();
+            OptionsSession* opSessionI = ((OptionsEvent*)e)->GetSession(ims->stack);
+            if (opSessionI != NULL)
             {
-                if ((opSessionI = e->takeSessionOwnership()) != NULL)
-                {
-                    ActionConfig* config = new ActionConfig();
-                    config->addHeader("Allow", "INVITE, ACK, CANCEL, BYE, MESSAGE, OPTIONS, NOTIFY, PRACK, UPDATE, REFER");
-                    opSessionI->accept(config);
-                    delete opSessionI;
-                    delete config;
-                }
+// 				ActionConfig* config = new ActionConfig();
+// 				config->addHeader("Allow", "INVITE, ACK, CANCEL, BYE, MESSAGE, OPTIONS, NOTIFY, PRACK, UPDATE, REFER");
+				opSessionI->accept(/*config*/);
+				delete opSessionI;
+// 				delete config;
             }
         }
         break;
-    case tsip_ao_options: // the response to the outgoing OPTIONS
+	case nua_event_t::nua_r_options: // the response to the outgoing OPTIONS
         {
             IMSTransport* ims = IMSTransport::GetInstance();
-            const SipMessage* msg = e->getSipMessage();
-            short resCode = ((SipMessage*)msg)->getResponseCode();
+            SipMessage* msg = e->GetSipMessage();
+			if (!msg) {
+				return -1;
+			}
+            int resCode = msg->getResponseCode();
             if (resCode >= 200 && resCode < 300) {
 //                 std::lock_guard<std::mutex> lock(ims->mtxHeartBeat);
                 ims->condHeartBeat.notify_one();
@@ -194,6 +184,7 @@ int IMSTransportSipCallback::OnOptionsEvent(const OptionsEvent* e)
                 ims->regCmdQueue.Enqueue(ims->regExpires);
                 ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
             }
+			delete msg;
         }
         break;
     default:
@@ -204,15 +195,15 @@ int IMSTransportSipCallback::OnOptionsEvent(const OptionsEvent* e)
 
 int IMSTransportSipCallback::OnMessagingEvent(const MessagingEvent* e)
 {
-    switch (e->getType())
+    switch (e->GetType())
     {
-    case tsip_i_message:
+	case nua_event_t::nua_i_message:
         {
             IMSTransport* ims = IMSTransport::GetInstance();
-            const SipMessage* msg = e->getSipMessage();
-            MessagingSession* session = (MessagingSession*)e->getSession();
+            SipMessage* msg = e->GetSipMessage();
+            MessagingSession* session = ((MessagingEvent*)e)->GetSession(ims->stack);
             if (!session) {
-                session = e->takeSessionOwnership();
+                return -1;
             }
             if (msg) {
                 session->accept();
@@ -237,6 +228,8 @@ int IMSTransportSipCallback::OnMessagingEvent(const MessagingEvent* e)
 #ifndef NDEBUG
                             printf("Cannot get the msg type\n");
 #endif
+							delete session;
+							delete msg;
                             return -1;
                         }
                         char* peer = ((SipMessage*)msg)->getSipHeaderValue("f");
@@ -244,6 +237,8 @@ int IMSTransportSipCallback::OnMessagingEvent(const MessagingEvent* e)
 #ifndef NDEBUG
                             printf("Cannot get the from header value\n");
 #endif
+							delete session;
+							delete msg;
                             return -1;
                         }
                         char* tmp = strchr(peer, ':');
@@ -251,6 +246,8 @@ int IMSTransportSipCallback::OnMessagingEvent(const MessagingEvent* e)
                             peer = tmp + 1; // if the address is like "sip:lyh@nane.cn", then just trim the "sip:"
                         }
                         if (strlen(peer) > gwConsts::MAX_SIP_ADDR_LEN) {
+							delete session;
+							delete msg;
                             return -1;
                         }
                         char *callId = ((SipMessage*)msg)->getSipHeaderValue(gwConsts::customheader::RPC_CALL_ID);
@@ -258,6 +255,8 @@ int IMSTransportSipCallback::OnMessagingEvent(const MessagingEvent* e)
 #ifndef NDEBUG
                             printf("Cannot get the callid header value\n");
 #endif
+							delete session;
+							delete msg;
                             return -1;
                         }
 
@@ -277,6 +276,8 @@ int IMSTransportSipCallback::OnMessagingEvent(const MessagingEvent* e)
                                 // Fill the request buffer as the format "lyh@nane.cn^CallID^Addr^Request Content"
                                 char *addr = ((SipMessage*)msg)->getSipHeaderValue(gwConsts::customheader::RPC_ADDR);
                                 if (!addr) {
+									delete session;
+									delete msg;
                                     return -1;
                                 }
                                 char* rpcXml = new char[contentLen + 3 + gwConsts::MAX_SIP_ADDR_LEN + gwConsts::MAX_RPC_MSG_CALLID_LEN + 2];
@@ -333,13 +334,16 @@ int IMSTransportSipCallback::OnMessagingEvent(const MessagingEvent* e)
                 } else { // No content type available, just ignore it
                     //return -1;
                 }
+				delete session;
+				delete msg;
             } else {
                 session->reject();
+				delete session;
                 return -1;
             }
         }
         break;
-    case tsip_ao_message: // the response to the outgoing messages
+	case nua_event_t::nua_r_message: // the response to the outgoing messages
         {
 
         }
@@ -353,12 +357,12 @@ int IMSTransportSipCallback::OnMessagingEvent(const MessagingEvent* e)
 
 int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
 {
-    switch (e->getType())
+    switch (e->GetType())
     {
-    case tsip_i_notify:
+	case nua_event_t::nua_i_notify:
         {
             IMSTransport* ims = IMSTransport::GetInstance();
-            const SipMessage* msg = e->getSipMessage();
+            SipMessage* msg = e->GetSipMessage();
             if (msg) {
                 char* contentType = ((SipMessage*)msg)->getSipHeaderValue("c");
                 if (contentType) {
@@ -374,6 +378,7 @@ int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
                         // Get the peer address
                         char* peer = ((SipMessage*)msg)->getSipHeaderValue("f");
                         if (!peer) {
+							delete msg;
                             return -1;
                         }
                         char* tmp = strchr(peer, ':');
@@ -381,6 +386,7 @@ int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
                             peer = tmp + 1; // if the address is like "sip:lyh@nane.cn", then just trim the "sip:"
                         }
                         if (strlen(peer) > gwConsts::MAX_SIP_ADDR_LEN) {
+							delete msg;
                             return -1;
                         }
                         // Get the notification type based the Expire header
@@ -416,18 +422,22 @@ int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
                 } else { // No content type available, just ignore it
                     //return -1;
                 }
+				delete msg;
             }
             else {
                 return -1;
             }
         }
         break;
-    case tsip_ao_subscribe: // the response to the outgoing subscription
+	case nua_event_t::nua_r_subscribe: // the response to the outgoing subscription
         {
             IMSTransport* ims = IMSTransport::GetInstance();
-            const SipMessage* msg = e->getSipMessage();
-            short resCode = ((SipMessage*)msg)->getResponseCode();
-            char* peer = ((SipMessage*)msg)->getSipHeaderValue("f");
+            SipMessage* msg = e->GetSipMessage();
+			if (!msg) {
+				return -1;
+			}
+            int resCode = msg->getResponseCode();
+            char* peer = msg->getSipHeaderValue("f");
             if (resCode >= 200 && resCode < 300) {
                 ims->condSubscribe.notify_one();
             } else if (resCode >= 400) {
@@ -460,14 +470,18 @@ int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
                     break;
                 }
             }
+			delete msg;
         }
         break;
-    case tsip_ao_unsubscribe: // the response to the outgoing unsubscription
+    case nua_event_t::nua_r_unsubscribe: // the response to the outgoing unsubscription
         {
             IMSTransport* ims = IMSTransport::GetInstance();
-            const SipMessage* msg = e->getSipMessage();
-            short resCode = ((SipMessage*)msg)->getResponseCode();
-            char* peer = ((SipMessage*)msg)->getSipHeaderValue("f");
+			SipMessage* msg = e->GetSipMessage();
+			if (!msg) {
+				return -1;
+			}
+            int resCode = msg->getResponseCode();
+            char* peer = msg->getSipHeaderValue("f");
             if (resCode >= 200 && resCode < 300) {
                 ims->condUnsubscribe.notify_one();
             } else if (resCode >= 400) {
@@ -500,12 +514,12 @@ int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
                     break;
                 }
             }
+			delete msg;
         }
         break;
     default:
-    case tsip_i_subscribe:
-    case tsip_i_unsubscribe:
-    case tsip_ao_notify:
+	case nua_event_t::nua_i_subscribe:
+	case nua_event_t::nua_i_subscription:
         break;
     }
     return 0;
@@ -513,9 +527,9 @@ int IMSTransportSipCallback::OnSubscriptionEvent(const SubscriptionEvent* e)
 
 int IMSTransportSipCallback::OnPublicationEvent(const PublicationEvent* e)
 {
-    switch (e->getType())
+    switch (e->GetType())
     {
-    case tsip_ao_publish: // the response to the outgoing publication
+	case nua_event_t::nua_r_publish: // the response to the outgoing publication
         {
             // according to RFC3903:
             //    For each successful PUBLISH request, the ESC will generate and assign
@@ -530,8 +544,11 @@ int IMSTransportSipCallback::OnPublicationEvent(const PublicationEvent* e)
             // so we have to get the SIP-ETag header value from the successful 2xx response,
             // and store it somewhere for later refreshing, deletion or modification
             IMSTransport* ims = IMSTransport::GetInstance();
-            const SipMessage* msg = e->getSipMessage();
-            short resCode = ((SipMessage*)msg)->getResponseCode();
+            SipMessage* msg = e->GetSipMessage();
+			if (!msg) {
+				return -1;
+			}
+            int resCode = msg->getResponseCode();
             if (resCode >= 200 && resCode < 300) {
                 ims->condPublish.notify_one();
             } else if (resCode >= 400) {
@@ -542,13 +559,17 @@ int IMSTransportSipCallback::OnPublicationEvent(const PublicationEvent* e)
                 ims->regCmdQueue.Enqueue(ims->regExpires);
                 ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
             }
+			delete msg;
         }
         break;
-    case tsip_ao_unpublish: // the response to the outgoing unpublication
+	case nua_event_t::nua_r_unpublish: // the response to the outgoing unpublication
         {
             IMSTransport* ims = IMSTransport::GetInstance();
-            const SipMessage* msg = e->getSipMessage();
-            short resCode = ((SipMessage*)msg)->getResponseCode();
+            SipMessage* msg = e->GetSipMessage();
+			if (!msg) {
+				return -1;
+			}
+            int resCode = msg->getResponseCode();
             if (resCode >= 200 && resCode < 300) {
                 ims->condUnpublish.notify_one();
             } else if (resCode >= 400) {
@@ -559,10 +580,10 @@ int IMSTransportSipCallback::OnPublicationEvent(const PublicationEvent* e)
                 ims->regCmdQueue.Enqueue(ims->regExpires);
                 ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
             }
+			delete msg;
         }
         break;
-    case tsip_i_publish:
-    case tsip_i_unpublish:
+	case nua_event_t::nua_i_publish:
     default:
         break;
     }

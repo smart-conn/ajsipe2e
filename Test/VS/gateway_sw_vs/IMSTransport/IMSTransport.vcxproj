@@ -108,8 +108,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(DOUBANGO_HOME)\bindings\vs_2005\csharp\Debug;$(ALLJOYN_SRC_1504_HOME_CPP_DBG_LIB);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>alljoyn.lib;tinyWRAP.lib;ws2_32.lib;Secur32.lib;crypt32.lib;Bcrypt.lib;Ncrypt.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SOFIA_IMS_HOME)\..\Test\VS\sofia_IMSTransport_vs\Debug;$(ALLJOYN_SDK_1504_HOME_DEBUG)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sofia_IMS.lib;alljoyn.lib;ws2_32.lib;Secur32.lib;crypt32.lib;Bcrypt.lib;Ncrypt.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_1504|Win32'">
@@ -121,15 +121,15 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;QCC_OS_GROUP_WINDOWS;WIN32_LEAN_AND_MEAN;SIPE2E_GATEWAY_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SDK_1504_HOME_RELEASE)\inc;$(ALLJOYN_SDK_1504_HOME_RELEASE)\inc\alljoyn;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\sample_apps\cpp\samples_common;$(DOUBANGO_HOME)\bindings\_common;$(DOUBANGO_HOME)\thirdparties\win32\include;$(DOUBANGO_HOME)\tinySIP\include;$(DOUBANGO_HOME)\tinyMEDIA\include;$(DOUBANGO_HOME)\tinySDP\include;$(DOUBANGO_HOME)\tinyDAV\include;$(DOUBANGO_HOME)\tinySAK\src;$(DOUBANGO_HOME)\tinyNET\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SDK_1504_HOME_RELEASE)\inc;$(ALLJOYN_SDK_1504_HOME_RELEASE)\inc\alljoyn;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\sample_apps\cpp\samples_common;$(SOFIA_IMS_HOME);$(SOFIA_SIP_HOME)\libsofia-sip-ua\sip;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nua;$(SOFIA_SIP_HOME)\libsofia-sip-ua-glib\su-glib;$(SOFIA_SIP_HOME)\libsofia-sip-ua\msg;$(SOFIA_SIP_HOME)\libsofia-sip-ua\su;$(SOFIA_SIP_HOME)\win32;$(SOFIA_SIP_HOME)\libsofia-sip-ua\url;$(SOFIA_SIP_HOME)\libsofia-sip-ua\sdp;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nta;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nea;$(SOFIA_SIP_HOME)\libsofia-sip-ua\soa;$(SOFIA_SIP_HOME)\libsofia-sip-ua\iptsec;$(SOFIA_SIP_HOME)\libsofia-sip-ua\tport;$(SOFIA_SIP_HOME)\win32\pthread;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(DOUBANGO_HOME)\bindings\vs_2005\csharp\Release;$(ALLJOYN_SDK_1504_HOME_RELEASE)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>tinyWRAP.lib;alljoyn.lib;ws2_32.lib;Secur32.lib;crypt32.lib;Bcrypt.lib;Ncrypt.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SOFIA_IMS_HOME)\..\Test\VS\sofia_IMSTransport_vs\Release;$(ALLJOYN_SDK_1504_HOME_RELEASE)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sofia_IMS.lib;alljoyn.lib;ws2_32.lib;Secur32.lib;crypt32.lib;Bcrypt.lib;Ncrypt.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_1504|x64'">

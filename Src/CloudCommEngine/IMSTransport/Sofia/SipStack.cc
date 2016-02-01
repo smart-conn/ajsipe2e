@@ -79,13 +79,15 @@ bool SipStack::initialize()
         ctx->loop = g_main_loop_new(nullptr, false);
         GSource *gsource = su_root_gsource(ctx->sip_root);
         g_source_attach(gsource, g_main_loop_get_context(ctx->loop));
+/*
         Sipe2eSofiaHelper sh;
         char address_url[BUFFER_SIZE_B];
         sh.guessVia(address_url, ctx->profile.local_port, ctx->profile.is_tcp);
         sipe2e_log("%s\n", address_url);
+*/
         ctx->sip_nua = nua_create(ctx->sip_root,
                 (nua_callback_f) sipstack_callback, (nua_magic_t *) ctx,
-                NUTAG_URL(address_url),
+                NUTAG_URL("sip:0.0.0.0;transport=udp"),
                 TAG_END());
         char route[BUFFER_SIZE_B];
         sprintf(route, "<sip:%s;lr>", ctx->profile.pcscf);

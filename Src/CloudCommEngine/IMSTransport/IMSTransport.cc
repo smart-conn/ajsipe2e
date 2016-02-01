@@ -272,8 +272,6 @@ IStatus IMSTransport::Init()
     sipCB = new IMSTransportSipCallback();
 	stack = SipStack::makeInstance(sipCB, realm.c_str(), impi.c_str(), impu.c_str(), 5060);
 
-	stackMainLoopThread = new std::thread(IMSTransport::StackMainLoop);
-	
 
     if (password.size() > 0) {
         stack->setPassword(password.c_str());
@@ -286,14 +284,23 @@ IStatus IMSTransport::Init()
     if (!stack->initialize()) {
         return IC_TRANSPORT_IMS_STACK_INIT_FAIL;
     }
+/*
     if (!stack->start()) {
         return IC_TRANSPORT_IMS_STACK_START_FAIL;
     }
+*/
+	stackMainLoopThread = new std::thread(IMSTransport::StackMainLoop);
+
 
     regSession = new RegistrationSession(stack);
     regSession->addCaps("+g.oma.sip-im");
     regSession->addCaps("+g.3gpp.smsip");
     regSession->addCaps("language", "\"zh,en\"");
+	qcc::String regReqLine("sip:");
+	regReqLine += realm;
+	regSession->setReqUri(regReqLine.c_str());
+	regSession->setFromUri(impu.c_str());
+	regSession->setToUri(impu.c_str());
 //     regSession->setExpires(expires);
 
 //     opSession = new OptionsSession(stack);

@@ -140,12 +140,9 @@ bool MessagingSession::send(const char* payload)
     if (!m_pOperation) {
         Sipe2eSofiaHelper sh;
         m_pOperation = sh.createOperation(ctx, SIP_METHOD_MESSAGE, TAG_END());
-        nua_message(m_pOperation->op_handle, SIPTAG_PAYLOAD(pl),
-                TAG_END());
-    } else {
-        nua_message(m_pOperation->op_handle, SIPTAG_PAYLOAD(pl),
-                TAG_END());
     }
+    nua_message(m_pOperation->op_handle, SIPTAG_PAYLOAD(pl),
+            TAG_END());
     su_free(ctx->sip_home, pl);
     return true;
 }
@@ -186,10 +183,8 @@ bool OptionsSession::send()
         Sipe2eSofiaHelper sh;
         m_pOperation = sh.createOperation(ctx, SIP_METHOD_OPTIONS,
         TAG_END());
-        nua_options(m_pOperation->op_handle, TAG_END());
-    } else {
-        nua_options(m_pOperation->op_handle, TAG_END());
     }
+    nua_options(m_pOperation->op_handle, TAG_END());
     return true;
 }
 
@@ -242,20 +237,13 @@ bool PublicationSession::publish(const char* payload)
     sip_payload_t *pl = sip_payload_format(ctx->sip_home, fmt,
             ctx->profile.impu, open ? "open" : "closed", payload);
     if (!m_pOperation) {
-        char address[BUFFER_SIZE_B];
-        strcpy(address, ctx->profile.impu);
         Sipe2eSofiaHelper sh;
         m_pOperation = sh.createOperation(ctx, SIP_METHOD_PUBLISH,
                 TAG_END());
-        nua_publish(m_pOperation->op_handle,
-                SIPTAG_CONTENT_TYPE_STR("application/pidf+xml"),
-                SIPTAG_PAYLOAD(pl),
-                TAG_END());
-    } else {
-        nua_publish(m_pOperation->op_handle, SIPTAG_PAYLOAD(pl),
-                TAG_IF(pl, SIPTAG_CONTENT_TYPE_STR("application/pidf+xml")),
-                TAG_END());
     }
+	nua_publish(m_pOperation->op_handle, SIPTAG_PAYLOAD(pl),
+		TAG_IF(pl, SIPTAG_CONTENT_TYPE_STR("application/pidf+xml")),
+		TAG_END());
     su_free(ctx->sip_home, pl);
     return true;
 }
@@ -266,12 +254,9 @@ bool PublicationSession::unPublish()
         Sipe2eSofiaHelper sh;
         m_pOperation = sh.createOperation(ctx, SIP_METHOD_PUBLISH,
                 TAG_END());
-        nua_publish(m_pOperation->op_handle, SIPTAG_EXPIRES_STR("0"),
-        TAG_END());
-    } else {
-        nua_publish(m_pOperation->op_handle, SIPTAG_EXPIRES_STR("0"),
-        TAG_END());
     }
+    nua_unpublish(m_pOperation->op_handle, SIPTAG_EXPIRES_STR("0"),
+    TAG_END());
     return true;
 }
 
@@ -293,46 +278,63 @@ RegistrationSession::~RegistrationSession()
 }
 
 
-bool RegistrationSession::setToUri(const char* toUriString)
+bool RegistrationSession::setReqUri(const char* reqUriString)
 {
-	if (!toUriString || !m_pOperation || !m_pOperation->op_handle) {
+	if (!reqUriString || !m_pOperation || !m_pOperation->op_handle) {
 		return false;
 	}
 	nua_handle_t* hdl = m_pOperation->op_handle;
-    nua_set_hparams(hdl, TAG_IF(toUriString, NUTAG_REGISTRAR(toUriString)),
+    nua_set_hparams(hdl, TAG_IF(reqUriString, NUTAG_REGISTRAR(reqUriString)),
     TAG_END());
     return true;
+}
+
+bool RegistrationSession::setFromUri(const char* fromUriString)
+{
+	if (!fromUriString || !m_pStack || !m_pStack->getContext()) {
+		return false;
+	}
+	nua_set_params(m_pStack->getContext()->sip_nua, SIPTAG_FROM_STR(fromUriString),
+		TAG_END());
+	return true;
+}
+
+bool RegistrationSession::setToUri(const char* toUriString)
+{
+	if (!toUriString || !m_pStack || !m_pStack->getContext()) {
+		return false;
+	}
+	nua_set_params(m_pStack->getContext()->sip_nua, SIPTAG_TO_STR(toUriString),
+		TAG_END());
+	return true;
 }
 
 bool RegistrationSession::register_()
 {
     if (!m_pOperation) {
-        nua_register(m_pOperation->op_handle, NUTAG_KEEPALIVE(0),
-                NUTAG_KEEPALIVE_STREAM(0), NUTAG_OUTBOUND("no-validate"),
-                NUTAG_OUTBOUND("no-options-keepalive"),
-                /*TAG_IF(registrar, NUTAG_REGISTRAR(registrar)),*/
-                /*NUTAG_M_FEATURES("expires=180"), SIPTAG_EXPIRES_STR("180"),*/
-                TAG_END());
-    } else {
-		nua_register(m_pOperation->op_handle, NUTAG_KEEPALIVE(0),
-			NUTAG_KEEPALIVE_STREAM(0), NUTAG_OUTBOUND("no-validate"),
-			NUTAG_OUTBOUND("no-options-keepalive"),
+		Sipe2eSofiaHelper sh;
+		m_pOperation = sh.createOperation(m_pStack->getContext(), SIP_METHOD_REGISTER,
 			TAG_END());
     }
+    nua_register(m_pOperation->op_handle, NUTAG_KEEPALIVE(0),
+            NUTAG_KEEPALIVE_STREAM(0), NUTAG_OUTBOUND("no-validate"),
+            NUTAG_OUTBOUND("no-options-keepalive"),
+            /*TAG_IF(registrar, NUTAG_REGISTRAR(registrar)),*/
+            /*NUTAG_M_FEATURES("expires=180"), SIPTAG_EXPIRES_STR("180"),*/
+            TAG_END());
     return true;
 }
 bool RegistrationSession::unRegister()
 {
-    if (!m_pOperation) {
-        nua_unregister(m_pOperation->op_handle,
-                /*TAG_IF(registrar, NUTAG_REGISTRAR(registrar)),*/
-                SIPTAG_CONTACT_STR("*"), SIPTAG_EXPIRES_STR("0"),
-                TAG_END());
-    } else {
-        nua_unregister(m_pOperation->op_handle, 
-			SIPTAG_CONTACT_STR("*"), SIPTAG_EXPIRES_STR("0"),
+	if (!m_pOperation) {
+		Sipe2eSofiaHelper sh;
+		m_pOperation = sh.createOperation(m_pStack->getContext(), SIP_METHOD_REGISTER,
 			TAG_END());
-    }
+	}
+    nua_unregister(m_pOperation->op_handle,
+            /*TAG_IF(registrar, NUTAG_REGISTRAR(registrar)),*/
+            SIPTAG_CONTACT_STR("*"), SIPTAG_EXPIRES_STR("0"),
+            TAG_END());
     return true;
 }
 
@@ -359,22 +361,17 @@ bool SubscriptionSession::subscribe()
     char const *supported = "eventlist";
 
     if (!m_pOperation) {
-        nua_subscribe(m_pOperation->op_handle, SIPTAG_EXPIRES_STR("3600"),
-                SIPTAG_ACCEPT_STR("application/cpim-pidf+xml;q=0.5, "
-                        "application/pidf-partial+xml"),
-                TAG_IF(supported,
-                        SIPTAG_ACCEPT_STR("multipart/related, " "application/rlmi+xml")),
-                SIPTAG_SUPPORTED_STR(supported), SIPTAG_EVENT_STR(event),
-                TAG_END());
-    } else {
-		nua_subscribe(m_pOperation->op_handle, SIPTAG_EXPIRES_STR("3600"),
-			SIPTAG_ACCEPT_STR("application/cpim-pidf+xml;q=0.5, "
-			"application/pidf-partial+xml"),
-			TAG_IF(supported,
-			SIPTAG_ACCEPT_STR("multipart/related, " "application/rlmi+xml")),
-			SIPTAG_SUPPORTED_STR(supported), SIPTAG_EVENT_STR(event),
+		Sipe2eSofiaHelper sh;
+		m_pOperation = sh.createOperation(m_pStack->getContext(), SIP_METHOD_SUBSCRIBE,
 			TAG_END());
     }
+    nua_subscribe(m_pOperation->op_handle, SIPTAG_EXPIRES_STR("3600"),
+            SIPTAG_ACCEPT_STR("application/cpim-pidf+xml;q=0.5, "
+                    "application/pidf-partial+xml"),
+            TAG_IF(supported,
+                    SIPTAG_ACCEPT_STR("multipart/related, " "application/rlmi+xml")),
+            SIPTAG_SUPPORTED_STR(supported), SIPTAG_EVENT_STR(event),
+            TAG_END());
     return true;
 }
 
@@ -383,10 +380,11 @@ bool SubscriptionSession::unSubscribe()
     char const *event = "presence";
     char const *supported = "eventlist";
 
-    if (!m_pOperation) {
-        nua_unsubscribe(m_pOperation->op_handle, TAG_END());
-    } else {
-        nua_unsubscribe(m_pOperation->op_handle, TAG_END());
-    }
+	if (!m_pOperation) {
+		Sipe2eSofiaHelper sh;
+		m_pOperation = sh.createOperation(m_pStack->getContext(), SIP_METHOD_SUBSCRIBE,
+			TAG_END());
+	}
+	nua_unsubscribe(m_pOperation->op_handle, TAG_END());
     return true;
 }

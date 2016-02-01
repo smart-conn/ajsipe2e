@@ -38,7 +38,7 @@ public:
 	bool removeCaps(const char* name);
 	bool setExpires(unsigned expires);
 	bool setFromUri(const char* fromUriString);
-	virtual bool setToUri(const char* toUriString);
+	bool setToUri(const char* toUriString);
 
 protected:
     const SipStack* m_pStack;
@@ -87,7 +87,9 @@ public:
     RegistrationSession(SipStack* pStack, nua_handle_t* nh = NULL);
     virtual ~RegistrationSession();
 
-    virtual bool setToUri(const char* toUriString) override;
+    bool setReqUri(const char* reqUriString);
+	bool setFromUri(const char* fromUriString);
+	bool setToUri(const char* toUriString);
 public:
     bool register_();
     bool unRegister();

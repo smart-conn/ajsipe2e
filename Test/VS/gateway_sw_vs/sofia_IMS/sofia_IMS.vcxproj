@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug_1504|Win32">
+      <Configuration>Debug_1504</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release_1504|Win32">
+      <Configuration>Release_1504</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\Src\CloudCommEngine\IMSTransport\Sofia\SipCallback.cc" />
+    <ClCompile Include="..\..\..\..\Src\CloudCommEngine\IMSTransport\Sofia\SipMessage.cc" />
+    <ClCompile Include="..\..\..\..\Src\CloudCommEngine\IMSTransport\Sofia\SipSession.cc" />
+    <ClCompile Include="..\..\..\..\Src\CloudCommEngine\IMSTransport\Sofia\SipStack.cc" />
+    <ClCompile Include="..\..\..\..\Src\CloudCommEngine\IMSTransport\Sofia\Sofia.cc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\Inc\CloudCommEngine\IMSTransport\Sofia\SipCallback.h" />
+    <ClInclude Include="..\..\..\..\Inc\CloudCommEngine\IMSTransport\Sofia\SipCommon.h" />
+    <ClInclude Include="..\..\..\..\Inc\CloudCommEngine\IMSTransport\Sofia\SipMessage.h" />
+    <ClInclude Include="..\..\..\..\Inc\CloudCommEngine\IMSTransport\Sofia\SipSession.h" />
+    <ClInclude Include="..\..\..\..\Inc\CloudCommEngine\IMSTransport\Sofia\SipStack.h" />
+    <ClInclude Include="..\..\..\..\Inc\CloudCommEngine\IMSTransport\Sofia\Sofia.h" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{E2D4F374-61B9-4E11-9D18-C75B19EE54E0}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>sofia_IMSTransport</RootNamespace>
+    <ProjectName>sofia_IMS</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_1504|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_1504|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug_1504|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release_1504|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_1504|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_1504|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_1504|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;SOFIA_IMSTRANSPORT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Inc\CloudCommEngine\IMSTransport\Sofia;$(GLIB_HOME)\include\glib-2.0;$(GLIB_HOME)\lib\glib-2.0\include;$(SOFIA_SIP_HOME)\libsofia-sip-ua\sip;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nua;$(SOFIA_SIP_HOME)\libsofia-sip-ua-glib\su-glib;$(SOFIA_SIP_HOME)\libsofia-sip-ua\msg;$(SOFIA_SIP_HOME)\libsofia-sip-ua\su;$(SOFIA_SIP_HOME)\win32;$(SOFIA_SIP_HOME)\libsofia-sip-ua\url;$(SOFIA_SIP_HOME)\libsofia-sip-ua\sdp;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nta;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nea;$(SOFIA_SIP_HOME)\libsofia-sip-ua\soa;$(SOFIA_SIP_HOME)\libsofia-sip-ua\iptsec;$(SOFIA_SIP_HOME)\libsofia-sip-ua\tport;$(SOFIA_SIP_HOME)\win32\pthread;$(LIBXML2_HOME)\include;$(ICONV_HOME)\include;$(CURL_DEBUG_HOME)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>libsofia_sip_ua.lib;glib-2.0.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SOFIA_SIP_HOME)\win32\libsofia-sip-ua\Debug;$(GLIB_HOME)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_1504|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;SOFIA_IMSTRANSPORT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Inc\CloudCommEngine\IMSTransport\Sofia;$(GLIB_HOME)\include\glib-2.0;$(GLIB_HOME)\lib\glib-2.0\include;$(SOFIA_SIP_HOME)\libsofia-sip-ua\sip;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nua;$(SOFIA_SIP_HOME)\libsofia-sip-ua-glib\su-glib;$(SOFIA_SIP_HOME)\libsofia-sip-ua\msg;$(SOFIA_SIP_HOME)\libsofia-sip-ua\su;$(SOFIA_SIP_HOME)\win32;$(SOFIA_SIP_HOME)\libsofia-sip-ua\url;$(SOFIA_SIP_HOME)\libsofia-sip-ua\sdp;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nta;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nea;$(SOFIA_SIP_HOME)\libsofia-sip-ua\soa;$(SOFIA_SIP_HOME)\libsofia-sip-ua\iptsec;$(SOFIA_SIP_HOME)\libsofia-sip-ua\tport;$(SOFIA_SIP_HOME)\win32\pthread;$(LIBXML2_HOME)\include;$(ICONV_HOME)\include;$(CURL_RELEASE_HOME)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(SOFIA_SIP_HOME)\win32\libsofia-sip-ua\Release;$(GLIB_HOME)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libsofia_sip_ua.lib;glib-2.0.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

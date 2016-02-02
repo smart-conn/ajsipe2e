@@ -535,6 +535,14 @@ nua_event_t SipEvent::GetType() const
     return nua_event_t::nua_i_none;
 }
 
+int SipEvent::GetStatus() const
+{
+	if (ev) {
+		return ev->status;
+	}
+	return -1;
+}
+
 MessagingEvent::MessagingEvent(Sipe2eSofiaEvent* ev) :SipEvent(ev),is_incoming(true)
 {
 

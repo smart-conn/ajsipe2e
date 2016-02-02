@@ -27,6 +27,7 @@ public:
 	SipMessage(const sip_t* _msg);;
 	virtual ~SipMessage();
 
+	bool isValid();
 	sip_method_t getRequestType();
 	int getResponseCode();
 	/**

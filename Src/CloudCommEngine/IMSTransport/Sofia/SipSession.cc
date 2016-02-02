@@ -198,6 +198,16 @@ bool OptionsSession::reject()
 	return true;
 }
 
+bool OptionsSession::setToUri(const char* toUriString)
+{
+	if (!toUriString || !m_pStack || !m_pStack->getContext()) {
+		return false;
+	}
+	nua_set_params(m_pStack->getContext()->sip_nua, SIPTAG_TO_STR(toUriString),
+		TAG_END());
+	return true;
+}
+
 PublicationSession::PublicationSession(SipStack* stack, nua_handle_t* nh) :
         SipSession(stack)
 {
@@ -333,7 +343,7 @@ bool RegistrationSession::unRegister()
 	}
     nua_unregister(m_pOperation->op_handle,
             /*TAG_IF(registrar, NUTAG_REGISTRAR(registrar)),*/
-            SIPTAG_CONTACT_STR("*"), SIPTAG_EXPIRES_STR("0"),
+            SIPTAG_CONTACT_STR(m_pOperation->op_ssc->profile.impu), SIPTAG_EXPIRES_STR("0"),
             TAG_END());
     return true;
 }

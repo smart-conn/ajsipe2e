@@ -36,6 +36,7 @@ public:
 	 */
 	SipMessage* GetSipMessage() const;
 	nua_event_t GetType() const;
+	int GetStatus() const;
 protected:
     Sipe2eSofiaEvent* ev;
 

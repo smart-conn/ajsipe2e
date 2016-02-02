@@ -68,6 +68,7 @@ public:
     bool send();
 	bool accept();
 	bool reject();
+	bool setToUri(const char* toUriString);
 };
 
 class SOFIA_IMS_EXPORT_FUN PublicationSession : public SipSession

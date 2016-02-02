@@ -66,6 +66,11 @@ SipMessage::~SipMessage()
 {
 }
 
+bool SipMessage::isValid()
+{
+	return (NULL != msg);
+}
+
 sip_method_t SipMessage::getRequestType()
 {
     if (msg->sip_request) {

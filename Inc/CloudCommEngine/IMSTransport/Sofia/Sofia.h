@@ -55,7 +55,7 @@ public:
     }
 };
 
-class Sipe2eContex
+class Sipe2eContext
 {
 public:
     su_home_t sip_home[1]; /* memory home */
@@ -64,13 +64,13 @@ public:
     class SipCallback* sip_callback;
     GMainLoop *loop;
     Sipe2eUserProfile profile;
-
+	int status;
 };
 
 class Sipe2eOperation
 {
 public:
-    Sipe2eContex *op_ssc;
+    Sipe2eContext *op_ssc;
     nua_handle_t *op_handle;
 };
 
@@ -81,13 +81,13 @@ public:
     int status;
     const char* phrase;
     nua_t* nua;
-    Sipe2eContex* ssc;
+    Sipe2eContext* ssc;
     nua_handle_t* nh;
     Sipe2eOperation* op;
     const sip_t* sip;
     tagi_t* tags;
     Sipe2eSofiaEvent(nua_event_t event, int status, const char* phrase,
-            nua_t* nua, Sipe2eContex* ssc, nua_handle_t* nh,
+            nua_t* nua, Sipe2eContext* ssc, nua_handle_t* nh,
             Sipe2eOperation* op, const sip_t* sip, tagi_t tags[]) :
             event(event), status(status), phrase(phrase), nua(nua), ssc(ssc), nh(
                     nh), op(op), sip(sip), tags(tags)
@@ -98,23 +98,23 @@ public:
 class Sipe2eSofiaHelper
 {
 public:
-    Sipe2eOperation* createOperation(Sipe2eContex* ssc, sip_method_t method, const char* name,
+    Sipe2eOperation* createOperation(Sipe2eContext* ssc, sip_method_t method, const char* name,
             tag_type_t tag, tag_value_t value, ...);
 
-    Sipe2eOperation* createOperationWithHandle(Sipe2eContex* ssc, sip_method_t method, const char* name,
+    Sipe2eOperation* createOperationWithHandle(Sipe2eContext* ssc, sip_method_t method, const char* name,
 		nua_handle_t* nh);
 
-	void deleteOperation(Sipe2eContex* ssc, Sipe2eOperation* op);
+	void deleteOperation(Sipe2eContext* ssc, Sipe2eOperation* op);
 
-    void authenticate(Sipe2eContex* ssc, Sipe2eOperation* op, const sip_t* sip,
+    void authenticate(Sipe2eContext* ssc, Sipe2eOperation* op, const sip_t* sip,
             tagi_t* tags);
     void dispatchEvent(nua_event_t event, int status, const char* phrase,
-            nua_t* nua, Sipe2eContex* ssc, nua_handle_t* nh,
+            nua_t* nua, Sipe2eContext* ssc, nua_handle_t* nh,
             Sipe2eOperation* op, const sip_t* sip, tagi_t tags[]);
     void guessVia(char *address_url, int port, bool is_tcp);
 private:
     int guessInterfaceAddress(int type, char *address, int size);
-    void _authenticate(Sipe2eContex* ssc, Sipe2eOperation* op,
+    void _authenticate(Sipe2eContext* ssc, Sipe2eOperation* op,
             const char* scheme, const char* realm);
 
 };

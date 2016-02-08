@@ -328,7 +328,7 @@ IStatus IMSTransport::Init()
     /**
      * Start a timer for heartbeat OPTIONS
      */
-    timerHeartBeat->Start();
+    timerHeartBeat->Start(); // Should Start the heartbeat timer after successful regitration
     HeartBeatTimerAlarmListener* heartBeatTimerAlarmer = new HeartBeatTimerAlarmListener();
     alarmTime = /*gwConsts::SIPSTACK_HEARTBEAT_INTERVAL*/100;
     Alarm heartBeatAlarm(alarmTime, heartBeatTimerAlarmer, this, gwConsts::SIPSTACK_HEARTBEAT_INTERVAL);
@@ -915,9 +915,9 @@ void IMSTransport::HeartBeatTimerAlarmListener::AlarmTriggered(const qcc::Alarm&
     if (!ims) {
         return;
     }
-    // If the scscf is not present which means REGISTER is not successful, should retry to REGISTER
+    // If the scscf is not present which means REGISTER is not successful, should wait for success of registration
     if (ims->scscf.empty()) {
-        ims->regCmdQueue.Enqueue(ims->regExpires);
+//         ims->regCmdQueue.Enqueue(ims->regExpires);
         restartOpSession = true;
         return;
     }

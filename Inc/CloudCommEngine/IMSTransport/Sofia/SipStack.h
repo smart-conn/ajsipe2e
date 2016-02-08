@@ -20,14 +20,14 @@
 #include "SipCommon.h"
 
 class SipCallback;
-class Sipe2eContex;
+class Sipe2eContext;
 
 class SOFIA_IMS_EXPORT_FUN SipStack
 {
 public:
     static SipStack* makeInstance(SipCallback* pCallback, const char* realm_uri, const char* impi_uri, const char* impu_uri, int local_port);
     static SipStack* getInstance();
-    Sipe2eContex* getContext() const;
+    Sipe2eContext* getContext() const;
 public:
     bool initialize();
     bool deInitialize();
@@ -45,7 +45,7 @@ private:
     SipStack();
     ~SipStack();
 //    SipCallback* m_pCallback;
-    Sipe2eContex* m_pContext;
+    Sipe2eContext* m_pContext;
     bool g_bInitialized;
 };
 

@@ -69,7 +69,7 @@ void Sipe2eSofiaHelper::guessVia(char *address_url, int port, bool is_tcp)
     sprintf(address_url, "sip:%s:%d;transport=%s", address, port,
             is_tcp ? "tcp" : "udp");
 }
-Sipe2eOperation* Sipe2eSofiaHelper::createOperation(Sipe2eContex* ssc,
+Sipe2eOperation* Sipe2eSofiaHelper::createOperation(Sipe2eContext* ssc,
         sip_method_t method, const char* name, tag_type_t tag, tag_value_t value, ...)
 {
     Sipe2eOperation *op, *old;
@@ -99,7 +99,7 @@ Sipe2eOperation* Sipe2eSofiaHelper::createOperation(Sipe2eContex* ssc,
     return op;
 }
 
-Sipe2eOperation* Sipe2eSofiaHelper::createOperationWithHandle(Sipe2eContex* ssc,
+Sipe2eOperation* Sipe2eSofiaHelper::createOperationWithHandle(Sipe2eContext* ssc,
         sip_method_t method, const char* name, nua_handle_t* nh)
 {
     Sipe2eOperation* op;
@@ -111,13 +111,13 @@ Sipe2eOperation* Sipe2eSofiaHelper::createOperationWithHandle(Sipe2eContex* ssc,
     return op;
 }
 
-void Sipe2eSofiaHelper::deleteOperation(Sipe2eContex* ssc, Sipe2eOperation* op) {
+void Sipe2eSofiaHelper::deleteOperation(Sipe2eContext* ssc, Sipe2eOperation* op) {
 	if (op) {
 		su_free(ssc->sip_home, op);
 	}
 }
 
-void Sipe2eSofiaHelper::_authenticate(Sipe2eContex* ssc, Sipe2eOperation* op,
+void Sipe2eSofiaHelper::_authenticate(Sipe2eContext* ssc, Sipe2eOperation* op,
         const char* scheme, const char* realm)
 {
     auto& profile = ssc->profile;
@@ -129,7 +129,7 @@ void Sipe2eSofiaHelper::_authenticate(Sipe2eContex* ssc, Sipe2eOperation* op,
     nua_authenticate(op->op_handle, NUTAG_AUTH(authstring), TAG_END());
 }
 
-void Sipe2eSofiaHelper::authenticate(Sipe2eContex* ssc, Sipe2eOperation* op,
+void Sipe2eSofiaHelper::authenticate(Sipe2eContext* ssc, Sipe2eOperation* op,
         const sip_t* sip, tagi_t* tags)
 {
     su_home_t* home = ssc->sip_home;
@@ -146,8 +146,8 @@ void Sipe2eSofiaHelper::authenticate(Sipe2eContex* ssc, Sipe2eOperation* op,
     }
     if (pa) {
         sl_header_print(stdout, "Proxy auth: %s\n", (sip_header_t *) pa);
-        const char *realm = msg_params_find(wa->au_params, "realm=");
-        _authenticate(ssc, op, wa->au_scheme, realm);
+        const char *realm = msg_params_find(pa->au_params, "realm=");
+        _authenticate(ssc, op, pa->au_scheme, realm);
     }
 }
 
@@ -174,7 +174,7 @@ class MyTest
     struct TestContext
     {
         SipStack* stack;
-        Sipe2eContex* context;
+        Sipe2eContext* context;
         RegistrationSession* pRegistrationSession;
         OptionsSession* pOptionsSession;
         MessagingSession* pMessagingSession;
@@ -215,14 +215,14 @@ private:
             test.context = test.stack->getContext();
         } else if (step == 10) {       // 1 second
             test.pRegistrationSession = new RegistrationSession(test.stack);
-            Sipe2eContex* ctx = test.stack->getContext();
+            Sipe2eContext* ctx = test.stack->getContext();
             char registrar[BUFFER_SIZE_B];
             sprintf(registrar, "%s:%s", "sip", ctx->profile.realm);
             test.pRegistrationSession->setToUri(registrar);
             test.pRegistrationSession->register_();
         } else if (step == 30) {
             test.pOptionsSession = new OptionsSession(test.stack);
-            Sipe2eContex* ctx = test.stack->getContext();
+            Sipe2eContext* ctx = test.stack->getContext();
             char registrar[BUFFER_SIZE_B];
             sprintf(registrar, "%s:%s", "sip", ctx->profile.realm);
             test.pOptionsSession->setToUri(registrar);
@@ -347,7 +347,7 @@ private:
     bool init_loop()
     {
         SipStack* s = SipStack::getInstance();
-        Sipe2eContex* ctx = s->getContext();
+        Sipe2eContext* ctx = s->getContext();
         g_timeout_add(100, one_run, this);
         return true;
     }
@@ -366,13 +366,13 @@ private:
     void run()
     {
         SipStack* s = SipStack::getInstance();
-        Sipe2eContex* ctx = s->getContext();
+        Sipe2eContext* ctx = s->getContext();
         g_main_loop_run(ctx->loop);
     }
     void deinit()
     {
         SipStack* s = SipStack::getInstance();
-        Sipe2eContex* ctx = s->getContext();
+        Sipe2eContext* ctx = s->getContext();
         g_main_loop_unref(ctx->loop);
         s->deInitialize();
     }

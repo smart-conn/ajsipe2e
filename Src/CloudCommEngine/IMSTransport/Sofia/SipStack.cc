@@ -39,7 +39,7 @@ SipStack* SipStack::makeInstance(SipCallback* pCallback, const char* realm_uri,
     SipStack* s = getInstance();
 
 //    s->m_pCallback = pCallback;
-    s->m_pContext = new Sipe2eContex();
+    s->m_pContext = new Sipe2eContext();
     s->m_pContext->sip_callback = pCallback;
     if (realm_uri) {
         strcpy(s->m_pContext->profile.realm, realm_uri);
@@ -61,7 +61,7 @@ SipStack* SipStack::getInstance()
 }
 
 static void sipstack_callback(nua_event_t event, int status, const char* phrase,
-        nua_t* nua, Sipe2eContex* ssc, nua_handle_t* nh, Sipe2eOperation* op,
+        nua_t* nua, Sipe2eContext* ssc, nua_handle_t* nh, Sipe2eOperation* op,
         const sip_t* sip, tagi_t tags[])
 {
     Sipe2eSofiaHelper sh;
@@ -70,7 +70,7 @@ static void sipstack_callback(nua_event_t event, int status, const char* phrase,
 
 bool SipStack::initialize()
 {
-    Sipe2eContex* ctx = m_pContext;
+    Sipe2eContext* ctx = m_pContext;
     ctx[0].sip_home[0].suh_size = (sizeof ctx);
     su_init();
     su_home_init(ctx->sip_home);
@@ -94,6 +94,7 @@ bool SipStack::initialize()
         nua_set_params(ctx->sip_nua, NUTAG_INITIAL_ROUTE_STR(route),
                 NUTAG_SERVICE_ROUTE_ENABLE(1),
                 TAG_END());
+		ctx->status = 0;
         g_bInitialized = true;
     }
     return g_bInitialized;
@@ -101,7 +102,7 @@ bool SipStack::initialize()
 
 bool SipStack::deInitialize()
 {
-    Sipe2eContex* ctx = m_pContext;
+    Sipe2eContext* ctx = m_pContext;
     if (ctx->sip_root != nullptr) {
         GSource *source = su_glib_root_gsource(ctx->sip_root);
         g_source_unref(source);
@@ -131,7 +132,7 @@ bool SipStack::start()
 bool SipStack::stop()
 {
     if (isValid()) {
-        Sipe2eContex* ctx = this->m_pContext;
+        Sipe2eContext* ctx = this->m_pContext;
         nua_shutdown(ctx->sip_nua);
         g_main_loop_quit((GMainLoop*) ctx->loop);
     }
@@ -174,14 +175,14 @@ bool SipStack::setPassword(const char* password)
 bool SipStack::setProxyCSCF(const char* fqdn, unsigned short port,
         const char* transport, const char* ipversion)
 {
-    Sipe2eContex* ctx = m_pContext;
+    Sipe2eContext* ctx = m_pContext;
     ctx->profile.is_tcp = (strcmp("tcp", transport) == 0);
     sprintf(ctx->profile.pcscf, "%s:%u", fqdn, port);
     sipe2e_log("%s\n", ctx->profile.pcscf);
     return true;
 }
 
-Sipe2eContex* SipStack::getContext() const
+Sipe2eContext* SipStack::getContext() const
 {
     return m_pContext;
 }

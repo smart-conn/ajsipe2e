@@ -57,8 +57,8 @@ public:
     }
 };
 
-SipMessage::SipMessage(const sip_t* _msg) :
-        msg(_msg)
+SipMessage::SipMessage(Sipe2eContext* _ssc, const sip_t* _msg) :
+        ssc(_ssc), msg(_msg)
 {
 }
 
@@ -101,7 +101,11 @@ char* SipMessage::getSipHeaderValue(const char* name, unsigned index /*= 0*/)
         if (msg->sip_to) {
             return (char*) msg->sip_to->a_common->h_data; // always nullptr
         }
-    }
+    } else if (strcmp(name, "Service-Route") == 0) {
+		if (msg->sip_service_route) {
+			return url_as_string(ssc->sip_home, msg->sip_service_route->r_url);
+		}
+	}
     return nullptr;
 }
 

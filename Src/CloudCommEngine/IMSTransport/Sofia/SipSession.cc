@@ -135,7 +135,7 @@ bool MessagingSession::send(const char* payload)
     if (!payload) {
         return false;
     }
-    Sipe2eContex* ctx = m_pStack->getContext();
+    Sipe2eContext* ctx = m_pStack->getContext();
     sip_payload_t *pl = sip_payload_format(ctx->sip_home, "%s", payload);
     if (!m_pOperation) {
         Sipe2eSofiaHelper sh;
@@ -179,7 +179,7 @@ OptionsSession::~OptionsSession()
 bool OptionsSession::send()
 {
     if (!m_pOperation) {
-        Sipe2eContex* ctx = m_pStack->getContext();
+        Sipe2eContext* ctx = m_pStack->getContext();
         Sipe2eSofiaHelper sh;
         m_pOperation = sh.createOperation(ctx, SIP_METHOD_OPTIONS,
         TAG_END());
@@ -243,7 +243,7 @@ bool PublicationSession::publish(const char* payload)
                     "  </tuple>\r\n"
                     "</presence>\r\n";
     bool open = true;
-    Sipe2eContex* ctx = m_pStack->getContext();
+    Sipe2eContext* ctx = m_pStack->getContext();
     sip_payload_t *pl = sip_payload_format(ctx->sip_home, fmt,
             ctx->profile.impu, open ? "open" : "closed", payload);
     if (!m_pOperation) {
@@ -260,7 +260,7 @@ bool PublicationSession::publish(const char* payload)
 bool PublicationSession::unPublish()
 {
     if (!m_pOperation) {
-        Sipe2eContex* ctx = m_pStack->getContext();
+        Sipe2eContext* ctx = m_pStack->getContext();
         Sipe2eSofiaHelper sh;
         m_pOperation = sh.createOperation(ctx, SIP_METHOD_PUBLISH,
                 TAG_END());

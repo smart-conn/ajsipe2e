@@ -1,3 +1,4 @@
+<<<<<<< cbe728b41a0571082e8b085c9488601013d1d889
 gateway_sw contains two VS sub projects:
 1. CloudCommEngine
 2. IMSTransport
@@ -6,3 +7,74 @@ TODOs
 1. Currently the IMSTransport depends on Doubango and this dependency will be removed before the release.
 2. Will use scons to add the build option on other platforms like Linux.
 3. Will modify the connector to be compatible with the gateway agent framework.
+=======
+AllJoyn SIP E2E Connector
+
+==================================================================================
+
+Currently we only support the build on Windows. To build the code, please open the 
+solution Test\VS\gateway_sw_vs\gateway_sw_vs.sln in Visual Studio 2012 and you will 
+see three projects as below.
+(1) CloudCommEngine: this generates CloudCommEngine.exe which is the main program 
+of the SIP E2E connector.
+(2) IMSTransport: this generates IMSTransport.dll which is used by CloudCommEngine
+to communicate with the IMS client.
+(3) sofia_IMS: this generates sofia_IMS.dll which is essentially the IMS client.
+Note that since the SIP E2E connector code is developed based on AllJoyn core 
+v15.04 which doesn't support the build option of Visual Studio 2015, building the 
+solution won't work in Visual Studio 2015. 
+
+==================================================================================
+
+Before building the code in Visual Studio 2012, you need to finish the steps 
+as below.
+
+1. Follow the instructions given in 
+https://wiki.allseenalliance.org/develop/downloading_the_source to download 
+the AllJoyn core source code including core and base services. 
+(1) Run the following two commands for each git repository to switch the 
+version to 15.04.
+    set VER="v15.04"
+    git -C core/alljoyn checkout -b %VER% origin/RB15.04
+(2) Define the environment variable "ALLJOYN_SRC_1504_HOME" as the folder 
+where you keep the AllJoyn source code.
+
+2. Follow the instructions given in 
+https://allseenalliance.org/framework/documentation/develop/building/windows/build-source
+to build AllJoyn core, control panel service, and notification service. Please 
+set "CPU=x86" when you build the AllJoyn code. For Visual Studio 2012, the scons 
+command is as follows:
+    scons OS=win7 CPU=x86 MSVC_VERSION=11.0 BINDINGS=cpp 
+You may need to append the optional parameter "WS=off" to the end if you hit any 
+build error related to white spaces.
+   
+3. Unzip Ref\glib\glib-dev_2.28.8-1_win32.zip, Ref\iconv\iconv-1.9.2.win32.zip, and 
+Ref\sofia\sofia-sip-1.12.11.tar.gz to three different folders.
+
+4. Define the following three environment variables.
+    GLIB_HOME = <full path to the glib folder>
+    ICONV_HOME = <full path to the iconv folder>
+    SOFIA_SIP_HOME = <full path to the sofia folder>
+
+5. Copy Ref\sofia\libsofia_sip_ua.vcxproj to %SOFIA_SIP_HOME%\win32\libsofia-sip-ua 
+and overwrite the existing vcxproj file. We have made the following changes on top 
+of the existing libsofia_sip_ua.vcxproj:
+(1) Add su_source.c to the project libsofia_sip_ua.
+(2) Disable warning 4701, 4189
+(3) Add two include paths: 
+    $(GLIB_HOME)\include\glib-2.0; 
+    $(GLIB_HOME)\lib\glib-2.0\include
+(4) Add one library path $(GLIB_HOME)\lib and one library glib-2.0.lib.
+
+6. Copy Ref\sofia\su_configure.h to %SOFIA_SIP_HOME%\win32\sofia-sip and overwrite 
+the existing header. In the new su_configure.h, we enable the macro SU_HAVE_STDINT 
+and disable the macros already defined in su_types.h.
+
+7. Open the solution %SOFIA_SIP_HOME%\win32\SofiaSIP.sln and build the project 
+libsofia_sip_ua to generate libsofia_sip_ua.dll.
+   
+==================================================================================
+
+If you need more info or have any question, please visit the project wiki page 
+https://wiki.allseenalliance.org/gateway/sip or send an email to renwei@nane.cn.
+>>>>>>> Fix the build issues on Windows for the second AllSeen commit.

@@ -36,10 +36,10 @@
     <ClCompile Include="..\..\..\..\Src\CloudCommEngine\CloudServiceAgentBusObject.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\AllSeen Alliance\v15.04\source\services\base\sample_apps\cpp\samples_common\AboutObjApi.cc">
+    <ClCompile Include="..\..\..\..\Src\Common\AboutObjApi.cc">
       <Filter>Source Files\samples_common</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\AllSeen Alliance\v15.04\source\services\base\sample_apps\cpp\samples_common\AJInitializer.cc">
+    <ClCompile Include="..\..\..\..\Src\Common\AJInitializer.cc">
       <Filter>Source Files\samples_common</Filter>
     </ClCompile>
   </ItemGroup>

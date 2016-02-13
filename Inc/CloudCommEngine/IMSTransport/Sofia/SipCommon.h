@@ -14,8 +14,8 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#pragma once
-
+#ifndef SIPCOMMON_H__
+#define SIPCOMMON_H__
 
 #include <cstdio>
 #include <cstdlib>
@@ -60,5 +60,7 @@ using std::shared_ptr;
 #else
 
 #define SOFIA_IMS_EXPORT_FUN
+
+#endif
 
 #endif

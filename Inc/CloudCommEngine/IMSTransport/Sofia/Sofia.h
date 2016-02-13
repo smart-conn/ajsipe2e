@@ -23,12 +23,12 @@
  *
  * */
 
-#pragma once
+#ifndef SOFIA_H__
+#define SOFIA_H__
 
 #include "SipCommon.h"
-// the 3 magic need to be defined before the sofia-sip include.
-#define NUA_MAGIC_T   class Sipe2eContex
-#define NUA_IMAGIC_T  class Sipe2eOperation
+// The 2 macros need to be defined before the sofia-sip include.
+#define NUA_MAGIC_T   class Sipe2eContext
 #define NUA_HMAGIC_T  class Sipe2eOperation
 #include <sofia-sip/sip_header.h>
 #include <sofia-sip/su_tagarg.h>
@@ -121,3 +121,5 @@ private:
 
 // for test only
 int __sofia_main__(int argc, char *argv[]);
+
+#endif

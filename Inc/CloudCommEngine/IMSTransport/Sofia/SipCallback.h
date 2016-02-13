@@ -17,6 +17,7 @@
 #ifndef SIPCALLBACK_H__
 #define SIPCALLBACK_H__
 
+#include "Sofia.h"
 #include "SipCommon.h"
 #include <sofia-sip/nua.h>
 

@@ -87,35 +87,16 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;UNICODE;_UNICODE;ROUTER;QCC_OS_GROUP_WINDOWS;WIN32_LEAN_AND_MEAN;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SRC_1504_HOME_CPP_DBG_INC_X86);$(ALLJOYN_SRC_1504_HOME_CPP_DBG_INC_X86)\alljoyn;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\alljoyn_core\src;$(ALLJOYN_SRC_1504_HOME)\services\base\controlpanel\cpp\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\controlpanel\cpp\src;$(ALLJOYN_SRC_1504_HOME)\services\base\notification\cpp\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\notification\cpp\src;$(ALLJOYN_SRC_1504_HOME)\services\base\sample_apps\cpp\samples_common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\build\win7\x86\debug\dist\cpp\inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\build\win7\x86\debug\dist\cpp\inc\alljoyn;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\alljoyn_core\src;$(ALLJOYN_SRC_1504_HOME)\services\base\controlpanel\cpp\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\controlpanel\cpp\src;$(ALLJOYN_SRC_1504_HOME)\services\base\notification\cpp\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\notification\cpp\src;$(ALLJOYN_SRC_1504_HOME)\services\base\sample_apps\cpp\samples_common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/vmm /vmg %(AdditionalOptions)</AdditionalOptions>
       <CallingConvention>StdCall</CallingConvention>
       <CompileAs>Default</CompileAs>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ALLJOYN_SRC_1504_HOME_CPP_DBG_LIB_X86);$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>alljoyn.lib;ajrouter.lib;alljoyn_about.lib;ws2_32.lib;Secur32.lib;crypt32.lib;Bcrypt.lib;Ncrypt.lib;iphlpapi.lib;IMSTransport.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <IgnoreSpecificDefaultLibraries>libcmt.lib</IgnoreSpecificDefaultLibraries>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_1504|x64'">
-    <ClCompile>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;UNICODE;_UNICODE;ROUTER;QCC_OS_GROUP_WINDOWS;WIN32_LEAN_AND_MEAN;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ALLJOYN_SDK_1504_HOME_DEBUG)\inc;$(ALLJOYN_SDK_1504_HOME_DEBUG)\inc\alljoyn;$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\alljoyn_core\src;$(ALLJOYN_SRC_1504_HOME)\services\base\controlpanel\cpp\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\controlpanel\cpp\src;$(ALLJOYN_SRC_1504_HOME)\services\base\notification\cpp\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\notification\cpp\src;$(ALLJOYN_SRC_1504_HOME)\services\base\sample_apps\cpp\samples_common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/vmm /vmg %(AdditionalOptions)</AdditionalOptions>
-      <CallingConvention>Cdecl</CallingConvention>
-      <CompileAs>Default</CompileAs>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ALLJOYN_SDK_1504_HOME_DEBUG)\lib;$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\build\win7\x86\debug\dist\cpp\lib;$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>alljoyn.lib;ajrouter.lib;alljoyn_about.lib;ws2_32.lib;Secur32.lib;crypt32.lib;Bcrypt.lib;Ncrypt.lib;iphlpapi.lib;IMSTransport.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>libcmt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
@@ -129,15 +110,17 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;UNICODE;_UNICODE;ROUTER;QCC_OS_GROUP_WINDOWS;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ALLJOYN_SDK_1504_HOME_RELEASE)\inc;$(ALLJOYN_SDK_1504_HOME_RELEASE)\inc\alljoyn;$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\alljoyn_core\src;$(ALLJOYN_SRC_1504_HOME)\services\base\controlpanel\cpp\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\controlpanel\cpp\src;$(ALLJOYN_SRC_1504_HOME)\services\base\notification\cpp\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\notification\cpp\src;$(ALLJOYN_SRC_1504_HOME)\services\base\sample_apps\cpp\samples_common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\build\win7\x86\release\dist\cpp\inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\build\win7\x86\release\dist\cpp\inc\alljoyn;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\alljoyn_core\src;$(ALLJOYN_SRC_1504_HOME)\services\base\controlpanel\cpp\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\controlpanel\cpp\src;$(ALLJOYN_SRC_1504_HOME)\services\base\notification\cpp\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\notification\cpp\src;$(ALLJOYN_SRC_1504_HOME)\services\base\sample_apps\cpp\samples_common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/vmm /vmg %(AdditionalOptions)</AdditionalOptions>
+      <CallingConvention>StdCall</CallingConvention>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(ALLJOYN_SDK_1504_HOME_RELEASE)\lib;$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\build\win7\x86\release\dist\cpp\lib;$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>alljoyn.lib;ajrouter.lib;alljoyn_about.lib;ws2_32.lib;Secur32.lib;crypt32.lib;Bcrypt.lib;Ncrypt.lib;iphlpapi.lib;IMSTransport.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>

@@ -85,13 +85,13 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;QCC_OS_GROUP_WINDOWS;_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;SIPE2E_GATEWAY_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SDK_1504_HOME_DEBUG)\inc;$(ALLJOYN_SDK_1504_HOME_DEBUG)\inc\alljoyn;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\sample_apps\cpp\samples_common;$(SOFIA_SIP_HOME)\libsofia-sip-ua\sip;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nua;$(SOFIA_SIP_HOME)\libsofia-sip-ua-glib\su-glib;$(SOFIA_SIP_HOME)\libsofia-sip-ua\msg;$(SOFIA_SIP_HOME)\libsofia-sip-ua\su;$(SOFIA_SIP_HOME)\win32;$(SOFIA_SIP_HOME)\libsofia-sip-ua\url;$(SOFIA_SIP_HOME)\libsofia-sip-ua\sdp;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nta;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nea;$(SOFIA_SIP_HOME)\libsofia-sip-ua\soa;$(SOFIA_SIP_HOME)\libsofia-sip-ua\iptsec;$(SOFIA_SIP_HOME)\libsofia-sip-ua\tport;$(SOFIA_SIP_HOME)\win32\pthread;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\build\win7\x86\debug\dist\cpp\inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\build\win7\x86\debug\dist\cpp\inc\alljoyn;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\sample_apps\cpp\samples_common;$(GLIB_HOME)\include\glib-2.0;$(GLIB_HOME)\lib\glib-2.0\include;$(SOFIA_SIP_HOME)\libsofia-sip-ua\sip;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nua;$(SOFIA_SIP_HOME)\libsofia-sip-ua-glib\su-glib;$(SOFIA_SIP_HOME)\libsofia-sip-ua\msg;$(SOFIA_SIP_HOME)\libsofia-sip-ua\su;$(SOFIA_SIP_HOME)\win32;$(SOFIA_SIP_HOME)\libsofia-sip-ua\url;$(SOFIA_SIP_HOME)\libsofia-sip-ua\sdp;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nta;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nea;$(SOFIA_SIP_HOME)\libsofia-sip-ua\soa;$(SOFIA_SIP_HOME)\libsofia-sip-ua\iptsec;$(SOFIA_SIP_HOME)\libsofia-sip-ua\tport;$(SOFIA_SIP_HOME)\win32\pthread;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)\$(Configuration);$(ALLJOYN_SDK_1504_HOME_DEBUG)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)\$(Configuration);$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\build\win7\x86\debug\dist\cpp\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>sofia_IMS.lib;alljoyn.lib;ws2_32.lib;Secur32.lib;crypt32.lib;Bcrypt.lib;Ncrypt.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -104,14 +104,14 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;QCC_OS_GROUP_WINDOWS;WIN32_LEAN_AND_MEAN;SIPE2E_GATEWAY_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Inc;$(ALLJOYN_SDK_1504_HOME_RELEASE)\inc;$(ALLJOYN_SDK_1504_HOME_RELEASE)\inc\alljoyn;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\sample_apps\cpp\samples_common;$(SOFIA_SIP_HOME)\libsofia-sip-ua\sip;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nua;$(SOFIA_SIP_HOME)\libsofia-sip-ua-glib\su-glib;$(SOFIA_SIP_HOME)\libsofia-sip-ua\msg;$(SOFIA_SIP_HOME)\libsofia-sip-ua\su;$(SOFIA_SIP_HOME)\win32;$(SOFIA_SIP_HOME)\libsofia-sip-ua\url;$(SOFIA_SIP_HOME)\libsofia-sip-ua\sdp;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nta;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nea;$(SOFIA_SIP_HOME)\libsofia-sip-ua\soa;$(SOFIA_SIP_HOME)\libsofia-sip-ua\iptsec;$(SOFIA_SIP_HOME)\libsofia-sip-ua\tport;$(SOFIA_SIP_HOME)\win32\pthread;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Inc;$(GLIB_HOME)\include\glib-2.0;$(GLIB_HOME)\lib\glib-2.0\include;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\build\win7\x86\release\dist\cpp\inc;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\build\win7\x86\release\dist\cpp\inc\alljoyn;$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\common\inc;$(ALLJOYN_SRC_1504_HOME)\services\base\sample_apps\cpp\samples_common;$(SOFIA_SIP_HOME)\libsofia-sip-ua\sip;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nua;$(SOFIA_SIP_HOME)\libsofia-sip-ua-glib\su-glib;$(SOFIA_SIP_HOME)\libsofia-sip-ua\msg;$(SOFIA_SIP_HOME)\libsofia-sip-ua\su;$(SOFIA_SIP_HOME)\win32;$(SOFIA_SIP_HOME)\libsofia-sip-ua\url;$(SOFIA_SIP_HOME)\libsofia-sip-ua\sdp;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nta;$(SOFIA_SIP_HOME)\libsofia-sip-ua\nea;$(SOFIA_SIP_HOME)\libsofia-sip-ua\soa;$(SOFIA_SIP_HOME)\libsofia-sip-ua\iptsec;$(SOFIA_SIP_HOME)\libsofia-sip-ua\tport;$(SOFIA_SIP_HOME)\win32\pthread;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(SolutionDir)\$(Configuration);$(ALLJOYN_SDK_1504_HOME_RELEASE)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)\$(Configuration);$(ALLJOYN_SRC_1504_HOME)\core\alljoyn\build\win7\x86\release\dist\cpp\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>sofia_IMS.lib;alljoyn.lib;ws2_32.lib;Secur32.lib;crypt32.lib;Bcrypt.lib;Ncrypt.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -120,6 +120,7 @@
     <ClCompile Include="..\..\..\..\Src\CloudCommEngine\IMSTransport\IMSTransportExport.cc" />
     <ClCompile Include="..\..\..\..\Src\CloudCommEngine\IMSTransport\IMSTransportSipCallback.cc" />
     <ClCompile Include="..\..\..\..\Src\CloudCommEngine\IMSTransport\pidf.cc" />
+    <ClCompile Include="..\..\..\..\Src\Common\AJInitializer.cc" />
     <ClCompile Include="..\..\..\..\Src\Common\CommonUtils.cc" />
     <ClCompile Include="..\..\..\..\Src\Common\AJInitializer.cc" />
     <ClCompile Include="..\..\..\..\Src\Common\GuidUtil.cc" />

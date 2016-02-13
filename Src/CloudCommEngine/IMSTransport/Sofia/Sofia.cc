@@ -72,7 +72,7 @@ void Sipe2eSofiaHelper::guessVia(char *address_url, int port, bool is_tcp)
 Sipe2eOperation* Sipe2eSofiaHelper::createOperation(Sipe2eContext* ssc,
         sip_method_t method, const char* name, tag_type_t tag, tag_value_t value, ...)
 {
-    Sipe2eOperation *op, *old;
+    Sipe2eOperation *op;
     ta_list ta;
 /*
     sip_to_t *to;
@@ -204,7 +204,7 @@ private:
         static int step = 0;
         sipe2e_log("loop called %d times\n", step);
         MyTest* _this = (MyTest*) data;
-        bool r = _this->run_step(step);
+        gboolean r = _this->run_step(step);
         step++;
         return r;
     }

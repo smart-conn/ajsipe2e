@@ -36,11 +36,11 @@
     <ClCompile Include="..\..\..\..\Src\Common\sha256.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\AllSeen Alliance\v15.04\source\services\base\sample_apps\cpp\samples_common\AJInitializer.cc">
-      <Filter>Source Files\samples_common</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\Src\Common\CommonUtils.cc">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Src\Common\AJInitializer.cc">
+      <Filter>Source Files\samples_common</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -230,8 +230,7 @@ public:
             Sipe2eContext* ssc, nua_handle_t* nh, Sipe2eOperation* op,
             const sip_t* sip, tagi_t tags[])
     {
-        sip_contact_t* m;
-		// if the status is 200OK, then just ignore it and pass it to upper layer
+        // if the status is 200OK, then just ignore it and pass it to upper layer
         if (status <= 200)
             return;
 

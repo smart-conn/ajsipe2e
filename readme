@@ -69,5 +69,16 @@ libsofia_sip_ua to generate libsofia_sip_ua.dll.
    
 ==================================================================================
 
+To run the main program CloudCommEngine.exe on Windows, please copy the following 
+files to the folder where CloudCommEngine.exe is located.
+(1) For debug: %SOFIA_SIP_HOME%\win32\libsofia-sip-ua\Debug\libsofia_sip_ua.dll; 
+    For release: %SOFIA_SIP_HOME%\win32\libsofia-sip-ua\Release\libsofia_sip_ua.dll.
+(2) Ref\glib\glib_2.28.8-1_win32.zip\bin\libglib-2.0-0.dll.
+(3) Ref\intl\gettext-runtime-0.13.1.bin.woe32.zip\bin\intl.dll.
+(4) %SOFIA_SIP_HOME%\win32\pthread\pthreadVC2.dll.
+(5) %ICONV_HOME%\bin\iconv.dll.
+
+==================================================================================
+
 If you need more info or have any question, please visit the project wiki page 
 https://wiki.allseenalliance.org/gateway/sip or send an email to renwei@nane.cn.

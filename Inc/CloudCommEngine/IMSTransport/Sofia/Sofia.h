@@ -28,8 +28,8 @@
 
 #include "SipCommon.h"
 // The 2 macros need to be defined before the sofia-sip include.
-#define NUA_MAGIC_T   class Sipe2eContext
-#define NUA_HMAGIC_T  class Sipe2eOperation
+#define NUA_MAGIC_T   class SipE2eContext
+#define NUA_HMAGIC_T  class SipE2eOperation
 #include <sofia-sip/sip_header.h>
 #include <sofia-sip/su_tagarg.h>
 #include <sofia-sip/su_glib.h>
@@ -37,7 +37,7 @@
 #include <sofia-sip/nua.h>
 #include <sofia-sip/nua_tag.h>
 
-class Sipe2eUserProfile
+class SipE2eUserProfile
 {
 public:
     char name[BUFFER_SIZE_B];
@@ -48,14 +48,14 @@ public:
     char password[BUFFER_SIZE_B];
     bool is_tcp;
     int local_port;
-    Sipe2eUserProfile() : local_port(5060), is_tcp(false)
+    SipE2eUserProfile() : local_port(5060), is_tcp(false)
     {
         name[0] = impu[0] = impi[0] = //
                 pcscf[0] = realm[0] = password[0] = '\0';
     }
 };
 
-class Sipe2eContext
+class SipE2eContext
 {
 public:
     su_home_t sip_home[1]; /* memory home */
@@ -63,58 +63,58 @@ public:
     nua_t *sip_nua; /* NUA stack object */
     class SipCallback* sip_callback;
     GMainLoop *loop;
-    Sipe2eUserProfile profile;
+    SipE2eUserProfile profile;
 	int status;
 };
 
-class Sipe2eOperation
+class SipE2eOperation
 {
 public:
-    Sipe2eContext *op_ssc;
+    SipE2eContext *op_ssc;
     nua_handle_t *op_handle;
 };
 
-class Sipe2eSofiaEvent
+class SipE2eSofiaEvent
 {
 public:
     nua_event_t event;
     int status;
     const char* phrase;
     nua_t* nua;
-    Sipe2eContext* ssc;
+    SipE2eContext* ssc;
     nua_handle_t* nh;
-    Sipe2eOperation* op;
+    SipE2eOperation* op;
     const sip_t* sip;
     tagi_t* tags;
-    Sipe2eSofiaEvent(nua_event_t event, int status, const char* phrase,
-            nua_t* nua, Sipe2eContext* ssc, nua_handle_t* nh,
-            Sipe2eOperation* op, const sip_t* sip, tagi_t tags[]) :
+    SipE2eSofiaEvent(nua_event_t event, int status, const char* phrase,
+            nua_t* nua, SipE2eContext* ssc, nua_handle_t* nh,
+            SipE2eOperation* op, const sip_t* sip, tagi_t tags[]) :
             event(event), status(status), phrase(phrase), nua(nua), ssc(ssc), nh(
                     nh), op(op), sip(sip), tags(tags)
     {
     }
 };
 
-class Sipe2eSofiaHelper
+class SipE2eSofiaHelper
 {
 public:
-    Sipe2eOperation* createOperation(Sipe2eContext* ssc, sip_method_t method, const char* name,
+    SipE2eOperation* createOperation(SipE2eContext* ssc, sip_method_t method, const char* name,
             tag_type_t tag, tag_value_t value, ...);
 
-    Sipe2eOperation* createOperationWithHandle(Sipe2eContext* ssc, sip_method_t method, const char* name,
+    SipE2eOperation* createOperationWithHandle(SipE2eContext* ssc, sip_method_t method, const char* name,
 		nua_handle_t* nh);
 
-	void deleteOperation(Sipe2eContext* ssc, Sipe2eOperation* op);
+	void deleteOperation(SipE2eContext* ssc, SipE2eOperation* op);
 
-    void authenticate(Sipe2eContext* ssc, Sipe2eOperation* op, const sip_t* sip,
+    void authenticate(SipE2eContext* ssc, SipE2eOperation* op, const sip_t* sip,
             tagi_t* tags);
     void dispatchEvent(nua_event_t event, int status, const char* phrase,
-            nua_t* nua, Sipe2eContext* ssc, nua_handle_t* nh,
-            Sipe2eOperation* op, const sip_t* sip, tagi_t tags[]);
+            nua_t* nua, SipE2eContext* ssc, nua_handle_t* nh,
+            SipE2eOperation* op, const sip_t* sip, tagi_t tags[]);
     void guessVia(char *address_url, int port, bool is_tcp);
 private:
     int guessInterfaceAddress(int type, char *address, int size);
-    void _authenticate(Sipe2eContext* ssc, Sipe2eOperation* op,
+    void _authenticate(SipE2eContext* ssc, SipE2eOperation* op,
             const char* scheme, const char* realm);
 
 };

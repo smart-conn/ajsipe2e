@@ -18,12 +18,9 @@
 #define SIPSESSION_H__
 
 #include "SipCommon.h"
+#include "Sofia.h"
+#include "SipStack.h"
 
-struct nua_handle_s;
-typedef struct nua_handle_s nua_handle_t;
-
-class SipStack;
-class Sipe2eOperation;
 
 class SOFIA_IMS_EXPORT_FUN SipSession
 {
@@ -42,7 +39,7 @@ public:
 
 protected:
     const SipStack* m_pStack;
-    Sipe2eOperation* m_pOperation;
+    SipE2eOperation* m_pOperation;
 };
 
 class SOFIA_IMS_EXPORT_FUN MessagingSession : public SipSession

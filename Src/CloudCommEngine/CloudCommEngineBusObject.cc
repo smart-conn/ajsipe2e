@@ -47,55 +47,6 @@ namespace gateway {
 
 using namespace gwConsts;
 
-typedef struct _CloudMethodCallThreadArg
-{
-    gwConsts::customheader::RPC_MSG_TYPE_ENUM callType;
-    MsgArg* inArgs;
-    uint32_t inArgsNum;
-    String peer;
-    String calledAddr;
-    CloudServiceAgentBusObject* agent;
-    Message msg;
-    CloudCommEngineBusObject* owner;
-    _CloudMethodCallThreadArg(Message _msg)
-        : callType(gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL),
-        inArgs(NULL), inArgsNum(0),
-        agent(NULL), msg(_msg),
-        owner(NULL)
-    {
-
-    }
-    ~_CloudMethodCallThreadArg()
-    {
-        if (inArgs) {
-            delete[] inArgs;
-            inArgs = NULL;
-        }
-    }
-} CloudMethodCallThreadArg;
-
-typedef struct _LocalMethodCallThreadArg {
-    gwConsts::customheader::RPC_MSG_TYPE_ENUM msgType;
-    MsgArg* inArgs;
-    size_t inArgsNum;
-    String addr;
-    String cloudSessionId;
-    String peer;
-    CloudCommEngineBusObject* owner;
-    _LocalMethodCallThreadArg()
-        : inArgs(NULL), inArgsNum(0), owner(NULL)
-    {
-
-    }
-    ~_LocalMethodCallThreadArg() 
-    {
-        if (inArgs) {
-            delete[] inArgs;
-            inArgs = NULL;
-        }
-    }
-} LocalMethodCallThreadArg;
-
 
 CloudCommEngineBusObject::CloudCommEngineBusObject(qcc::String const& objectPath, uint32_t threadPoolSize)
     : BusObject(objectPath.c_str()),

@@ -30,7 +30,6 @@
 #include "Common/CommonUtils.h"
 #include "CloudCommEngine/CloudCommEngineBusObject.h"
 #include "CloudCommEngine/IMSTransport/IMSTransportExport.h"
-#include "CloudCommEngine/IMSTransport/IMSTransport.h"
 #include "CloudCommEngine/IMSTransport/IMSTransportConstants.h"
 
 
@@ -221,7 +220,6 @@ int CDECL_CALL main(int argc, char** argv, char** envArg)
         return -1;
     }
 
-start:
     // Initialize the IMSTransport
     while (0 != ITInitialize())
     {

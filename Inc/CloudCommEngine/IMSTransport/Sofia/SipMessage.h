@@ -18,15 +18,14 @@
 #define SIPMESSAGE_H__
 
 #include "SipCommon.h"
-
+#include "Sofia.h"
 #include <sofia-sip/sip.h>
 
-class Sipe2eContext;
 
 class SOFIA_IMS_EXPORT_FUN SipMessage
 {
 public:
-	SipMessage(Sipe2eContext* _ssc, const sip_t* _msg);;
+	SipMessage(SipE2eContext* _ssc, const sip_t* _msg);;
 	virtual ~SipMessage();
 
 	bool isValid();
@@ -46,7 +45,7 @@ public:
 	unsigned getSipContent(void* output, unsigned maxsize);
 private:
 	const sip_t* msg;
-	Sipe2eContext* ssc;
+	SipE2eContext* ssc;
 };
 
 #endif

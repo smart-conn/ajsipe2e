@@ -1,4 +1,0 @@
-Some of our dependency libraries are compiled by setting calling convention of '__cdecl', so we're using '__cdecl' in all our VS projects.
-While compiling AllJoyn Core on Windows, please replace 'alljoyn/build_core/SConscript' with the file 'SConscript' in this folder, and 'alljoyn/build_core/tools/bin/make_status.py' with the same file in this folder.
-
-And, String.cc in the AllJoyn source was modified. Static member String::Empty was initialized by a empty string. Please search 'LYH' for the modified content.

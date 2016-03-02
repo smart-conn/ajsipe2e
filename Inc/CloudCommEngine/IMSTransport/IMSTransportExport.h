@@ -19,11 +19,6 @@
 
 #include <Common/GatewayExport.h>
 
-/*
-#ifdef SIPE2E_GATEWAY_CLOUDCOMMENGINE
-#include <boost/shared_array.hpp>
-#endif
-*/
 
 #ifdef __cplusplus
 extern "C"

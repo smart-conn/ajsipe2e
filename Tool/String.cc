@@ -60,7 +60,7 @@ static bool initialized = false;
 String& emptyString = (String&)_emptyString;
 
 // const String& String::Empty = (String&)emptyString;
-const String& String::Empty(""); // modified by LYH
+const String& String::Empty(""); // modified for SIP_E2E_CONNECTOR
 
 String::ManagedCtx String::nullContext = { 0 };
 

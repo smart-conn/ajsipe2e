@@ -100,7 +100,7 @@ int IMSTransportSipCallback::OnRegistrationEvent(const RegistrationEvent* e)
 				// error occurs while trying to registering the UAC
 				// retry to register immediately
 				ims->regCmdQueue.Enqueue(ims->regExpires);
-			} else if (resCode >= 401) {
+			} else if (resCode >= 401 && resCode < 600) {
 				ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
 			} else if (resCode >= 200) {
 				// REGISTER successfully
@@ -173,7 +173,7 @@ int IMSTransportSipCallback::OnOptionsEvent(const OptionsEvent* e)
 //                 std::lock_guard<std::mutex> lock(ims->mtxHeartBeat);
                 ims->condHeartBeat.notify_one();
                 ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_REGISTERED;
-            } else if (resCode >= 400) {
+            } else if (resCode >= 400 && resCode < 600) {
                 // error occurs during HeartBeat, then re-register the UAC
                 ims->regCmdQueue.Enqueue(ims->regExpires);
                 ims->imsTransportStatus = gwConsts::IMS_TRANSPORT_STATUS_UNREGISTERED;
@@ -566,7 +566,7 @@ int IMSTransportSipCallback::OnPublicationEvent(const PublicationEvent* e)
             int resCode = e->GetStatus();
             if (resCode >= 200 && resCode < 300) {
                 ims->condUnpublish.notify_one();
-            } else if (resCode >= 400) {
+            } else if (resCode >= 400 && resCode < 600) {
                 // error occures while publishing service. Do something?
                 // In the future, the error reason should be retrieved, and if the reason
                 // is because of authorization, should re-register the whole client

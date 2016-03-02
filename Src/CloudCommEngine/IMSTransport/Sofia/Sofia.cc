@@ -29,12 +29,12 @@
 #endif
 
 #ifdef WIN32
-int Sipe2eSofiaHelper::guessInterfaceAddress(int type, char *address,
+int SipE2eSofiaHelper::guessInterfaceAddress(int type, char *address,
         int size) {
     return 0;
 }
 #else
-int Sipe2eSofiaHelper::guessInterfaceAddress(int type, char *address, int size)
+int SipE2eSofiaHelper::guessInterfaceAddress(int type, char *address, int size)
 {
     struct ifaddrs *ifp;
     struct ifaddrs *ifpstart;
@@ -62,17 +62,17 @@ int Sipe2eSofiaHelper::guessInterfaceAddress(int type, char *address, int size)
 }
 #endif
 
-void Sipe2eSofiaHelper::guessVia(char *address_url, int port, bool is_tcp)
+void SipE2eSofiaHelper::guessVia(char *address_url, int port, bool is_tcp)
 {
     char address[BUFFER_SIZE_B];
     int ec = guessInterfaceAddress(AF_INET, address, BUFFER_SIZE_B);
     sprintf(address_url, "sip:%s:%d;transport=%s", address, port,
             is_tcp ? "tcp" : "udp");
 }
-Sipe2eOperation* Sipe2eSofiaHelper::createOperation(Sipe2eContext* ssc,
+SipE2eOperation* SipE2eSofiaHelper::createOperation(SipE2eContext* ssc,
         sip_method_t method, const char* name, tag_type_t tag, tag_value_t value, ...)
 {
-    Sipe2eOperation *op;
+    SipE2eOperation *op;
     ta_list ta;
 /*
     sip_to_t *to;
@@ -81,7 +81,7 @@ Sipe2eOperation* Sipe2eSofiaHelper::createOperation(Sipe2eContext* ssc,
         return NULL;
     }
 */
-    if (!(op = (Sipe2eOperation *) su_zalloc(ssc->sip_home, sizeof(*op)))) {
+    if (!(op = (SipE2eOperation *) su_zalloc(ssc->sip_home, sizeof(*op)))) {
         return NULL;
     }
     op->op_ssc = ssc;
@@ -99,11 +99,11 @@ Sipe2eOperation* Sipe2eSofiaHelper::createOperation(Sipe2eContext* ssc,
     return op;
 }
 
-Sipe2eOperation* Sipe2eSofiaHelper::createOperationWithHandle(Sipe2eContext* ssc,
+SipE2eOperation* SipE2eSofiaHelper::createOperationWithHandle(SipE2eContext* ssc,
         sip_method_t method, const char* name, nua_handle_t* nh)
 {
-    Sipe2eOperation* op;
-    if ((op = (Sipe2eOperation*) ((su_zalloc(ssc->sip_home, sizeof(*op)))))) {
+    SipE2eOperation* op;
+    if ((op = (SipE2eOperation*) ((su_zalloc(ssc->sip_home, sizeof(*op)))))) {
         op->op_handle = nh;
         nua_handle_bind(op->op_handle, op);
         op->op_ssc = ssc;
@@ -111,13 +111,13 @@ Sipe2eOperation* Sipe2eSofiaHelper::createOperationWithHandle(Sipe2eContext* ssc
     return op;
 }
 
-void Sipe2eSofiaHelper::deleteOperation(Sipe2eContext* ssc, Sipe2eOperation* op) {
+void SipE2eSofiaHelper::deleteOperation(SipE2eContext* ssc, SipE2eOperation* op) {
 	if (op) {
 		su_free(ssc->sip_home, op);
 	}
 }
 
-void Sipe2eSofiaHelper::_authenticate(Sipe2eContext* ssc, Sipe2eOperation* op,
+void SipE2eSofiaHelper::_authenticate(SipE2eContext* ssc, SipE2eOperation* op,
         const char* scheme, const char* realm)
 {
     auto& profile = ssc->profile;
@@ -129,7 +129,7 @@ void Sipe2eSofiaHelper::_authenticate(Sipe2eContext* ssc, Sipe2eOperation* op,
     nua_authenticate(op->op_handle, NUTAG_AUTH(authstring), TAG_END());
 }
 
-void Sipe2eSofiaHelper::authenticate(Sipe2eContext* ssc, Sipe2eOperation* op,
+void SipE2eSofiaHelper::authenticate(SipE2eContext* ssc, SipE2eOperation* op,
         const sip_t* sip, tagi_t* tags)
 {
     su_home_t* home = ssc->sip_home;
@@ -174,7 +174,7 @@ class MyTest
     struct TestContext
     {
         SipStack* stack;
-        Sipe2eContext* context;
+        SipE2eContext* context;
         RegistrationSession* pRegistrationSession;
         OptionsSession* pOptionsSession;
         MessagingSession* pMessagingSession;
@@ -195,7 +195,7 @@ public:
 private:
     bool use_nane;
     bool is_alice;
-    Sipe2eUserProfile profile;
+    SipE2eUserProfile profile;
     char peer_impu[BUFFER_SIZE_B];
 
 private:
@@ -215,14 +215,14 @@ private:
             test.context = test.stack->getContext();
         } else if (step == 10) {       // 1 second
             test.pRegistrationSession = new RegistrationSession(test.stack);
-            Sipe2eContext* ctx = test.stack->getContext();
+            SipE2eContext* ctx = test.stack->getContext();
             char registrar[BUFFER_SIZE_B];
             sprintf(registrar, "%s:%s", "sip", ctx->profile.realm);
             test.pRegistrationSession->setToUri(registrar);
             test.pRegistrationSession->register_();
         } else if (step == 30) {
             test.pOptionsSession = new OptionsSession(test.stack);
-            Sipe2eContext* ctx = test.stack->getContext();
+            SipE2eContext* ctx = test.stack->getContext();
             char registrar[BUFFER_SIZE_B];
             sprintf(registrar, "%s:%s", "sip", ctx->profile.realm);
             test.pOptionsSession->setToUri(registrar);
@@ -347,7 +347,7 @@ private:
     bool init_loop()
     {
         SipStack* s = SipStack::getInstance();
-        Sipe2eContext* ctx = s->getContext();
+        SipE2eContext* ctx = s->getContext();
         g_timeout_add(100, one_run, this);
         return true;
     }
@@ -366,13 +366,13 @@ private:
     void run()
     {
         SipStack* s = SipStack::getInstance();
-        Sipe2eContext* ctx = s->getContext();
+        SipE2eContext* ctx = s->getContext();
         g_main_loop_run(ctx->loop);
     }
     void deinit()
     {
         SipStack* s = SipStack::getInstance();
-        Sipe2eContext* ctx = s->getContext();
+        SipE2eContext* ctx = s->getContext();
         g_main_loop_unref(ctx->loop);
         s->deInitialize();
     }

@@ -1,0 +1,40 @@
+# Copyright AllSeen Alliance. All rights reserved.
+#
+#    Permission to use, copy, modify, and/or distribute this software for any
+#    purpose with or without fee is hereby granted, provided that the above
+#    copyright notice and this permission notice appear in all copies.
+#
+#    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+#    WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+#    MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+#    ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+#    WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+#    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+#    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+# 
+
+import sys
+sys.path.insert(0, '../..')
+import Utility
+
+Import('imsTransportEnv')
+
+commonImsTransportName = 'commonImsTransport'
+
+commonImsTransportEnv = imsTransportEnv.Clone()
+
+Utility.PrintOneLineLog(Utility.EventLevel.info, commonImsTransportName, 
+'================================START==========================================')
+
+# Building the static library.
+targetLibName = 'CommonIMSTransport'
+sourceFileList = ['AJInitializer.cc', 'CommonUtils.cc', 'GuidUtil.cc', 'sha256.cc']
+
+Utility.PrintBuildArguments(commonImsTransportName, 'source files', sourceFileList)
+
+commonImsTransportLib = commonImsTransportEnv.StaticLibrary(targetLibName, sourceFileList)
+
+commonImsTransportEnv.Install('$DISTDIR/cpp/lib', commonImsTransportLib)
+
+Utility.PrintOneLineLog(Utility.EventLevel.info, commonImsTransportName, 
+'=================================END===========================================')

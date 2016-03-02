@@ -32,22 +32,13 @@
 #include <map>
 #include <memory>
 
-class SipStack;
-class RegistrationSession;
-class OptionsSession;
-class MessagingSession;
-class SubscriptionSession;
-class PublicationSession;
-
+#include "CloudCommEngine/IMSTransport/IMSTransportConstants.h"
+#include "CloudCommEngine/IMSTransport/Sofia/SipStack.h"
+#include "CloudCommEngine/IMSTransport/Sofia/SipSession.h"
 
 namespace sipe2e {
 namespace gateway {
 
-namespace gwConsts {
-    enum IMS_TRANSPORT_STATUS_ENUM;
-}
-
-class IMSTransportSipCallback;
 
 struct SyncContext {
     std::mutex mtx;

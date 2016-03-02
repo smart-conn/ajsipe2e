@@ -1,0 +1,110 @@
+# Copyright AllSeen Alliance. All rights reserved.
+#
+#    Permission to use, copy, modify, and/or distribute this software for any
+#    purpose with or without fee is hereby granted, provided that the above
+#    copyright notice and this permission notice appear in all copies.
+#
+#    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+#    WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+#    MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+#    ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+#    WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+#    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+#    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+# 
+
+import os
+
+import sys
+sys.path.insert(0, '../../..')
+import Utility
+
+Import('cloudCommEngineEnv')
+
+imsTransportName = 'ImsTransport'
+
+imsTransportEnv = cloudCommEngineEnv.Clone()
+
+Utility.PrintOneLineLog(Utility.EventLevel.info, imsTransportName, 
+'================================START==========================================')
+
+# Add Glib include paths.
+glibIncludePathList = \
+    [ '$GLIB_HOME' + Utility.ReplacePathSeparators('/include/glib-2.0'),
+      '$GLIB_HOME' + Utility.ReplacePathSeparators('/lib/glib-2.0/include') ]
+imsTransportEnv.Append(CPPPATH = glibIncludePathList)
+      
+# Add Sofia SIP include paths.
+sofiaSipIncludePathList = \
+    [ '$SOFIA_SIP_HOME' + Utility.ReplacePathSeparators('/libsofia-sip-ua/iptsec'),
+      '$SOFIA_SIP_HOME' + Utility.ReplacePathSeparators('/libsofia-sip-ua/msg'),
+      '$SOFIA_SIP_HOME' + Utility.ReplacePathSeparators('/libsofia-sip-ua/nea'),
+      '$SOFIA_SIP_HOME' + Utility.ReplacePathSeparators('/libsofia-sip-ua/nta'),
+      '$SOFIA_SIP_HOME' + Utility.ReplacePathSeparators('/libsofia-sip-ua/nua'),
+      '$SOFIA_SIP_HOME' + Utility.ReplacePathSeparators('/libsofia-sip-ua/sdp'),
+      '$SOFIA_SIP_HOME' + Utility.ReplacePathSeparators('/libsofia-sip-ua/sip'),
+      '$SOFIA_SIP_HOME' + Utility.ReplacePathSeparators('/libsofia-sip-ua/soa'),
+      '$SOFIA_SIP_HOME' + Utility.ReplacePathSeparators('/libsofia-sip-ua/su'),
+      '$SOFIA_SIP_HOME' + Utility.ReplacePathSeparators('/libsofia-sip-ua/tport'),
+      '$SOFIA_SIP_HOME' + Utility.ReplacePathSeparators('/libsofia-sip-ua/url'),
+      '$SOFIA_SIP_HOME' + Utility.ReplacePathSeparators('/libsofia-sip-ua-glib/su-glib'),
+      '$SOFIA_SIP_HOME' + Utility.ReplacePathSeparators('/win32'),
+      '$SOFIA_SIP_HOME' + Utility.ReplacePathSeparators('/win32/pthread') ]
+imsTransportEnv.Append(CPPPATH = sofiaSipIncludePathList)
+
+# On Win32, the calling convention for IMSTransport and Sofia_IMS is __cdecl while the default 
+# calling convention for AllJoyn core is __stdcall, so replace '/Gz' by '/Gd' in CFLAGS and CXXFLAGS.
+cFlags = imsTransportEnv['CFLAGS']
+cxxFlags = imsTransportEnv['CXXFLAGS']
+cFlags = [flag.replace('/Gz', '/Gd') for flag in cFlags]
+cxxFlags = [flag.replace('/Gz', '/Gd') for flag in cxxFlags]
+imsTransportEnv.Replace(CFLAGS = cFlags)
+imsTransportEnv.Replace(CXXFLAGS = cxxFlags)
+
+# Build the common library from Src/Common.
+imsTransportEnv.SConscript(['#/Src/Common/SConscriptImsTransport'], variant_dir = '$OBJDIR/cpp/CommonImsTransport', 
+    duplicate = 0, exports = ['imsTransportEnv'])
+
+# Build the dependency shared library sofia_IMS.
+imsTransportEnv.SConscript(['./sofia/SConscript'], variant_dir = '$OBJDIR/cpp/SofiaIms', 
+    duplicate = 0, exports = ['imsTransportEnv'])
+
+# Add one additional macro definition.
+imsTransportEnv.Append(CPPDEFINES = ['SIPE2E_GATEWAY_EXPORTS'])
+
+# Print out the macro definitions.
+Utility.PrintBuildArguments(imsTransportName, 'macro defintions', imsTransportEnv['CPPDEFINES'])
+
+# Print out the include paths.
+Utility.PrintBuildArguments(imsTransportName, 'include paths', imsTransportEnv['CPPPATH'])
+
+# Add two addition libraries needed for building IMSTransport.lib.
+imsTransportEnv.Append(LIBS = ['sofia_IMS.lib', 'CommonImsTransport.lib'])
+
+# Print out the library paths.
+Utility.PrintBuildArguments(imsTransportName, 'library paths', imsTransportEnv['LIBPATH'])
+
+# Suppress warnings 
+# (1) C4005: macro redefinition.
+# (2) C4100: unreferenced formal parameter.
+# (3) C4189: local variable is initialized but not referenced.
+# (4) C4239: nonstandard extension used.
+# (5) C4251: needs to have dll-interface to be used by clients of class.
+imsTransportEnv.Append(CXXFLAGS = ['/wd4005', '/wd4100', '/wd4189', '/wd4239', '/wd4251'])
+
+# Print out the build flags.
+Utility.PrintBuildArguments(imsTransportName, 'C flags', imsTransportEnv['CFLAGS'])
+Utility.PrintBuildArguments(imsTransportName, 'C++ flags', imsTransportEnv['CXXFLAGS'])
+
+# Build the shared library.
+targetLibName = 'IMSTransport'
+sourceFileList = Glob('*.cc')
+
+Utility.PrintBuildArguments(imsTransportName, 'source files', sourceFileList)
+
+imsTransportLib = imsTransportEnv.SharedLibrary(targetLibName, sourceFileList)
+
+imsTransportEnv.Install(['$DISTDIR/cpp/lib', '$DISTDIR/cpp/bin'], imsTransportLib)
+
+Utility.PrintOneLineLog(Utility.EventLevel.info, imsTransportName, 
+'=================================END===========================================')

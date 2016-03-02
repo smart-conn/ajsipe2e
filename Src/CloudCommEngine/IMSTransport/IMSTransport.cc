@@ -16,7 +16,6 @@
 #include <qcc/platform.h>
 #include "CloudCommEngine/IMSTransport/IMSTransport.h"
 #include "CloudCommEngine/IMSTransport/IMSTransportSipCallback.h"
-#include "CloudCommEngine/IMSTransport/IMSTransportConstants.h"
 #include "CloudCommEngine/IMSTransport/pidf.h"
 
 #include "Common/GuidUtil.h"
@@ -30,9 +29,6 @@
 #include <alljoyn/MsgArg.h>
 
 #include <mutex>
-
-#include "CloudCommEngine/IMSTransport/Sofia/SipStack.h"
-#include "CloudCommEngine/IMSTransport/Sofia/SipSession.h"
 
 #if defined( _MSC_VER )
 #include <direct.h>        // _getcwd
@@ -107,7 +103,7 @@ IMSTransport::~IMSTransport()
             pubSession->unPublish();
             {
                 std::unique_lock<std::mutex> lock(mtxUnpublish);
-                if (condUnpublish.wait_for(lock, std::chrono::milliseconds(gwConsts::PUBLICATION_DEFAULT_TIMEOUT))) {
+                if (std::cv_status::no_timeout == condUnpublish.wait_for(lock, std::chrono::milliseconds(gwConsts::PUBLICATION_DEFAULT_TIMEOUT))) {
                     break; // unregister successful
                 }
             }
@@ -118,11 +114,19 @@ IMSTransport::~IMSTransport()
     }
     publications.clear();
     if (regSession) {
+		delete regSession;
+		regSession = new RegistrationSession(stack);
+		qcc::String regReqLine("sip:");
+		regReqLine += realm;
+		regSession->setReqUri(regReqLine.c_str());
+		regSession->setFromUri(impu.c_str());
+		regSession->setToUri(impu.c_str());
+
         for (int i = 0; i < 5; i++) { // try to unregister for 5 times with 5 seconds timeout every time
             regSession->unRegister();
             {
                 std::unique_lock<std::mutex> lock(mtxUnregister);
-                if (condUnregister.wait_for(lock, std::chrono::milliseconds(gwConsts::REGISTRATION_DEFAULT_TIMEOUT))) {
+                if (std::cv_status::no_timeout == condUnregister.wait_for(lock, std::chrono::milliseconds(gwConsts::REGISTRATION_DEFAULT_TIMEOUT))) {
                     break; // unregister successful
                 }
             }
@@ -377,7 +381,7 @@ IStatus IMSTransport::doSubscribe(const char* remoteAccount)
         // multi-thread environment where multi users call Subscribe at the same time.
         // Should be changed using the session Call-ID to differentiate multiple subscribe sessions
         // TBD
-        if (condSubscribe.wait_for(lock, std::chrono::milliseconds(gwConsts::SUBSCRIPTION_DEFAULT_TIMEOUT))) {
+        if (std::cv_status::no_timeout == condSubscribe.wait_for(lock, std::chrono::milliseconds(gwConsts::SUBSCRIPTION_DEFAULT_TIMEOUT))) {
             // if subscribing is correctly responded
             if (isNewCreated) {
                 subSessions.insert(std::make_pair((qcc::String)remoteAccount, subSession));
@@ -426,7 +430,7 @@ IStatus IMSTransport::Unsubscribe(const char* remoteAccount)
             // multi-thread environment where multi users call Subscribe at the same time.
             // Should be changed using the session Call-ID to differentiate multiple subscribe sessions
             // TBD
-            if (condUnsubscribe.wait_for(lock, std::chrono::milliseconds(gwConsts::SUBSCRIPTION_DEFAULT_TIMEOUT))) {
+            if (std::cv_status::no_timeout == condUnsubscribe.wait_for(lock, std::chrono::milliseconds(gwConsts::SUBSCRIPTION_DEFAULT_TIMEOUT))) {
                 delete subSession;
                 subSessions.erase(itrSubsession);
             } else {
@@ -576,7 +580,7 @@ IStatus IMSTransport::PublishService(const char* introspectionXml)
     if (pubSession->publish(presenceXml.c_str())) {
     // Wait for the response of the PUBLISH
         std::unique_lock<std::mutex> lock(imsIns->mtxPublish);
-        if (condPublish.wait_for(lock, std::chrono::milliseconds(gwConsts::PUBLICATION_DEFAULT_TIMEOUT))) {
+        if (std::cv_status::no_timeout == condPublish.wait_for(lock, std::chrono::milliseconds(gwConsts::PUBLICATION_DEFAULT_TIMEOUT))) {
             // if publishing is correctly responded
             if (isNewCreated) {
                 if (itrPubsession != publications.end()) {
@@ -632,7 +636,7 @@ IStatus IMSTransport::DeleteService(const char* introspectionXml)
         if (pubSession) {
             if (pubSession->unPublish()) {
                 std::unique_lock<std::mutex> lock(imsIns->mtxUnpublish);
-                if (condUnpublish.wait_for(lock, std::chrono::milliseconds(gwConsts::PUBLICATION_DEFAULT_TIMEOUT))) {
+                if (std::cv_status::no_timeout == condUnpublish.wait_for(lock, std::chrono::milliseconds(gwConsts::PUBLICATION_DEFAULT_TIMEOUT))) {
                     delete pubSession;
                     publications.erase(itrPubsession);
                 } else {
@@ -753,7 +757,7 @@ IStatus IMSTransport::SendCloudMessage(int msgType,
                 }
                 {
                     std::unique_lock<std::mutex> lock(syncCtx->mtx);
-                    if (syncCtx->con.wait_for(lock, 
+                    if (std::cv_status::no_timeout == syncCtx->con.wait_for(lock, 
                         std::chrono::milliseconds(gwConsts::RPC_REQ_TIMEOUT))) {
                         // if no timeout waiting for the response
                         if (syncCtx->content) {
@@ -822,6 +826,19 @@ void IMSTransport::RegThreadFunc()
     uint32_t expires = gwConsts::REGISTRATION_DEFAULT_EXPIRES;
     IMSTransport* ims = IMSTransport::GetInstance();
     while (ims->regCmdQueue.TryDequeue(expires)) {
+		if (ims->regSession) {
+			delete ims->regSession;
+		}
+		ims->regSession = new RegistrationSession(ims->stack);
+		ims->regSession->addCaps("+g.oma.sip-im");
+		ims->regSession->addCaps("+g.3gpp.smsip");
+		ims->regSession->addCaps("language", "\"zh,en\"");
+		qcc::String regReqLine("sip:");
+		regReqLine += ims->realm;
+		ims->regSession->setReqUri(regReqLine.c_str());
+		ims->regSession->setFromUri(ims->impu.c_str());
+		ims->regSession->setToUri(ims->impu.c_str());
+
         ims->regSession->setExpires(expires);
         if (!ims->regSession->register_()) {
             // log
@@ -941,7 +958,7 @@ void IMSTransport::HeartBeatTimerAlarmListener::AlarmTriggered(const qcc::Alarm&
     // Wait for the response of the OPTIONS heartbeat
     {
         std::unique_lock<std::mutex> lock(ims->mtxHeartBeat);
-        if (!ims->condHeartBeat.wait_for(lock, std::chrono::milliseconds(gwConsts::SIPSTACK_HEARTBEAT_EXPIRES))) {
+        if (std::cv_status::timeout == ims->condHeartBeat.wait_for(lock, std::chrono::milliseconds(gwConsts::SIPSTACK_HEARTBEAT_EXPIRES))) {
             // if timeout, the re-register the UAC
             ims->regCmdQueue.Enqueue(ims->regExpires);
             restartOpSession = true;

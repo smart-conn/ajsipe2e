@@ -19,18 +19,15 @@
 
 #include "Sofia.h"
 #include "SipCommon.h"
+#include "SipMessage.h"
+#include "SipSession.h"
 #include <sofia-sip/nua.h>
 
-class Sipe2eSofiaEvent;
-class SipMessage;
-class MessagingSession;
-class OptionsSession;
-class SipStack;
 
 class SOFIA_IMS_EXPORT_FUN SipEvent
 {
 public:
-    SipEvent(Sipe2eSofiaEvent* ev);
+    SipEvent(SipE2eSofiaEvent* ev);
 	/**
 	 * Create a SipMessage which should be released after use by the caller
 	 * @param - 
@@ -39,31 +36,31 @@ public:
 	nua_event_t GetType() const;
 	int GetStatus() const;
 protected:
-    Sipe2eSofiaEvent* ev;
+    SipE2eSofiaEvent* ev;
 
 };
 
 class SOFIA_IMS_EXPORT_FUN StackEvent: public SipEvent
 {
 public:
-    StackEvent(Sipe2eSofiaEvent* ev);
+    StackEvent(SipE2eSofiaEvent* ev);
 };
 class SOFIA_IMS_EXPORT_FUN DialogEvent: public SipEvent
 {
 public:
-    DialogEvent(Sipe2eSofiaEvent* ev);
+    DialogEvent(SipE2eSofiaEvent* ev);
 };
 
 class SOFIA_IMS_EXPORT_FUN InviteEvent: public SipEvent
 {
 public:
-    InviteEvent(Sipe2eSofiaEvent* ev);
+    InviteEvent(SipE2eSofiaEvent* ev);
 };
 
 class SOFIA_IMS_EXPORT_FUN MessagingEvent: public SipEvent
 {
 public:
-    MessagingEvent(Sipe2eSofiaEvent* ev);
+    MessagingEvent(SipE2eSofiaEvent* ev);
 	MessagingSession* GetSession(SipStack* stack);
     bool is_incoming;
 };
@@ -71,38 +68,38 @@ public:
 class SOFIA_IMS_EXPORT_FUN InfoEvent: public SipEvent
 {
 public:
-    InfoEvent(Sipe2eSofiaEvent* ev);
+    InfoEvent(SipE2eSofiaEvent* ev);
 };
 
 class SOFIA_IMS_EXPORT_FUN OptionsEvent: public SipEvent
 {
 public:
-    OptionsEvent(Sipe2eSofiaEvent* ev);
+    OptionsEvent(SipE2eSofiaEvent* ev);
 	OptionsSession* GetSession(SipStack* stack);
 };
 
 class SOFIA_IMS_EXPORT_FUN PublicationEvent: public SipEvent
 {
 public:
-    PublicationEvent(Sipe2eSofiaEvent* ev);
+    PublicationEvent(SipE2eSofiaEvent* ev);
 };
 
 class SOFIA_IMS_EXPORT_FUN RegistrationEvent: public SipEvent
 {
 public:
-    RegistrationEvent(Sipe2eSofiaEvent* ev);
+    RegistrationEvent(SipE2eSofiaEvent* ev);
 };
 
 class SOFIA_IMS_EXPORT_FUN SubscriptionEvent: public SipEvent
 {
 public:
-    SubscriptionEvent(Sipe2eSofiaEvent* ev);
+    SubscriptionEvent(SipE2eSofiaEvent* ev);
 };
 
 class SOFIA_IMS_EXPORT_FUN NotifyEvent: public SipEvent
 {
 public:
-    NotifyEvent(Sipe2eSofiaEvent* ev);
+    NotifyEvent(SipE2eSofiaEvent* ev);
     bool is_incoming; // always true
 };
 

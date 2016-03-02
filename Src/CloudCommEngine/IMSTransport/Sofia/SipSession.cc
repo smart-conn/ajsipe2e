@@ -15,9 +15,6 @@
  ******************************************************************************/
 
 #include "SipSession.h"
-#include "SipStack.h"
-#include "Sofia.h"
-#include "SipCommon.h"
 
 SipSession::SipSession(SipStack* stack) :
         m_pStack(stack), m_pOperation(NULL)
@@ -28,7 +25,7 @@ SipSession::SipSession(SipStack* stack) :
 SipSession::~SipSession()
 {
     if (m_pOperation && m_pStack) {
-		Sipe2eSofiaHelper sh;
+		SipE2eSofiaHelper sh;
 		sh.deleteOperation(m_pStack->getContext(), m_pOperation);
 	}
 }
@@ -117,7 +114,7 @@ bool SipSession::setToUri(const char* toUriString)
 MessagingSession::MessagingSession(SipStack* stack, nua_handle_t* nh) :
 	SipSession(stack)
 {
-	Sipe2eSofiaHelper sh;
+	SipE2eSofiaHelper sh;
 	if (!nh) {
 		m_pOperation = sh.createOperation(m_pStack->getContext(), SIP_METHOD_MESSAGE, TAG_END());
 	} else {
@@ -135,10 +132,10 @@ bool MessagingSession::send(const char* payload)
     if (!payload) {
         return false;
     }
-    Sipe2eContext* ctx = m_pStack->getContext();
+    SipE2eContext* ctx = m_pStack->getContext();
     sip_payload_t *pl = sip_payload_format(ctx->sip_home, "%s", payload);
     if (!m_pOperation) {
-        Sipe2eSofiaHelper sh;
+        SipE2eSofiaHelper sh;
         m_pOperation = sh.createOperation(ctx, SIP_METHOD_MESSAGE, TAG_END());
     }
     nua_message(m_pOperation->op_handle, SIPTAG_PAYLOAD(pl),
@@ -162,7 +159,7 @@ bool MessagingSession::reject()
 OptionsSession::OptionsSession(SipStack* stack, nua_handle_t* nh) :
         SipSession(stack)
 {
-	Sipe2eSofiaHelper sh;
+	SipE2eSofiaHelper sh;
 	if (!nh) {
 		m_pOperation = sh.createOperation(stack->getContext(), SIP_METHOD_OPTIONS,
 			TAG_END());
@@ -179,8 +176,8 @@ OptionsSession::~OptionsSession()
 bool OptionsSession::send()
 {
     if (!m_pOperation) {
-        Sipe2eContext* ctx = m_pStack->getContext();
-        Sipe2eSofiaHelper sh;
+        SipE2eContext* ctx = m_pStack->getContext();
+        SipE2eSofiaHelper sh;
         m_pOperation = sh.createOperation(ctx, SIP_METHOD_OPTIONS,
         TAG_END());
     }
@@ -211,7 +208,7 @@ bool OptionsSession::setToUri(const char* toUriString)
 PublicationSession::PublicationSession(SipStack* stack, nua_handle_t* nh) :
         SipSession(stack)
 {
-	Sipe2eSofiaHelper sh;
+	SipE2eSofiaHelper sh;
 	if (!nh) {
 		m_pOperation = sh.createOperation(stack->getContext(), SIP_METHOD_PUBLISH,
 			TAG_END());
@@ -235,7 +232,7 @@ bool PublicationSession::publish(const char* payload)
                     "<presence xmlns=\"urn:ietf:params:xml:ns:pidf\"\r\n"
                     "    xmlns:im=\"urn:ietf:params:xml:ns:pidf:im\"\r\n"
                     "    entity=\"%s\">\r\n"
-                    "  <tuple id=\"Sipe2eClient\">\r\n"
+                    "  <tuple id=\"SipE2eClient\">\r\n"
                     "    <status>\r\n"
                     "      <basic>%s</basic>\r\n"
                     "    </status>\r\n"
@@ -243,11 +240,11 @@ bool PublicationSession::publish(const char* payload)
                     "  </tuple>\r\n"
                     "</presence>\r\n";
     bool open = true;
-    Sipe2eContext* ctx = m_pStack->getContext();
+    SipE2eContext* ctx = m_pStack->getContext();
     sip_payload_t *pl = sip_payload_format(ctx->sip_home, fmt,
             ctx->profile.impu, open ? "open" : "closed", payload);
     if (!m_pOperation) {
-        Sipe2eSofiaHelper sh;
+        SipE2eSofiaHelper sh;
         m_pOperation = sh.createOperation(ctx, SIP_METHOD_PUBLISH,
                 TAG_END());
     }
@@ -260,8 +257,8 @@ bool PublicationSession::publish(const char* payload)
 bool PublicationSession::unPublish()
 {
     if (!m_pOperation) {
-        Sipe2eContext* ctx = m_pStack->getContext();
-        Sipe2eSofiaHelper sh;
+        SipE2eContext* ctx = m_pStack->getContext();
+        SipE2eSofiaHelper sh;
         m_pOperation = sh.createOperation(ctx, SIP_METHOD_PUBLISH,
                 TAG_END());
     }
@@ -273,7 +270,7 @@ bool PublicationSession::unPublish()
 RegistrationSession::RegistrationSession(SipStack* stack, nua_handle_t* nh) :
         SipSession(stack)
 {
-	Sipe2eSofiaHelper sh;
+	SipE2eSofiaHelper sh;
 	if (!nh) {
 		m_pOperation = sh.createOperation(stack->getContext(), SIP_METHOD_REGISTER,
 			TAG_END());
@@ -322,13 +319,13 @@ bool RegistrationSession::setToUri(const char* toUriString)
 bool RegistrationSession::register_()
 {
     if (!m_pOperation) {
-		Sipe2eSofiaHelper sh;
+		SipE2eSofiaHelper sh;
 		m_pOperation = sh.createOperation(m_pStack->getContext(), SIP_METHOD_REGISTER,
 			TAG_END());
     }
-    nua_register(m_pOperation->op_handle, NUTAG_KEEPALIVE(0),
-            NUTAG_KEEPALIVE_STREAM(0), NUTAG_OUTBOUND("no-validate"),
-            NUTAG_OUTBOUND("no-options-keepalive"),
+    nua_register(m_pOperation->op_handle, /*NUTAG_KEEPALIVE(0),
+            NUTAG_KEEPALIVE_STREAM(0), NUTAG_OUTBOUND("no-validate"),*/
+            /*NUTAG_OUTBOUND("no-options-keepalive"),*/
             /*TAG_IF(registrar, NUTAG_REGISTRAR(registrar)),*/
             /*NUTAG_M_FEATURES("expires=180"), SIPTAG_EXPIRES_STR("180"),*/
             TAG_END());
@@ -337,13 +334,13 @@ bool RegistrationSession::register_()
 bool RegistrationSession::unRegister()
 {
 	if (!m_pOperation) {
-		Sipe2eSofiaHelper sh;
+		SipE2eSofiaHelper sh;
 		m_pOperation = sh.createOperation(m_pStack->getContext(), SIP_METHOD_REGISTER,
 			TAG_END());
 	}
     nua_unregister(m_pOperation->op_handle,
             /*TAG_IF(registrar, NUTAG_REGISTRAR(registrar)),*/
-            SIPTAG_CONTACT_STR(m_pOperation->op_ssc->profile.impu), SIPTAG_EXPIRES_STR("0"),
+            /*SIPTAG_CONTACT_STR(m_pOperation->op_ssc->profile.impu), SIPTAG_EXPIRES_STR("0"),*/
             TAG_END());
     return true;
 }
@@ -351,7 +348,7 @@ bool RegistrationSession::unRegister()
 SubscriptionSession::SubscriptionSession(SipStack* stack, nua_handle_t* nh) :
         SipSession(stack)
 {
-	Sipe2eSofiaHelper sh;
+	SipE2eSofiaHelper sh;
 	if (!nh) {
 		m_pOperation = sh.createOperation(stack->getContext(), SIP_METHOD_SUBSCRIBE,
 			TAG_END());
@@ -371,7 +368,7 @@ bool SubscriptionSession::subscribe()
     char const *supported = "eventlist";
 
     if (!m_pOperation) {
-		Sipe2eSofiaHelper sh;
+		SipE2eSofiaHelper sh;
 		m_pOperation = sh.createOperation(m_pStack->getContext(), SIP_METHOD_SUBSCRIBE,
 			TAG_END());
     }
@@ -391,7 +388,7 @@ bool SubscriptionSession::unSubscribe()
     char const *supported = "eventlist";
 
 	if (!m_pOperation) {
-		Sipe2eSofiaHelper sh;
+		SipE2eSofiaHelper sh;
 		m_pOperation = sh.createOperation(m_pStack->getContext(), SIP_METHOD_SUBSCRIBE,
 			TAG_END());
 	}

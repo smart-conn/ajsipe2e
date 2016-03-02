@@ -35,30 +35,11 @@
 
 #include "Common/GatewayStd.h"
 #include "CloudCommEngine/IMSTransport/IMSTransportConstants.h"
-
-
-namespace ajn {
-    class MsgArg;
-    namespace services {
-        class AboutService;
-    }
-}
-
-namespace qcc {
-    class XmlElement;
-}
+#include "CloudCommEngine/ProximalProxyBusObjectWrapper.h"
 
 namespace sipe2e {
 namespace gateway {
 
-struct _CloudMethodCallThreadArg;
-typedef struct _CloudMethodCallThreadArg CloudMethodCallThreadArg;
-struct _LocalMethodCallThreadArg;
-typedef struct _LocalMethodCallThreadArg LocalMethodCallThreadArg;
-
-class CloudServiceAgentBusObject;
-class ProximalProxyBusObjectWrapper;
-typedef qcc::ManagedObj<ProximalProxyBusObjectWrapper> _ProximalProxyBusObjectWrapper;
 
 /**
  * CloudCommEngineBusObject class. Base class to provide cloud communication functionality
@@ -209,6 +190,55 @@ private:
     static qcc::ThreadReturn STDCALL NotificationReceiverThreadFunc(void* arg);
 
 protected:
+
+	typedef struct _CloudMethodCallThreadArg
+	{
+		gwConsts::customheader::RPC_MSG_TYPE_ENUM callType;
+		ajn::MsgArg* inArgs;
+		uint32_t inArgsNum;
+		qcc::String peer;
+		qcc::String calledAddr;
+		CloudServiceAgentBusObject* agent;
+		ajn::Message msg;
+		CloudCommEngineBusObject* owner;
+		_CloudMethodCallThreadArg(ajn::Message _msg)
+			: callType(gwConsts::customheader::RPC_MSG_TYPE_METHOD_CALL),
+			inArgs(NULL), inArgsNum(0),
+			agent(NULL), msg(_msg),
+			owner(NULL)
+		{
+
+		}
+		~_CloudMethodCallThreadArg()
+		{
+			if (inArgs) {
+				delete[] inArgs;
+				inArgs = NULL;
+			}
+		}
+	} CloudMethodCallThreadArg;
+
+	typedef struct _LocalMethodCallThreadArg {
+		gwConsts::customheader::RPC_MSG_TYPE_ENUM msgType;
+		ajn::MsgArg* inArgs;
+		size_t inArgsNum;
+		qcc::String addr;
+		qcc::String cloudSessionId;
+		qcc::String peer;
+		CloudCommEngineBusObject* owner;
+		_LocalMethodCallThreadArg()
+			: inArgs(NULL), inArgsNum(0), owner(NULL)
+		{
+
+		}
+		~_LocalMethodCallThreadArg() 
+		{
+			if (inArgs) {
+				delete[] inArgs;
+				inArgs = NULL;
+			}
+		}
+	} LocalMethodCallThreadArg;
 
     class CloudMethodCallRunable : public qcc::Runnable {
     public:

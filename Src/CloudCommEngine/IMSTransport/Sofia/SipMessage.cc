@@ -15,9 +15,8 @@
  ******************************************************************************/
 
 #include "SipMessage.h"
-#include "Sofia.h"
 
-class Sipe2eMessageHelper
+class SipE2eMessageHelper
 {
 public:
     bool foundValue(const char* const s, const char* const name, char* val)
@@ -57,7 +56,7 @@ public:
     }
 };
 
-SipMessage::SipMessage(Sipe2eContext* _ssc, const sip_t* _msg) :
+SipMessage::SipMessage(SipE2eContext* _ssc, const sip_t* _msg) :
         ssc(_ssc), msg(_msg)
 {
 }
@@ -112,7 +111,7 @@ char* SipMessage::getSipHeaderValue(const char* name, unsigned index /*= 0*/)
 char* SipMessage::getSipHeaderParamValue(const char* name, const char* param,
         unsigned index /*= 0*/)
 {
-    Sipe2eMessageHelper mh;
+    SipE2eMessageHelper mh;
     if (strcmp(name, "From") == 0 || strcmp(name, "f") == 0) {
         if (msg->sip_from) {
             msg_param_t const * p = msg->sip_from->a_params;

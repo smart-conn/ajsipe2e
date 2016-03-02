@@ -15,10 +15,6 @@
  ******************************************************************************/
 
 #include "SipCallback.h"
-#include "Sofia.h"
-#include "SipCommon.h"
-#include "SipMessage.h"
-#include "SipSession.h"
 
 class MessageCallbackHelper
 {
@@ -26,8 +22,8 @@ public:
 
     void handle(nua_event_t event, int status,
             const char* phrase, //
-            nua_t* nua, Sipe2eContext* ssc, nua_handle_t* nh,
-            Sipe2eOperation* op, const sip_t* sip, tagi_t tags[])
+            nua_t* nua, SipE2eContext* ssc, nua_handle_t* nh,
+            SipE2eOperation* op, const sip_t* sip, tagi_t tags[])
     {
         if (event == nua_i_message) {
             sip_i_message(nua, ssc, nh, op, sip, tags);
@@ -35,8 +31,8 @@ public:
             sip_r_message(status, phrase, nua, ssc, nh, op, sip, tags);
         }
     }
-    void sip_i_message(nua_t* nua, Sipe2eContext* ssc, nua_handle_t* nh,
-            Sipe2eOperation* op, const sip_t* sip, tagi_t tags[])
+    void sip_i_message(nua_t* nua, SipE2eContext* ssc, nua_handle_t* nh,
+            SipE2eOperation* op, const sip_t* sip, tagi_t tags[])
     {
         /* Incoming message */
         const sip_from_t* from;
@@ -53,7 +49,7 @@ public:
         if (subject)
             printf("\tSubject: %s\n", subject->g_value);
 
-        Sipe2eSofiaHelper sh;
+        SipE2eSofiaHelper sh;
         if (op == NULL)
             op = sh.createOperationWithHandle(ssc,
             SIP_METHOD_MESSAGE, nh);
@@ -63,13 +59,13 @@ public:
     }
 
     void sip_r_message(int status, const char* phrase, nua_t* nua,
-            Sipe2eContext* ssc, nua_handle_t* nh, Sipe2eOperation* op,
+            SipE2eContext* ssc, nua_handle_t* nh, SipE2eOperation* op,
             const sip_t* sip, tagi_t tags[])
     {
         if (status < 200)
             return;
 
-        Sipe2eSofiaHelper sh;
+        SipE2eSofiaHelper sh;
         if (status == 401 || status == 407)
             sh.authenticate(ssc, op, sip, tags);
     }
@@ -82,8 +78,8 @@ public:
 
     void handle(nua_event_t event, int status,
             const char* phrase, //
-            nua_t* nua, Sipe2eContext* ssc, nua_handle_t* nh,
-            Sipe2eOperation* op, const sip_t* sip, tagi_t tags[])
+            nua_t* nua, SipE2eContext* ssc, nua_handle_t* nh,
+            SipE2eOperation* op, const sip_t* sip, tagi_t tags[])
     {
         if (event == nua_i_notify) {
             sip_i_notify(nua, ssc, nh, op, sip, tags);
@@ -92,8 +88,8 @@ public:
         }
     }
     /*---------------------------------------*/
-    void sip_i_notify(nua_t* nua, Sipe2eContext* ssc, nua_handle_t* nh,
-            Sipe2eOperation* op, const sip_t* sip, tagi_t tags[])
+    void sip_i_notify(nua_t* nua, SipE2eContext* ssc, nua_handle_t* nh,
+            SipE2eOperation* op, const sip_t* sip, tagi_t tags[])
     {
         if (sip) {
             sip_from_t const *from = sip->sip_from;
@@ -115,14 +111,14 @@ public:
 
     /*---------------------------------------*/
     void sip_r_notify(int status, const char* phrase, nua_t* nua,
-            Sipe2eContext* ssc, nua_handle_t* nh, Sipe2eOperation* op,
+            SipE2eContext* ssc, nua_handle_t* nh, SipE2eOperation* op,
             const sip_t* sip, tagi_t tags[])
     {
         /* Respond to notify */
         if (status < 200)
             return;
 
-        Sipe2eSofiaHelper sh;
+        SipE2eSofiaHelper sh;
         if (status == 401 || status == 407)
             sh.authenticate(ssc, op, sip, tags);
     }
@@ -135,8 +131,8 @@ public:
 
     void handle(nua_event_t event, int status,
             const char* phrase, //
-            nua_t* nua, Sipe2eContext* ssc, nua_handle_t* nh,
-            Sipe2eOperation* op, const sip_t* sip, tagi_t tags[])
+            nua_t* nua, SipE2eContext* ssc, nua_handle_t* nh,
+            SipE2eOperation* op, const sip_t* sip, tagi_t tags[])
     {
         if (event == nua_i_options) {
             sip_i_options(nua, ssc, nh, op, sip, tags);
@@ -147,8 +143,8 @@ public:
     /**
      * Callback to an incoming OPTIONS request.
      */
-    void sip_i_options(nua_t* nua, Sipe2eContext* ssc, nua_handle_t* nh,
-            Sipe2eOperation* op, const sip_t* sip, tagi_t tags[])
+    void sip_i_options(nua_t* nua, SipE2eContext* ssc, nua_handle_t* nh,
+            SipE2eOperation* op, const sip_t* sip, tagi_t tags[])
     {
     }
 
@@ -156,10 +152,10 @@ public:
      * Callback to an outgoing OPTIONS request.
      */
     void sip_r_options(int status, const char* phrase, nua_t* nua,
-            Sipe2eContext* ssc, nua_handle_t* nh, Sipe2eOperation* op,
+            SipE2eContext* ssc, nua_handle_t* nh, SipE2eOperation* op,
             const sip_t* sip, tagi_t tags[])
     {
-        Sipe2eSofiaHelper sh;
+        SipE2eSofiaHelper sh;
         if (status == 401 || status == 407)
             sh.authenticate(ssc, op, sip, tags);
     }
@@ -172,8 +168,8 @@ public:
 
     void handle(nua_event_t event, int status,
             const char* phrase, //
-            nua_t* nua, Sipe2eContext* ssc, nua_handle_t* nh,
-            Sipe2eOperation* op, const sip_t* sip, tagi_t tags[])
+            nua_t* nua, SipE2eContext* ssc, nua_handle_t* nh,
+            SipE2eOperation* op, const sip_t* sip, tagi_t tags[])
     {
         if (event == nua_r_publish) {
             sip_r_publish(status, phrase, nua, ssc, nh, op, sip, tags);
@@ -184,13 +180,13 @@ public:
      * Callback for an outgoing PUBLISH request.
      */
     void sip_r_publish(int status, const char* phrase, nua_t* nua,
-            Sipe2eContext* ssc, nua_handle_t* nh, Sipe2eOperation* op,
+            SipE2eContext* ssc, nua_handle_t* nh, SipE2eOperation* op,
             const sip_t* sip, tagi_t tags[])
     {
         if (status < 200)
             return;
 
-        Sipe2eSofiaHelper sh;
+        SipE2eSofiaHelper sh;
         if (status == 401 || status == 407)
             sh.authenticate(ssc, op, sip, tags);
     }
@@ -202,8 +198,8 @@ public:
 
     void handle(nua_event_t event, int status,
             const char* phrase, //
-            nua_t* nua, Sipe2eContext* ssc, nua_handle_t* nh,
-            Sipe2eOperation* op, const sip_t* sip, tagi_t tags[])
+            nua_t* nua, SipE2eContext* ssc, nua_handle_t* nh,
+            SipE2eOperation* op, const sip_t* sip, tagi_t tags[])
     {
         if (event == nua_r_register) {
             sip_r_register(status, phrase, nua, ssc, nh, op, sip, tags);
@@ -212,7 +208,7 @@ public:
         }
     }
     void sip_r_register(int status, const char* phrase, nua_t* nua,
-            Sipe2eContext* ssc, nua_handle_t* nh, Sipe2eOperation* op,
+            SipE2eContext* ssc, nua_handle_t* nh, SipE2eOperation* op,
             const sip_t* sip, tagi_t tags[])
     {
         sip_contact_t *m = sip ? sip->sip_contact : NULL;
@@ -220,21 +216,21 @@ public:
         if (status <= 200)
             return;
 
-        Sipe2eSofiaHelper sh;
+        SipE2eSofiaHelper sh;
         if (status == 401 || status == 407)
             sh.authenticate(ssc, op, sip, tags);
         sipe2e_log("sip_r_register %u\n", status);
     }
 
     void sip_r_unregister(int status, const char* phrase, nua_t* nua,
-            Sipe2eContext* ssc, nua_handle_t* nh, Sipe2eOperation* op,
+            SipE2eContext* ssc, nua_handle_t* nh, SipE2eOperation* op,
             const sip_t* sip, tagi_t tags[])
     {
         // if the status is 200OK, then just ignore it and pass it to upper layer
         if (status <= 200)
             return;
 
-        Sipe2eSofiaHelper sh;
+        SipE2eSofiaHelper sh;
         if (status == 401 || status == 407) {
             sh.authenticate(ssc, op, sip, tags);
         }
@@ -247,8 +243,8 @@ class SubscribeCallbackHelper
 public:
     void handle(nua_event_t event, int status,
             const char* phrase, //
-            nua_t* nua, Sipe2eContext* ssc, nua_handle_t* nh,
-            Sipe2eOperation* op, const sip_t* sip, tagi_t tags[])
+            nua_t* nua, SipE2eContext* ssc, nua_handle_t* nh,
+            SipE2eOperation* op, const sip_t* sip, tagi_t tags[])
     {
         if (event == nua_r_subscribe) {
             sip_r_subscribe(status, phrase, nua, ssc, nh, op, sip, tags);
@@ -257,25 +253,25 @@ public:
         }
     }
     void sip_r_subscribe(int status, const char* phrase, nua_t* nua,
-            Sipe2eContext* ssc, nua_handle_t* nh, Sipe2eOperation* op,
+            SipE2eContext* ssc, nua_handle_t* nh, SipE2eOperation* op,
             const sip_t* sip, tagi_t tags[])
     {
         if (status < 200)
             return;
 
-        Sipe2eSofiaHelper sh;
+        SipE2eSofiaHelper sh;
         if (status == 401 || status == 407)
             sh.authenticate(ssc, op, sip, tags);
     }
 
     void sip_r_unsubscribe(int status, const char* phrase, nua_t* nua,
-            Sipe2eContext* ssc, nua_handle_t* nh, Sipe2eOperation* op,
+            SipE2eContext* ssc, nua_handle_t* nh, SipE2eOperation* op,
             const sip_t* sip, tagi_t tags[])
     {
         if (status < 200)
             return;
 
-        Sipe2eSofiaHelper sh;
+        SipE2eSofiaHelper sh;
         if (status == 401 || status == 407)
             sh.authenticate(ssc, op, sip, tags);
     }
@@ -289,13 +285,13 @@ private:
     int status;
     const char* phrase;
     nua_t* nua;
-    Sipe2eContext* ssc;
+    SipE2eContext* ssc;
     nua_handle_t* nh;
-    Sipe2eOperation* op;
+    SipE2eOperation* op;
     const sip_t* sip;
     tagi_t* tags;
 
-    Sipe2eSofiaEvent ev;
+    SipE2eSofiaEvent ev;
 private:
 
     int OnDialogEvent()
@@ -376,8 +372,8 @@ private:
 
 public:
     SipCallbackHelper(nua_event_t event, int status, const char* phrase,
-            nua_t* nua, Sipe2eContext* ssc, nua_handle_t* nh,
-            Sipe2eOperation* op, const sip_t* sip, tagi_t tags[]) :
+            nua_t* nua, SipE2eContext* ssc, nua_handle_t* nh,
+            SipE2eOperation* op, const sip_t* sip, tagi_t tags[]) :
             event(event), status(status), phrase(phrase), nua(nua), ssc(ssc), nh(
                     nh), op(op), sip(sip), tags(tags), ev(event, status, phrase,
                     nua, ssc, nh, op, sip, tags)
@@ -507,15 +503,15 @@ public:
     }
 };
 
-void Sipe2eSofiaHelper::dispatchEvent(nua_event_t event, int status,
-        const char* phrase, nua_t* nua, Sipe2eContext* ssc, nua_handle_t* nh,
-        Sipe2eOperation* op, const sip_t* sip, tagi_t tags[])
+void SipE2eSofiaHelper::dispatchEvent(nua_event_t event, int status,
+        const char* phrase, nua_t* nua, SipE2eContext* ssc, nua_handle_t* nh,
+        SipE2eOperation* op, const sip_t* sip, tagi_t tags[])
 {
     SipCallbackHelper cb(event, status, phrase, nua, ssc, nh, op, sip, tags);
     cb.dispatchEvent();
 }
 
-SipEvent::SipEvent(Sipe2eSofiaEvent* ev) :ev(ev)
+SipEvent::SipEvent(SipE2eSofiaEvent* ev) :ev(ev)
 {
 
 }
@@ -544,7 +540,7 @@ int SipEvent::GetStatus() const
 	return -1;
 }
 
-MessagingEvent::MessagingEvent(Sipe2eSofiaEvent* ev) :SipEvent(ev),is_incoming(true)
+MessagingEvent::MessagingEvent(SipE2eSofiaEvent* ev) :SipEvent(ev),is_incoming(true)
 {
 
 }
@@ -557,7 +553,7 @@ MessagingSession* MessagingEvent::GetSession(SipStack* stack)
 	return NULL;
 }
 
-OptionsEvent::OptionsEvent(Sipe2eSofiaEvent* ev) :SipEvent(ev)
+OptionsEvent::OptionsEvent(SipE2eSofiaEvent* ev) :SipEvent(ev)
 {
 
 }
@@ -570,42 +566,42 @@ OptionsSession* OptionsEvent::GetSession(SipStack* stack)
 	return NULL;
 }
 
-StackEvent::StackEvent(Sipe2eSofiaEvent* ev) :SipEvent(ev)
+StackEvent::StackEvent(SipE2eSofiaEvent* ev) :SipEvent(ev)
 {
 
 }
 
-DialogEvent::DialogEvent(Sipe2eSofiaEvent* ev) :SipEvent(ev)
+DialogEvent::DialogEvent(SipE2eSofiaEvent* ev) :SipEvent(ev)
 {
 
 }
 
-InviteEvent::InviteEvent(Sipe2eSofiaEvent* ev) :SipEvent(ev)
+InviteEvent::InviteEvent(SipE2eSofiaEvent* ev) :SipEvent(ev)
 {
 
 }
 
-InfoEvent::InfoEvent(Sipe2eSofiaEvent* ev) :SipEvent(ev)
+InfoEvent::InfoEvent(SipE2eSofiaEvent* ev) :SipEvent(ev)
 {
 
 }
 
-PublicationEvent::PublicationEvent(Sipe2eSofiaEvent* ev) :SipEvent(ev)
+PublicationEvent::PublicationEvent(SipE2eSofiaEvent* ev) :SipEvent(ev)
 {
 
 }
 
-RegistrationEvent::RegistrationEvent(Sipe2eSofiaEvent* ev) :SipEvent(ev)
+RegistrationEvent::RegistrationEvent(SipE2eSofiaEvent* ev) :SipEvent(ev)
 {
 
 }
 
-SubscriptionEvent::SubscriptionEvent(Sipe2eSofiaEvent* ev) :SipEvent(ev)
+SubscriptionEvent::SubscriptionEvent(SipE2eSofiaEvent* ev) :SipEvent(ev)
 {
 
 }
 
-NotifyEvent::NotifyEvent(Sipe2eSofiaEvent* ev) :SipEvent(ev), is_incoming(true)
+NotifyEvent::NotifyEvent(SipE2eSofiaEvent* ev) :SipEvent(ev), is_incoming(true)
 {
 
 }

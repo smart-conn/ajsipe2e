@@ -1,0 +1,100 @@
+# Copyright AllSeen Alliance. All rights reserved.
+#
+#    Permission to use, copy, modify, and/or distribute this software for any
+#    purpose with or without fee is hereby granted, provided that the above
+#    copyright notice and this permission notice appear in all copies.
+#
+#    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+#    WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+#    MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+#    ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+#    WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+#    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+#    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+# 
+
+import sys
+sys.path.insert(0, '../..')
+import Utility
+
+Import('env')
+
+cloudCommEngineEnv = env.Clone()
+
+cloudCommEngineName = 'CloudCommEngine'
+
+Utility.PrintOneLineLog(Utility.EventLevel.info, cloudCommEngineName, 
+'================================START==========================================')
+
+# Add Gateway common include path.
+cloudCommEngineEnv.Append(CPPPATH = '#/Inc')
+
+# Add AllJoyn include paths.
+alljoynIncludePathList = \
+    [ '$AJ_SRC_PATH' + Utility.ReplacePathSeparators('/core/alljoyn/build/$OS/$CPU/$VARIANT/dist/cpp/inc'),
+      '$AJ_SRC_PATH' + Utility.ReplacePathSeparators('/core/alljoyn/build/$OS/$CPU/$VARIANT/dist/cpp/inc/alljoyn'),
+      '$AJ_SRC_PATH' + Utility.ReplacePathSeparators('/core/alljoyn/common/inc'),
+      '$AJ_SRC_PATH' + Utility.ReplacePathSeparators('/services/base/sample_apps/cpp/samples_common'),
+      '$AJ_SRC_PATH' + Utility.ReplacePathSeparators('/core/alljoyn/alljoyn_core/src'),
+      '$AJ_SRC_PATH' + Utility.ReplacePathSeparators('/services/base/controlpanel/cpp/inc'),
+      '$AJ_SRC_PATH' + Utility.ReplacePathSeparators('/services/base/controlpanel/cpp/src'),
+      '$AJ_SRC_PATH' + Utility.ReplacePathSeparators('/services/base/notification/cpp/inc'),
+      '$AJ_SRC_PATH' + Utility.ReplacePathSeparators('/services/base/notification/cpp/src') ]
+cloudCommEngineEnv.Append(CPPPATH = alljoynIncludePathList)
+
+# Add AllJoyn library paths.
+alljoynLibraryPathList = \
+    [ '$AJ_SRC_PATH' + Utility.ReplacePathSeparators('/core/alljoyn/build/$OS/$CPU/$VARIANT/dist/cpp/lib') ]
+cloudCommEngineEnv.Append(LIBPATH = alljoynLibraryPathList)
+
+# Add the library paths for IMSTransport.lib and Sofia_IMS.lib.
+cloudCommEngineEnv.Append(LIBPATH = ['$DISTDIR/cpp/lib'])
+
+# Add the common libraries used by CloudCommEngine.exe and IMSTransport.lib.
+cloudCommEngineEnv.Append(LIBS = ['alljoyn.lib', 'ajrouter.lib', 'ws2_32.lib', 'Secur32.lib', 
+    'crypt32.lib', 'Bcrypt.lib', 'Ncrypt.lib', 'iphlpapi.lib'])
+
+# Suppress warnings 
+# (1) C4100: unreferenced formal parameter.
+# (2) C4251: needs to have dll-interface to be used by clients of class.
+cloudCommEngineEnv.Append(CXXFLAGS = ['/wd4100', '/wd4251'])
+
+# Build the common library from Src/Common.
+cloudCommEngineEnv.SConscript(['#/Src/Common/SConscriptCloudCommEngine'], variant_dir = '$OBJDIR/cpp/CommonCloudCommEngine', 
+    duplicate = 0, exports = ['cloudCommEngineEnv'])
+
+# Build the dependency shared library IMSTransport.
+cloudCommEngineEnv.SConscript(['./IMSTransport/SConscript'], variant_dir = '$OBJDIR/cpp/ImsTransport', 
+    duplicate = 0, exports = ['cloudCommEngineEnv'])
+
+# Add a macro definition to indicate cloudCommEngine.exe is a console program.
+cloudCommEngineEnv.Append(CPPDEFINES = ['_CONSOLE'])
+
+# Print out the macro definitions.
+Utility.PrintBuildArguments(cloudCommEngineName, 'macro defintions', cloudCommEngineEnv['CPPDEFINES'])
+
+# Print out the include paths.
+Utility.PrintBuildArguments(cloudCommEngineName, 'include paths', cloudCommEngineEnv['CPPPATH'])
+
+# Add three addition libraries needed for building CloudCommEngine.exe.
+cloudCommEngineEnv.Append(LIBS = ['alljoyn_about.lib', 'IMSTransport.lib', 'CommonCloudCommEngine.lib'])
+
+# Print out the library paths.
+Utility.PrintBuildArguments(cloudCommEngineName, 'library paths', cloudCommEngineEnv['LIBPATH'])
+
+# Print out the build flags.
+Utility.PrintBuildArguments(cloudCommEngineName, 'C flags', cloudCommEngineEnv['CFLAGS'])
+Utility.PrintBuildArguments(cloudCommEngineName, 'C++ flags', cloudCommEngineEnv['CXXFLAGS'])
+
+# Building the console program.
+targetExeName = 'CloudCommEngine'
+sourceFileList = Glob('*.cc')
+
+Utility.PrintBuildArguments(cloudCommEngineName, 'source files', sourceFileList)
+
+cloudCommEngineExe = cloudCommEngineEnv.Program(targetExeName, sourceFileList)
+
+cloudCommEngineEnv.Install('$DISTDIR/cpp/bin', cloudCommEngineExe)
+
+Utility.PrintOneLineLog(Utility.EventLevel.info, cloudCommEngineName, 
+'=================================END===========================================')

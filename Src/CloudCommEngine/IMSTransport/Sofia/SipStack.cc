@@ -17,7 +17,7 @@
 #include "SipStack.h"
 
 SipStack::SipStack() :
-        g_bInitialized(false), m_pContext(0)
+    g_bInitialized(false), m_pContext(0)
 {
 }
 
@@ -31,8 +31,12 @@ SipStack::~SipStack()
     }
 }
 
-SipStack* SipStack::makeInstance(SipCallback* pCallback, const char* realm_uri,
-        const char* impi_uri, const char* impu_uri, int local_port)
+SipStack* SipStack::makeInstance(
+    SipCallback* pCallback,
+    const char* realm_uri,
+    const char* impi_uri,
+    const char* impu_uri,
+    int local_port)
 {
     SipStack* s = getInstance();
 
@@ -58,9 +62,16 @@ SipStack* SipStack::getInstance()
     return &stack;
 }
 
-static void sipstack_callback(nua_event_t event, int status, const char* phrase,
-        nua_t* nua, SipE2eContext* ssc, nua_handle_t* nh, SipE2eOperation* op,
-        const sip_t* sip, tagi_t tags[])
+static void sipstack_callback(
+    nua_event_t event,
+    int status,
+    const char* phrase,
+    nua_t* nua,
+    SipE2eContext* ssc,
+    nua_handle_t* nh,
+    SipE2eOperation* op,
+    const sip_t* sip,
+    tagi_t tags[])
 {
     SipE2eSofiaHelper sh;
     sh.dispatchEvent(event, status, phrase, nua, ssc, nh, op, sip, tags);
@@ -75,24 +86,28 @@ bool SipStack::initialize()
     ctx->sip_root = su_glib_root_create(ctx);
     if (ctx->sip_root != nullptr) {
         ctx->loop = g_main_loop_new(nullptr, false);
-        GSource *gsource = su_root_gsource(ctx->sip_root);
+        GSource*gsource = su_root_gsource(ctx->sip_root);
         g_source_attach(gsource, g_main_loop_get_context(ctx->loop));
 /*
         SipE2eSofiaHelper sh;
         char address_url[BUFFER_SIZE_B];
         sh.guessVia(address_url, ctx->profile.local_port, ctx->profile.is_tcp);
         sipe2e_log("%s\n", address_url);
-*/
-        ctx->sip_nua = nua_create(ctx->sip_root,
-                (nua_callback_f) sipstack_callback, (nua_magic_t *) ctx,
-                NUTAG_URL("sip:0.0.0.0;transport=udp"),
-                TAG_END());
+ */
+        ctx->sip_nua = nua_create(
+            ctx->sip_root,
+            (nua_callback_f) sipstack_callback,
+            (nua_magic_t*) ctx,
+            NUTAG_URL("sip:0.0.0.0;transport=udp"),
+            TAG_END());
         char route[BUFFER_SIZE_B];
         sprintf(route, "<sip:%s;lr>", ctx->profile.pcscf);
-        nua_set_params(ctx->sip_nua, NUTAG_INITIAL_ROUTE_STR(route),
-                NUTAG_SERVICE_ROUTE_ENABLE(1),
-                TAG_END());
-		ctx->status = 0;
+        nua_set_params(
+            ctx->sip_nua,
+            NUTAG_INITIAL_ROUTE_STR(route),
+            NUTAG_SERVICE_ROUTE_ENABLE(1),
+            TAG_END());
+        ctx->status = 0;
         g_bInitialized = true;
     }
     return g_bInitialized;
@@ -102,7 +117,7 @@ bool SipStack::deInitialize()
 {
     SipE2eContext* ctx = m_pContext;
     if (ctx->sip_root != nullptr) {
-        GSource *source = su_glib_root_gsource(ctx->sip_root);
+        GSource* source = su_glib_root_gsource(ctx->sip_root);
         g_source_unref(source);
         if (ctx->sip_nua != nullptr) {
             nua_destroy(ctx->sip_nua);
@@ -120,10 +135,10 @@ bool SipStack::deInitialize()
 bool SipStack::start()
 {
     if (isValid()) {
-		g_main_loop_run(m_pContext->loop);
+        g_main_loop_run(m_pContext->loop);
     } else {
-		return false;
-	}
+        return false;
+    }
     return true;
 }
 
@@ -170,8 +185,11 @@ bool SipStack::setPassword(const char* password)
     }
     return true;
 }
-bool SipStack::setProxyCSCF(const char* fqdn, unsigned short port,
-        const char* transport, const char* ipversion)
+bool SipStack::setProxyCSCF(
+    const char* fqdn,
+    unsigned short port,
+    const char* transport,
+    const char* ipversion)
 {
     SipE2eContext* ctx = m_pContext;
     ctx->profile.is_tcp = (strcmp("tcp", transport) == 0);
@@ -187,6 +205,6 @@ SipE2eContext* SipStack::getContext() const
 
 bool SipStack::addHeader(const char* name, const char* value)
 {
-	// TODO
+    // TODO
     return true;
 }

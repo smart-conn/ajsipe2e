@@ -28,61 +28,72 @@ Utility.PrintOneLineLog(Utility.EventLevel.info, sofiaImsName,
 
 # Remove the macro "WIN32_LEAN_AND_MEAN" already defined in su_configure.h. 
 cppDefines = sofiaImsEnv['CPPDEFINES']
-if 'WIN32_LEAN_AND_MEAN' in cppDefines:
+if (sofiaImsEnv['OS'] == 'win7') and ('WIN32_LEAN_AND_MEAN' in cppDefines):
     cppDefines.remove('WIN32_LEAN_AND_MEAN')
     sofiaImsEnv.Replace(CPPDEFINES = cppDefines)
 
 # Define one more macro.
-sofiaImsEnv.Append(CPPDEFINES = [ 'SOFIA_IMSTRANSPORT_EXPORTS' ])
+sofiaImsEnv.Append(CPPDEFINES = ['SOFIA_IMSTRANSPORT_EXPORTS'])
 
 # Print out the macro definitions.
 Utility.PrintBuildArguments(sofiaImsName, 'macro defintions', sofiaImsEnv['CPPDEFINES'])
 
 # Add three more include paths.
-sofiaImsEnv.Append(CPPPATH = \
-    [ sofiaImsEnv['ICONV_HOME'] + Utility.ReplacePathSeparators('/include') ])
-sofiaImsEnv.Append(CPPPATH = [ '#/Inc/CloudCommEngine/IMSTransport/Sofia' ])
-sofiaImsEnv.Append(CPPPATH = [ '#/Src/CloudCommEngine/IMSTransport/Sofia' ])
+if sofiaImsEnv['OS'] == 'win7':
+    sofiaImsEnv.Append(CPPPATH = \
+         [sofiaImsEnv['ICONV_HOME'] + Utility.ReplacePathSeparators('/include')])
+
+sofiaImsEnv.Append(CPPPATH = ['#/Inc/CloudCommEngine/IMSTransport/Sofia'])
+sofiaImsEnv.Append(CPPPATH = ['#/Src/CloudCommEngine/IMSTransport/Sofia'])
 
 # Print out the include paths.
 Utility.PrintBuildArguments(sofiaImsName, 'include paths', sofiaImsEnv['CPPPATH'])
 
 # Add the iconv library path.
-sofiaImsEnv.Append(LIBPATH = \
-    [ sofiaImsEnv['GLIB_HOME'] + Utility.ReplacePathSeparators('/lib') ])
+if sofiaImsEnv['OS'] == 'win7':
+    sofiaImsEnv.Append(LIBPATH = \
+        [ sofiaImsEnv['GLIB_HOME'] + Utility.ReplacePathSeparators('/lib') ])
     
 # Add the Sofia SIP library path for win32.
-sofiaSipLibPath = \
-    sofiaImsEnv['SOFIA_SIP_HOME'] + Utility.ReplacePathSeparators('/win32/libsofia-sip-ua/')
-if sofiaImsEnv['VARIANT'] == 'debug':
-    sofiaSipLibPath += 'Debug'
-else:
-    sofiaSipLibPath += 'Release'
-    
-sofiaImsEnv.Append(LIBPATH = [ sofiaSipLibPath ])  
+if sofiaImsEnv['OS'] == 'win7':
+    sofiaSipLibPath = \
+        sofiaImsEnv['SOFIA_SIP_HOME'] + Utility.ReplacePathSeparators('/win32/libsofia-sip-ua/')
+    if sofiaImsEnv['VARIANT'] == 'debug':
+        sofiaSipLibPath += 'Debug'
+    else:
+        sofiaSipLibPath += 'Release'
+        
+    sofiaImsEnv.Append(LIBPATH = [sofiaSipLibPath])  
 
 # Print out the library paths.
 Utility.PrintBuildArguments(sofiaImsName, 'library paths', sofiaImsEnv['LIBPATH'])
 
 # Add the two input libraries.
-sofiaImsEnv.Append(LIBS = ['libsofia_sip_ua', 'glib-2.0'])
+if sofiaImsEnv['OS'] == 'win7':
+    sofiaImsEnv.Append(LIBS = ['libsofia_sip_ua', 'glib-2.0'])
+else:
+    sofiaImsEnv.Append(LIBS = ['sofia-sip-ua', 'sofia-sip-ua-glib', 'glib-2.0'])
 
 # Print out the input libraries.
 Utility.PrintBuildArguments(sofiaImsName, 'libraries', sofiaImsEnv['LIBS'])
 
-# Suppress warnings 
+# For Windows, suppress the following warnings.
 # (1) C4100: unreferenced formal parameter.
 # (2) C4127: conditional expression is constant.
 # (3) C4189: local variable is initialized but not referenced.
 # (4) C4706: assignment within conditional expression.
-sofiaImsEnv.Append(CXXFLAGS = ['/wd4100', '/wd4127', '/wd4189', '/wd4706'])
+# For Linux, suppress the unused-but-set-variable warning.
+if sofiaImsEnv['OS'] == 'win7':
+    sofiaImsEnv.Append(CXXFLAGS = ['/wd4100', '/wd4127', '/wd4189', '/wd4706'])
+else:
+    sofiaImsEnv.Append(CXXFLAGS = ['-Wno-unused-but-set-variable'])
 
 # Print out the build flags.
 Utility.PrintBuildArguments(sofiaImsName, 'C flags', sofiaImsEnv['CFLAGS'])
 Utility.PrintBuildArguments(sofiaImsName, 'C++ flags', sofiaImsEnv['CXXFLAGS'])
 
 # Build the shared library.
-targetLibName = 'Sofia_IMS'
+targetLibName = 'SofiaIms'
 sourceFileList = Glob('*.cc')
 Utility.PrintBuildArguments(sofiaImsName, 'source files', sourceFileList)
 

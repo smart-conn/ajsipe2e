@@ -22,87 +22,79 @@
 #include "SipStack.h"
 
 
-class SOFIA_IMS_EXPORT_FUN SipSession
-{
-public:
+class SOFIA_IMS_EXPORT_FUN SipSession {
+  public:
     SipSession(SipStack* stack);
     virtual ~SipSession();
 
-	bool addHeader(const char* name, const char* value);
-	bool removeHeader(const char* name);
-	bool addCaps(const char* name, const char* value);
-	bool addCaps(const char* name);
-	bool removeCaps(const char* name);
-	bool setExpires(unsigned expires);
-	bool setFromUri(const char* fromUriString);
-	bool setToUri(const char* toUriString);
+    bool addHeader(const char* name, const char* value);
+    bool removeHeader(const char* name);
+    bool addCaps(const char* name, const char* value);
+    bool addCaps(const char* name);
+    bool removeCaps(const char* name);
+    bool setExpires(unsigned expires);
+    bool setFromUri(const char* fromUriString);
+    bool setToUri(const char* toUriString);
 
-protected:
+  protected:
     const SipStack* m_pStack;
     SipE2eOperation* m_pOperation;
 };
 
-class SOFIA_IMS_EXPORT_FUN MessagingSession : public SipSession
-{
-public:
+class SOFIA_IMS_EXPORT_FUN MessagingSession : public SipSession {
+  public:
     MessagingSession(SipStack* pStack, nua_handle_t* nh = NULL);
     virtual ~MessagingSession();
 
-public:
     bool send(const char* payload);
-	bool accept();
-	bool reject();
-private:
+    bool accept();
+    bool reject();
+
+  private:
 };
 
-class SOFIA_IMS_EXPORT_FUN OptionsSession : public SipSession
-{
-public:
+class SOFIA_IMS_EXPORT_FUN OptionsSession : public SipSession {
+  public:
     OptionsSession(SipStack* pStack, nua_handle_t* nh = NULL);
     virtual ~OptionsSession();
 
-public:
     bool send();
-	bool accept();
-	bool reject();
-	bool setToUri(const char* toUriString);
+    bool accept();
+    bool reject();
+    bool setToUri(const char* toUriString);
 };
 
-class SOFIA_IMS_EXPORT_FUN PublicationSession : public SipSession
-{
-public:
+class SOFIA_IMS_EXPORT_FUN PublicationSession : public SipSession {
+  public:
     PublicationSession(SipStack* pStack, nua_handle_t* nh = NULL);
     virtual ~PublicationSession();
 
-public:
     bool publish(const char* payload);
     bool unPublish();
 };
 
-class SOFIA_IMS_EXPORT_FUN RegistrationSession : public SipSession
-{
-public:
+class SOFIA_IMS_EXPORT_FUN RegistrationSession : public SipSession {
+  public:
     RegistrationSession(SipStack* pStack, nua_handle_t* nh = NULL);
     virtual ~RegistrationSession();
 
     bool setReqUri(const char* reqUriString);
-	bool setFromUri(const char* fromUriString);
-	bool setToUri(const char* toUriString);
-public:
+    bool setFromUri(const char* fromUriString);
+    bool setToUri(const char* toUriString);
+
     bool register_();
     bool unRegister();
 };
 
-class SOFIA_IMS_EXPORT_FUN SubscriptionSession : public SipSession
-{
-public:
+class SOFIA_IMS_EXPORT_FUN SubscriptionSession : public SipSession {
+  public:
     SubscriptionSession(SipStack* pStack, nua_handle_t* nh = NULL);
     virtual ~SubscriptionSession();
 
-public:
     bool subscribe();
     bool unSubscribe();
-private:
+
+  private:
 };
 
 #endif

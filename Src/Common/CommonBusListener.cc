@@ -25,12 +25,12 @@ namespace sipe2e {
 
 namespace gateway {
 
-CommonBusListener::CommonBusListener(ajn::BusAttachment* bus /*= NULL*/, 
+CommonBusListener::CommonBusListener(ajn::BusAttachment* bus /*= NULL*/,
                                      daemonDisconnectCB dDCB /*= NULL*/,
                                      sessionJoinedCB sJCB /*= NULL*/,
                                      sessionLostCB sLCB /*= NULL*/,
                                      void* arg /*= NULL*/)
-    : BusListener(), SessionPortListener(), m_SessionPort(0), m_Bus(bus), 
+    : BusListener(), SessionPortListener(), m_SessionPort(0), m_Bus(bus),
     m_DaemonDisconnectCB(dDCB),
     m_sessionJoinedCB(sJCB),
     m_sessionLostCB(sLCB),
@@ -60,7 +60,7 @@ bool CommonBusListener::AcceptSessionJoiner(ajn::SessionPort sessionPort, const 
     if (sessionPort != m_SessionPort) {
         return false;
     }
-*/
+ */
 
     std::cout << "Accepting JoinSessionRequest" << std::endl;
     return true;
@@ -105,11 +105,11 @@ void CommonBusListener::SessionLost(ajn::SessionId sessionId, SessionLostReason 
 // }
 
 /*
-const std::map<ajn::SessionId, qcc::String>& CommonBusListener::getSessionIdJoinerMap() const
-{
+   const std::map<ajn::SessionId, qcc::String>& CommonBusListener::getSessionIdJoinerMap() const
+   {
     return m_SessionInfos;
-}
-*/
+   }
+ */
 
 void CommonBusListener::BusDisconnected()
 {

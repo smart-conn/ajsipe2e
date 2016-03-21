@@ -37,7 +37,7 @@ def GetDefaultPathFromEnvironVar(component, envName):
         'The default {0}'.format(component) + ' path is given by ' + envName \
         + ': ' + defaultPath + '.')
     else:
-        PrintOneLineLog(EventLevel.Error, utilityName, 
+        PrintOneLineLog(EventLevel.error, utilityName, 
         'The default {0}'.format(component) + ' path is not found because the \
         environment variable ' + envName + ' is not defined.')
     return defaultPath
@@ -66,6 +66,8 @@ def PrintAlljoynEnv(env):
     
 def IsBuildSupported(env):
     if (env['OS'] == 'win7') and (env['CPU'] == 'x86'):
+        return True
+    elif (env['OS'] == 'linux'):
         return True
     else:
         return False

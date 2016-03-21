@@ -16,9 +16,8 @@
 
 #include "SipMessage.h"
 
-class SipE2eMessageHelper
-{
-public:
+class SipE2eMessageHelper {
+  public:
     bool foundValue(const char* const s, const char* const name, char* val)
     { // strtok is not allowed in this routine
         const char* p = s;
@@ -57,7 +56,7 @@ public:
 };
 
 SipMessage::SipMessage(SipE2eContext* _ssc, const sip_t* _msg) :
-        ssc(_ssc), msg(_msg)
+    ssc(_ssc), msg(_msg)
 {
 }
 
@@ -67,7 +66,7 @@ SipMessage::~SipMessage()
 
 bool SipMessage::isValid()
 {
-	return (NULL != msg);
+    return (NULL != msg);
 }
 
 sip_method_t SipMessage::getRequestType()
@@ -101,27 +100,29 @@ char* SipMessage::getSipHeaderValue(const char* name, unsigned index /*= 0*/)
             return (char*) msg->sip_to->a_common->h_data; // always nullptr
         }
     } else if (strcmp(name, "Service-Route") == 0) {
-		if (msg->sip_service_route) {
-			return url_as_string(ssc->sip_home, msg->sip_service_route->r_url);
-		}
-	}
+        if (msg->sip_service_route) {
+            return url_as_string(ssc->sip_home, msg->sip_service_route->r_url);
+        }
+    }
     return nullptr;
 }
 
-char* SipMessage::getSipHeaderParamValue(const char* name, const char* param,
-        unsigned index /*= 0*/)
+char* SipMessage::getSipHeaderParamValue(
+    const char* name,
+    const char* param,
+    unsigned index /*= 0*/)
 {
     SipE2eMessageHelper mh;
     if (strcmp(name, "From") == 0 || strcmp(name, "f") == 0) {
         if (msg->sip_from) {
-            msg_param_t const * p = msg->sip_from->a_params;
+            msg_param_t const* p = msg->sip_from->a_params;
             if (p) {
                 return mh.getParamValue(*p, param);
             }
         }
     } else if (strcasecmp(name, "To") == 0 || strcmp(name, "t") == 0) {
         if (msg->sip_to) {
-            msg_param_t const * p = msg->sip_to->a_params;
+            msg_param_t const* p = msg->sip_to->a_params;
             if (p) {
                 return mh.getParamValue(*p, param);
             }

@@ -22,30 +22,30 @@
 #include <sofia-sip/sip.h>
 
 
-class SOFIA_IMS_EXPORT_FUN SipMessage
-{
-public:
-	SipMessage(SipE2eContext* _ssc, const sip_t* _msg);;
-	virtual ~SipMessage();
+class SOFIA_IMS_EXPORT_FUN SipMessage {
+  public:
+    SipMessage(SipE2eContext* _ssc, const sip_t* _msg);;
+    virtual ~SipMessage();
 
-	bool isValid();
-	sip_method_t getRequestType();
-	int getResponseCode();
-	/**
-	 * Get well-known header values and all unknown header values, including no parameters
-	 * @param - 
-	 */
-	char* getSipHeaderValue(const char* name, unsigned index = 0);
-	/**
-	 * Get parameter value of well-known headers
-	 * @param - 
-	 */
-	char* getSipHeaderParamValue(const char* name, const char* param, unsigned index = 0);
-	unsigned getSipContentLength();
-	unsigned getSipContent(void* output, unsigned maxsize);
-private:
-	const sip_t* msg;
-	SipE2eContext* ssc;
+    bool isValid();
+    sip_method_t getRequestType();
+    int getResponseCode();
+    /**
+     * Get well-known header values and all unknown header values, including no parameters
+     * @param -
+     */
+    char* getSipHeaderValue(const char* name, unsigned index = 0);
+    /**
+     * Get parameter value of well-known headers
+     * @param -
+     */
+    char* getSipHeaderParamValue(const char* name, const char* param, unsigned index = 0);
+    unsigned getSipContentLength();
+    unsigned getSipContent(void* output, unsigned maxsize);
+
+  private:
+    SipE2eContext* ssc;
+    const sip_t* msg;
 };
 
 #endif

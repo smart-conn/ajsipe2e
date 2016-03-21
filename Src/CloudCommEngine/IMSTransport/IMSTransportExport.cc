@@ -15,8 +15,9 @@
  ******************************************************************************/
 #include <qcc/platform.h>
 
-#include "CloudCommEngine/IMSTransport/IMSTransportExport.h"
+#include "CloudCommEngine/IMSTransport/IMSTransportSipCallback.h"
 #include "CloudCommEngine/IMSTransport/IMSTransport.h"
+#include "CloudCommEngine/IMSTransport/IMSTransportExport.h"
 
 #include "CloudCommEngine/IMSTransport/pidf.h"
 
@@ -78,12 +79,13 @@ SIPE2E_GATEWAY_EXTERN void SIPE2E_GATEWAY_CALL ITStopReadCloudMessage()
     IMSTransport::GetInstance()->StopReadCloudMessage();
 }
 
-int SIPE2E_GATEWAY_CALL ITSendCloudMessage(int msgType, 
-                                           const char* peer,
-                                           const char* callId,
-                                           const char* addr,
-                                           const char* msgBuf, 
-                                           char** resMsgBuf)
+int SIPE2E_GATEWAY_CALL ITSendCloudMessage(
+    int msgType,
+    const char* peer,
+    const char* callId,
+    const char* addr,
+    const char* msgBuf,
+    char** resMsgBuf)
 {
     return IMSTransport::GetInstance()->SendCloudMessage(msgType, peer, callId, addr, msgBuf, resMsgBuf);
 }

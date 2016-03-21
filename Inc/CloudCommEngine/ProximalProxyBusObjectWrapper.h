@@ -27,13 +27,17 @@
 namespace sipe2e {
 namespace gateway {
 
+// BUGBUG: "friend declaration" is weak and it doesn't provide the solid forward declaration for further usage,
+// so we have to forward declare CloudCommEngineBusObject here.
+class CloudCommEngineBusObject;
+
 class ProximalProxyBusObjectWrapper;
 typedef qcc::ManagedObj<ProximalProxyBusObjectWrapper> _ProximalProxyBusObjectWrapper;
 
-class ProximalProxyBusObjectWrapper : public ajn::MessageReceiver
-{
+class ProximalProxyBusObjectWrapper : public ajn::MessageReceiver {
     friend class CloudCommEngineBusObject;
-public:
+
+  public:
     ProximalProxyBusObjectWrapper();
     ProximalProxyBusObjectWrapper(ajn::_ProxyBusObject _proxy, ajn::BusAttachment* bus, CloudCommEngineBusObject* owner);
     virtual ~ProximalProxyBusObjectWrapper();
@@ -49,7 +53,7 @@ public:
      */
     void CommonSignalHandler(const ajn::InterfaceDescription::Member* member, const char* srcPath, ajn::Message& msg);
 
-private:
+  private:
     ajn::_ProxyBusObject proxy;
     ajn::BusAttachment* proxyBus;
     std::vector<_ProximalProxyBusObjectWrapper> children;

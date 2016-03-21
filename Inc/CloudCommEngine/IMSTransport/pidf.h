@@ -21,7 +21,7 @@
 #include <vector>
 
 namespace qcc {
-    class XmlElement;
+class XmlElement;
 }
 
 
@@ -30,54 +30,45 @@ namespace gateway {
 
 namespace ims {
 
-class SIPE2E_GATEWAY_EXPORT service
-{
-public:
+class SIPE2E_GATEWAY_EXPORT service {
+  public:
     service();
     ~service();
 
-public:
     void SetIntrospectionXml(const qcc::String& _introspectionXml);
     qcc::String& GetIntrospectionXml();
 
-public:
     void Serialize(qcc::String& serviceXml);
 
-protected:
+  protected:
     qcc::String introspectionXml;
 };
 
-enum basic
-{
+enum basic {
     open,
     closed
 };
 
-class SIPE2E_GATEWAY_EXPORT status
-{
-public:
+class SIPE2E_GATEWAY_EXPORT status {
+  public:
     status();
     ~status();
 
-public:
     void SetBasicStatus(basic basicStatus);
     basic GetBasicStatus();
 
-public:
     void Serialize(qcc::String& statusXml);
     void Deserialize(const qcc::XmlElement* statusNode);
 
-protected:
+  protected:
     basic basicField;
 };
 
-class SIPE2E_GATEWAY_EXPORT tuple 
-{
-public:
+class SIPE2E_GATEWAY_EXPORT tuple {
+  public:
     tuple();
     ~tuple();
 
-public:
     void SetId(const qcc::String& id);
     qcc::String& GetId();
     void SetStatus(const status& _status);
@@ -85,44 +76,36 @@ public:
     void SetService(const service& _service);
     service& GetService();
 
-public:
     void Serialize(qcc::String& tupleXml);
     void Deserialize(const qcc::XmlElement* tupleNode);
 
-protected:
+  protected:
     qcc::String idField;
     status statusField;
 //     std::vector<note> noteField;
     service serviceField;
 };
 
-class SIPE2E_GATEWAY_EXPORT presence 
-{
-public:
+class SIPE2E_GATEWAY_EXPORT presence {
+  public:
     presence();
     ~presence();
 
-public:
     void SetEntity(const qcc::String& entity);
     void AddTuple(const tuple& _tuple);
 
-public:
     void Serialize(qcc::String& presenceXml);
     void Deserialize(const qcc::XmlElement* presenceNode);
     void Deserialize(const qcc::String& presenceXml);
 
     std::vector<tuple>& GetTuples();
 
-protected:
+  protected:
     qcc::String entityField;
     std::vector<tuple> tupleField;
 };
 
-
 } // namespace ims
-
 } // namespace gateway
-
 } // namespace sipe2e
-
 #endif

@@ -21,13 +21,12 @@
 #include "Sofia.h"
 
 
-class SOFIA_IMS_EXPORT_FUN SipStack
-{
-public:
+class SOFIA_IMS_EXPORT_FUN SipStack {
+  public:
     static SipStack* makeInstance(SipCallback* pCallback, const char* realm_uri, const char* impi_uri, const char* impu_uri, int local_port);
     static SipStack* getInstance();
     SipE2eContext* getContext() const;
-public:
+
     bool initialize();
     bool deInitialize();
     bool start();
@@ -39,13 +38,14 @@ public:
     bool setIMPU(const char* impu_uri);
     bool setPassword(const char* password);
     bool setProxyCSCF(const char* fqdn, unsigned short port, const char* transport, const char* ipversion);
-	bool addHeader(const char* name, const char* value);
-private:
+    bool addHeader(const char* name, const char* value);
+
+  private:
     SipStack();
     ~SipStack();
-//    SipCallback* m_pCallback;
-    SipE2eContext* m_pContext;
+
     bool g_bInitialized;
+    SipE2eContext* m_pContext;
 };
 
 #endif

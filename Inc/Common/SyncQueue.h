@@ -21,44 +21,40 @@
 #include <condition_variable>
 
 template <typename T>
-class SyncQueue
-{
-public:
+class SyncQueue {
+  public:
 
     SyncQueue()
     {
-        RequestToEnd = false;  
+        RequestToEnd = false;
         EnqueueData = true;
     }
     void Enqueue(const T& data)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 
-        if(EnqueueData)
-        {
+        if (EnqueueData) {
             m_queue.push(data);
             m_cond.notify_one();
         }
 
-    } 
+    }
 
 
     bool TryDequeue(T& result)
     {
         std::unique_lock<std::mutex> lock(m_mutex);
 
-        while (m_queue.empty() && (! RequestToEnd)) 
-        { 
+        while (m_queue.empty() && (!RequestToEnd)) {
             m_cond.wait(lock);
         }
 
-        if( RequestToEnd )
-        {
+        if (RequestToEnd) {
             DoEndActions();
             return false;
         }
 
-        result= m_queue.front(); m_queue.pop();
+        result = m_queue.front(); m_queue.pop();
 
         return true;
     }
@@ -67,7 +63,7 @@ public:
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         RequestToEnd =  true;
-        m_cond.notify_one();       
+        m_cond.notify_one();
     }
 
     int Size()
@@ -77,23 +73,22 @@ public:
 
     }
 
-private:
+  private:
 
     void DoEndActions()
     {
         EnqueueData = false;
 
-        while (!m_queue.empty())  
-        {
+        while (!m_queue.empty()) {
             m_queue.pop();
         }
     }
 
 
 
-    std::queue<T> m_queue;              // Use STL queue to store data
+    std::queue<T> m_queue;            // Use STL queue to store data
     std::mutex m_mutex;               // The mutex to synchronise on
-    std::condition_variable m_cond;            // The condition to wait for
+    std::condition_variable m_cond;   // The condition to wait for
 
     bool RequestToEnd;
     bool EnqueueData;

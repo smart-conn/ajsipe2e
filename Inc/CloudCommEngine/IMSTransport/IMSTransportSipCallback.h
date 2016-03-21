@@ -22,14 +22,11 @@
 namespace sipe2e {
 namespace gateway {
 
-class IMSTransportSipCallback :
-    public SipCallback
-{
-public:
+class IMSTransportSipCallback : public SipCallback {
+  public:
     IMSTransportSipCallback();
     virtual ~IMSTransportSipCallback(void);
 
-public:
     virtual int OnDialogEvent(const DialogEvent* e);
     virtual int OnStackEvent(const StackEvent* e);
 
@@ -47,7 +44,6 @@ public:
     virtual int OnPublicationEvent(const PublicationEvent* e);
 
 };
-
 
 } // namespace gateway
 } // namespace sipe2e

@@ -40,7 +40,7 @@ namespace gateway {
 // QStatus FillPropertyStore(ajn::services::AboutPropertyStoreImpl* propertyStore, const qcc::String& aboutKey, const qcc::String& aboutValue);
 
 /**
- * 
+ *
  * @param strPath - the relative path
  */
 QStatus NormalizePath(qcc::String& strPath);

@@ -171,7 +171,7 @@ void tuple::Serialize(String& tupleXml)
     tupleXml = "<tuple id=\"";
     tupleXml += idField;
     tupleXml += "\">";
-    
+
     String childXml;
     statusField.Serialize(childXml);
     tupleXml += childXml;
@@ -239,7 +239,7 @@ void presence::Serialize(String& presenceXml)
     presenceXml += "</presence>";
 }
 
-void presence::Deserialize(const XmlElement* presenceNode) 
+void presence::Deserialize(const XmlElement* presenceNode)
 {
     if (presenceNode == NULL) {
         return;

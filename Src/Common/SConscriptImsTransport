@@ -19,7 +19,7 @@ import Utility
 
 Import('imsTransportEnv')
 
-commonImsTransportName = 'commonImsTransport'
+commonImsTransportName = 'CommonImsTransport'
 
 commonImsTransportEnv = imsTransportEnv.Clone()
 
@@ -27,7 +27,7 @@ Utility.PrintOneLineLog(Utility.EventLevel.info, commonImsTransportName,
 '================================START==========================================')
 
 # Building the static library.
-targetLibName = 'CommonIMSTransport'
+targetLibName = 'CommonImsTransport'
 sourceFileList = ['AJInitializer.cc', 'CommonUtils.cc', 'GuidUtil.cc', 'sha256.cc']
 
 Utility.PrintBuildArguments(commonImsTransportName, 'source files', sourceFileList)

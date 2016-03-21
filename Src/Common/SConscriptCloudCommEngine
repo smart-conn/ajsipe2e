@@ -19,7 +19,7 @@ import Utility
 
 Import('cloudCommEngineEnv')
 
-commonCloudCommEngineName = 'commonCloudCommEngine'
+commonCloudCommEngineName = 'CommonCloudCommEngine'
 
 commonCloudCommEngineEnv = cloudCommEngineEnv.Clone()
 

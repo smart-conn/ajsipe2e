@@ -38,7 +38,7 @@
 /* Remove this when building DLL */
 /* #define LIBSOFIA_SIP_UA_STATIC */
 
-#define SU_HAVE_WIN32		1
+#define SU_HAVE_WIN32           1
 #define SU_HAVE_WINSOCK         1
 #define SU_HAVE_WINSOCK2        1
 #define SU_HAVE_POLL            0
@@ -71,7 +71,7 @@
 /** Define this as 1 if we can use tags directly from stack. */
 #define SU_HAVE_TAGSTACK (1)
 
-// The following macros are already defined in su_types.h, so comment them out 
+// The following macros are already defined in su_types.h, so comment them out
 // to avoid the macro redefinitions (warning C4005).
 //#define SU_S64_T __int64
 //#define SU_U64_T unsigned __int64

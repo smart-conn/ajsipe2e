@@ -17,7 +17,7 @@
 #include <qcc/Debug.h>
 #include <qcc/StringUtil.h>
 
-#if defined( _MSC_VER )
+#if defined(_MSC_VER)
 #include <direct.h>        // _getcwd
 // #include <crtdbg.h>
 #include <windows.h>
@@ -25,6 +25,10 @@
 #include <io.h>  // mkdir
 #else
 #include <sys/stat.h>    // mkdir
+#endif
+
+#ifndef MAX_PATH
+#define MAX_PATH 260 // The MAX_PATH macro is not defined on Linux.
 #endif
 
 #define QCC_MODULE "CommonUtils"
@@ -154,7 +158,7 @@ qcc::String ArgToXml(const ajn::MsgArg* args, size_t indent)
     case ALLJOYN_ARRAY:
         str += "<array type=\"" + qcc::String(CHK_STR(args->v_array.GetElemSig())) + "\">";
         for (uint32_t i = 0; i < args->v_array.GetNumElements(); i++) {
-            str += "\n" + ArgToXml(&args->v_array.GetElements()[i], indent)/*args->v_array.elements[i].ToString(indent)*/;
+            str += "\n" + ArgToXml(&args->v_array.GetElements()[i], indent) /*args->v_array.elements[i].ToString(indent)*/;
         }
         str += "\n" + in + "</array>";
         break;
@@ -170,11 +174,11 @@ qcc::String ArgToXml(const ajn::MsgArg* args, size_t indent)
 
     case ALLJOYN_DICT_ENTRY:
         str += "<dict_entry>\n" +
-            ArgToXml(args->v_dictEntry.key, indent) + "\n" + 
-            //             args->v_dictEntry.key->ToString(indent) + "\n" +
-            //             args->v_dictEntry.val->ToString(indent) + "\n" +
-            ArgToXml(args->v_dictEntry.val, indent) + "\n" + 
-            in + "</dict_entry>";
+               ArgToXml(args->v_dictEntry.key, indent) + "\n" +
+               //             args->v_dictEntry.key->ToString(indent) + "\n" +
+               //             args->v_dictEntry.val->ToString(indent) + "\n" +
+               ArgToXml(args->v_dictEntry.val, indent) + "\n" +
+               in + "</dict_entry>";
         break;
 
     case ALLJOYN_SIGNATURE:
@@ -200,7 +204,7 @@ qcc::String ArgToXml(const ajn::MsgArg* args, size_t indent)
     case ALLJOYN_STRUCT:
         str += "<struct>\n";
         for (uint32_t i = 0; i < args->v_struct.numMembers; i++) {
-            str += ArgToXml(&args->v_struct.members[i], indent)/*args->v_struct.members[i].ToString(indent)*/ + "\n";
+            str += ArgToXml(&args->v_struct.members[i], indent) /*args->v_struct.members[i].ToString(indent)*/ + "\n";
         }
         str += in + "</struct>";
         break;
@@ -219,7 +223,7 @@ qcc::String ArgToXml(const ajn::MsgArg* args, size_t indent)
 
     case ALLJOYN_VARIANT:
         str += "<variant type=\"" + args->v_variant.val->Signature() + "\">\n";
-        str += ArgToXml(args->v_variant.val, indent)/*args->v_variant.val->ToString(indent)*/;
+        str += ArgToXml(args->v_variant.val, indent) /*args->v_variant.val->ToString(indent)*/;
         str += "\n" + in + "</variant>";
         break;
 
@@ -364,7 +368,7 @@ QStatus XmlToArg(const XmlElement* argEle, MsgArg& arg)
             }
 
 #define ParseArrayArg(StringToFunc, arraySig, argType) \
-    const String& argStr = argEle->GetContent(); \
+    const String &argStr = argEle->GetContent(); \
     std::vector<String> arrayTmp; \
     size_t arraySize = StringSplit(argStr, ' ', arrayTmp); \
     if (arraySize > 0) { \
@@ -386,49 +390,58 @@ QStatus XmlToArg(const XmlElement* argEle, MsgArg& arg)
                             booleanArray[boolIndx] = (booleanStr[boolIndx] == '1' ? true : false);
                         }
                         status = arg.Set("ab", booleanArraySize, booleanArray);
-                    } else {}
+                    } else { }
                 }
                 break;
+
             case 635: // double array
                 {
                     ParseArrayArg(StringToDouble, "ad", double);
                 }
                 break;
+
             case 432: // int32 array
                 {
                     ParseArrayArg(StringToI32, "ai", int32_t);
                 }
                 break;
+
             case 434: // int16 array
                 {
                     ParseArrayArg(StringToI32, "an", int16_t);
                 }
                 break;
+
             case 551: // uint16 array
                 {
                     ParseArrayArg(StringToU32, "aq", uint16_t);
                 }
                 break;
+
             case 554: // uint64 array
                 {
                     ParseArrayArg(StringToU64, "at", uint64_t);
                 }
                 break;
+
             case 549: // uint32 array
                 {
                     ParseArrayArg(StringToU32, "au", uint32_t);
                 }
                 break;
+
             case 437: // int64 array
                 {
                     ParseArrayArg(StringToI64, "ax", int64_t);
                 }
                 break;
+
             case 436: // byte array
                 {
                     ParseArrayArg(StringToU32, "ay", uint8_t);
                 }
                 break;
+
             default: // array of variant
                 {
                     // fill the array of variant by traversing its children
@@ -446,24 +459,27 @@ QStatus XmlToArg(const XmlElement* argEle, MsgArg& arg)
                         String arraySig("a");
                         arraySig += arrayType;
                         status = arg.Set(arraySig.c_str(), argsNum, argsArray);
-                    } else {}
+                    } else { }
                 }
                 break;
             }
         }
         break;
+
     case 736: // boolean
         {
             const String& argStr = argEle->GetContent();
             status = arg.Set("b", (argStr[0] == '1' ? true : false));
         }
         break;
+
     case 635: // double
         {
             const String& argStr = argEle->GetContent();
             status = arg.Set("d", StringToDouble(argStr));
         }
         break;
+
     case 1077: // dict_entry
         {
             const std::vector<XmlElement*>& entryEleVec = argEle->GetChildren();
@@ -480,36 +496,42 @@ QStatus XmlToArg(const XmlElement* argEle, MsgArg& arg)
             status = XmlToArg(entryEleVec[1], *arg.v_dictEntry.val);
         }
         break;
+
     case 978: // signature
         {
             const String& argStr = argEle->GetContent();
             status = arg.Set("g", strdup(argStr.c_str()));
         }
         break;
+
     case 432: // int32
         {
             const String& argStr = argEle->GetContent();
             status = arg.Set("i", StringToI32(argStr));
         }
         break;
+
     case 434: // int16
         {
             const String& argStr = argEle->GetContent();
             status = arg.Set("n", StringToI32(argStr));
         }
         break;
+
     case 1155: // object_path
         {
             const String& argStr = argEle->GetContent();
             status = arg.Set("o", strdup(argStr.c_str()));
         }
         break;
+
     case 551: // uint16
         {
             const String& argStr = argEle->GetContent();
             status = arg.Set("q", StringToU32(argStr));
         }
         break;
+
     case 677: // struct
         {
             // fill the array of variant by traversing its children
@@ -527,27 +549,31 @@ QStatus XmlToArg(const XmlElement* argEle, MsgArg& arg)
                 arg.typeId = ALLJOYN_STRUCT;
                 arg.v_struct.numMembers = argsNum;
                 arg.v_struct.members = argsArray;
-            } else {}
+            } else { }
         }
         break;
+
     case 663: // string
         {
             const String& argStr = argEle->GetContent();
             status = arg.Set("s", strdup(argStr.c_str()));
         }
         break;
+
     case 554: // uint64
         {
             const String& argStr = argEle->GetContent();
             status = arg.Set("t", StringToU64(argStr));
         }
         break;
+
     case 549: // uint32
         {
             const String& argStr = argEle->GetContent();
             status = arg.Set("u", StringToU32(argStr));
         }
         break;
+
     case 757: // variant
         {
             // fill the array of variant by traversing its children
@@ -557,18 +583,21 @@ QStatus XmlToArg(const XmlElement* argEle, MsgArg& arg)
             status = XmlToArg(argsVec[0], *arg.v_variant.val);
         }
         break;
+
     case 437: // int64
         {
             const String& argStr = argEle->GetContent();
             status = arg.Set("x", StringToI64(argStr));
         }
         break;
+
     case 436: // byte
         {
             const String& argStr = argEle->GetContent();
             status = arg.Set("y", StringToU32(argStr));
         }
         break;
+
     case 620: // handle
         {
             const String& argStr = argEle->GetContent();
@@ -577,6 +606,7 @@ QStatus XmlToArg(const XmlElement* argEle, MsgArg& arg)
             status = arg.Set("h", fd);
         }
         break;
+
     default:
         break;
     }

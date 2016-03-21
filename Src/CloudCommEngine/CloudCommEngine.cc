@@ -65,9 +65,13 @@ static void daemonDisconnectCB(void* arg)
     s_restart = true;
 }
 
-QStatus fillAboutData(AboutData* aboutdata, qcc::String const& appIdHex,
-                                        qcc::String const& appName, qcc::String const& deviceId, std::map<qcc::String, qcc::String> const& deviceNames,
-                                        qcc::String const& defaultLanguage)
+QStatus fillAboutData(
+    AboutData* aboutdata,
+    qcc::String const& appIdHex,
+    qcc::String const& appName,
+    qcc::String const& deviceId,
+    std::map<qcc::String, qcc::String> const& deviceNames,
+    qcc::String const& defaultLanguage)
 {
     if (!aboutdata) {
         return ER_BAD_ARG_1;
@@ -135,8 +139,12 @@ QStatus fillAboutData(AboutData* aboutdata, qcc::String const& appIdHex,
     return status;
 }
 
-QStatus prepareAboutService(BusAttachment* bus, AboutData* aboutData, AboutObj* aboutObj,
-                                              CommonBusListener* busListener, uint16_t port)
+QStatus prepareAboutService(
+    BusAttachment* bus,
+    AboutData* aboutData,
+    AboutObj* aboutObj,
+    CommonBusListener* busListener,
+    uint16_t port)
 {
     if (!bus) {
         return ER_BAD_ARG_1;
@@ -221,8 +229,7 @@ int CDECL_CALL main(int argc, char** argv, char** envArg)
     }
 
     // Initialize the IMSTransport
-    while (0 != ITInitialize())
-    {
+    while (0 != ITInitialize()) {
         qcc::Sleep(200);
     }
 
@@ -267,8 +274,13 @@ int CDECL_CALL main(int argc, char** argv, char** envArg)
     deviceNames.insert(pair<String, String>("zh", "ÔÆ¶ËÍ¨Ñ¶ÒýÇæ"));
 
     s_cceAboutData = new AboutData("en");
-    status = fillAboutData(s_cceAboutData, app_id, (gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME + " App").c_str(),
-        device_id, deviceNames, "en");
+    status = fillAboutData(
+        s_cceAboutData,
+        app_id,
+        (gwConsts::SIPE2E_CLOUDCOMMENGINE_NAME + " App").c_str(),
+        device_id,
+        deviceNames,
+        "en");
     if (ER_OK != status) {
         QCC_LogError(status, ("Error while filling the AboutData"));
         cleanup();
@@ -283,7 +295,7 @@ int CDECL_CALL main(int argc, char** argv, char** envArg)
         return status;
     }
     s_cceBusObject = new CloudCommEngineBusObject(gwConsts::SIPE2E_CLOUDCOMMENGINE_OBJECTPATH, gwConsts::CLOUD_METHOD_CALL_THREAD_POOL_SIZE);
-    status = s_cceBusObject->Init(*s_bus/*, *s_cceAboutObj*/);
+    status = s_cceBusObject->Init(*s_bus /*, *s_cceAboutObj*/);
     if (ER_OK != status) {
         QCC_LogError(status, ("Error while initializing CloudCommEngine"));
         cleanup();

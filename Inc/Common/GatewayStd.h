@@ -51,8 +51,16 @@ typedef struct _AllJoynContext {
     CommonBusListener* busListener;
     ajn::AboutListener* aboutListener;
     ajn::AboutObj* aboutObj;
-    _AllJoynContext() : bus(NULL), aboutData(NULL), busListener(NULL),
-        aboutListener(NULL), aboutObj(NULL) {}
+
+    _AllJoynContext() :
+        bus(NULL),
+        aboutData(NULL),
+        busListener(NULL),
+        aboutListener(NULL),
+        aboutObj(NULL)
+    {
+
+    }
 } AllJoynContext;
 
 typedef struct _AnnounceContent {
@@ -64,22 +72,22 @@ typedef struct _AnnounceContent {
 } AnnounceContent;
 
 /*
-typedef struct _AsyncReplyContext {
+   typedef struct _AsyncReplyContext {
     ajn::Message msg;
     ajn::InterfaceDescription::Member* member;
     _AsyncReplyContext(ajn::Message& _msg, const ajn::InterfaceDescription::Member* _member)
         : msg(_msg), member(new ajn::InterfaceDescription::Member(*_member))
     {
     }
-    ~_AsyncReplyContext() 
+    ~_AsyncReplyContext()
     {
         if (member) {
             delete member;
             member = NULL;
         }
     }
-} AsyncReplyContext;
-*/
+   } AsyncReplyContext;
+ */
 
 }
 

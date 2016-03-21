@@ -14,11 +14,29 @@
 # 
 
 import os
+import platform
 import Utility
     
 GatewayName = 'Gateway'
 
 vars = Variables()
+
+def GetPathFromEnvironVarOrArgument(pathEnvName, description, argumentName):
+    defaultPath = Utility.GetDefaultPathFromEnvironVar(description, pathEnvName)
+    path = ARGUMENTS.get(argumentName, defaultPath)
+    if not path:
+        Utility.PrintOneLineLog(Utility.EventLevel.error, GatewayName, 
+            'The {0} path is not found.'.format(description))
+        Exit(1)
+    
+    Utility.PrintOneLineLog(Utility.EventLevel.info, GatewayName,
+        'The AllJoyn core source path is {0}.'.format(path))
+    
+    vars.Add(PathVariable(argumentName, 
+        'Directory containing the {0}'.format(description), 
+        path))  
+    
+    return path
 
 # Get the version of AllJoyn core from scons command line arguments and check 
 # if it is supported. If AJ_VER is not specified, it will be set to the default 
@@ -37,106 +55,57 @@ vars.Add(EnumVariable('AJ_VER',
                       alljoynVersion,
                       allowed_values=('1504',)))
     
-# In case that AJ_SRC_PATH is not specified, use the OS environment variable to 
-# generate the default AllJoyn core source path.
+# If AJ_SRC_PATH is not specified, use the OS environment variable to generate 
+# the default AllJoyn core source path.
 alljoynCoreSrcPathEnvName = 'ALLJOYN_SRC_' + alljoynVersion + '_HOME'
-defaultAlljoynCoreSrcPath = Utility.GetDefaultPathFromEnvironVar(
-                             'AllJoyn core source', 
-                             alljoynCoreSrcPathEnvName)
+alljoynCoreSrcPath = GetPathFromEnvironVarOrArgument(
+                        alljoynCoreSrcPathEnvName, 
+                        'AllJoyn core source', 
+                        'AJ_SRC_PATH')
 
-alljoynCoreSrcPath = ARGUMENTS.get('AJ_SRC_PATH', defaultAlljoynCoreSrcPath)
-if not alljoynCoreSrcPath:
-    Utility.PrintOneLineLog(Utility.EventLevel.error, GatewayName, 
-    'The AllJoyn core source path is not found.')
-    Exit(1)
+# Need to obtain a few more paths. Some of them are for Windows only and others may 
+# be different between Windows and Linux.
+if 'Windows' in platform.system():
+    defaultOs = 'win7'
+else:
+    defaultOs = 'linux'
+isWindows = (ARGUMENTS.get('OS', defaultOs) == 'win7')
 
-Utility.PrintOneLineLog(Utility.EventLevel.info, GatewayName,
-'The AllJoyn core source path is {0}.'.format(alljoynCoreSrcPath))
-
-vars.Add(PathVariable('AJ_SRC_PATH', 
-                      'Directory containing the AllJoyn core source', 
-                      alljoynCoreSrcPath))                   
-
-# In case that SOFIA_SIP_HOME is not specified, use the OS environment variable to 
-# generate the default Sofia SIP home path.    
-sofiaSipHomeEnvName = 'SOFIA_SIP_HOME'
-defaultSofiaSipHome = Utility.GetDefaultPathFromEnvironVar(
-                         'Sofia SIP home', 
-                         sofiaSipHomeEnvName)
-
-sofiaSipHome = ARGUMENTS.get('SOFIA_SIP_HOME', defaultSofiaSipHome)
-if not sofiaSipHome:
-    Utility.PrintOneLineLog(Utility.EventLevel.error, GatewayName, 
-    'The Sofia SIP home path is not found.')
-    Exit(1)
-
-Utility.PrintOneLineLog(Utility.EventLevel.info, GatewayName,
-    'The Sofia SIP home path is {0}.'.format(sofiaSipHome))      
-
-vars.Add(PathVariable('SOFIA_SIP_HOME', 
-                      'Directory containing Sofia SIP', 
-                      sofiaSipHome))        
-
-# In case that GLIB_HOME is not specified, use the OS environment variable to 
-# generate the default Glib home path.  
-glibHomeEnvName = 'GLIB_HOME'
-defaultGlibHome = Utility.GetDefaultPathFromEnvironVar(
-                         'Glib home', 
-                         glibHomeEnvName)
-                
-glibHome = ARGUMENTS.get('GLIB_HOME', defaultGlibHome) 
-if not glibHome:
-    Utility.PrintOneLineLog(Utility.EventLevel.error, GatewayName, 
-    'The Glib home path is not found.')
-    Exit(1)
-
-Utility.PrintOneLineLog(Utility.EventLevel.info, GatewayName,
-        'The Glib home path is {0}.'.format(glibHome))
-
-vars.Add(PathVariable('GLIB_HOME', 
-                      'Directory containing Glib', 
-                      glibHome))
-
-# In case that ICONV_HOME is not specified, use the OS environment variable to 
-# generate the default iconv home path.
-iconvHomeEnvName = 'ICONV_HOME'
-defaultIconvHome = Utility.GetDefaultPathFromEnvironVar(
-                         'iconv home', 
-                         iconvHomeEnvName)
-
-iconvHome = ARGUMENTS.get('ICONV_HOME', defaultIconvHome)
-if not iconvHome:
-    Utility.PrintOneLineLog(Utility.EventLevel.error, GatewayName, 
-    'The iconv home path is not found.')
-    Exit(1)
-
-Utility.PrintOneLineLog(Utility.EventLevel.info, GatewayName,
-    'The iconv home path is {0}.'.format(iconvHome))
-
-vars.Add(PathVariable('ICONV_HOME', 
-                      'Directory containing iconv', 
-                      iconvHome))   
-                      
-# In case that INTL_HOME is not specified, use the OS environment variable to 
-# generate the default intl home path.
-intlHomeEnvName = 'INTL_HOME'
-defaultIntlHome = Utility.GetDefaultPathFromEnvironVar(
-                         'intl home', 
-                         intlHomeEnvName)
-
-intlHome = ARGUMENTS.get('INTL_HOME', defaultIntlHome)
-if not intlHome:
-    Utility.PrintOneLineLog(Utility.EventLevel.error, GatewayName, 
-    'The intl home path is not found.')
-    Exit(1)
-
-Utility.PrintOneLineLog(Utility.EventLevel.info, GatewayName,
-    'The intl home path is {0}.'.format(intlHome))
-
-vars.Add(PathVariable('INTL_HOME', 
-                      'Directory containing intl', 
-                      intlHome))   
-                         
+# For Windows, if any argument of SOFIA_SIP_HOME, GLIB_HOME, ICONV_HOME, and INTL_HOME 
+# is not specified, use the corresponding OS environment variable to generate the path. 
+# For Linux, if SOFIA_SIP_INCLUDE is not specified, use the OS environment variable to 
+# generate the Sofia SIP include path.    
+if isWindows:
+    sofiaSipHomeEnvName = 'SOFIA_SIP_HOME'    
+    sofiaSipHome = GetPathFromEnvironVarOrArgument(
+                    sofiaSipHomeEnvName, 
+                    'Sofia SIP home', 
+                    sofiaSipHomeEnvName)
+    
+    glibHomeEnvName = 'GLIB_HOME'
+    glibHome = GetPathFromEnvironVarOrArgument(
+                glibHomeEnvName, 
+                'Glib', 
+                glibHomeEnvName)  
+    
+    iconvHomeEnvName = 'ICONV_HOME' 
+    iconvHome = GetPathFromEnvironVarOrArgument(
+                    iconvHomeEnvName, 
+                    'iconv', 
+                    iconvHomeEnvName) 
+    
+    intlHomeEnvName = 'INTL_HOME'
+    intlHome = GetPathFromEnvironVarOrArgument(
+                intlHomeEnvName, 
+                'intl', 
+                intlHomeEnvName)  
+else:
+    sofiaSipIncludeEnvName = 'SOFIA_SIP_INCLUDE'
+    sofiaSipInclude = GetPathFromEnvironVarOrArgument(
+                    sofiaSipIncludeEnvName, 
+                    'Sofia SIP headers', 
+                    sofiaSipIncludeEnvName)        
+               
 # Get the global environment from AllJoyn build_core SConscript.
 alljoynBuildCorePath = alljoynCoreSrcPath + '/core/alljoyn/build_core/SConscript'
 alljoynBuildCorePath = alljoynBuildCorePath.replace('/', os.sep)
@@ -152,29 +121,41 @@ env = alljoynEnv.Clone()
 vars.Update(env)
 Help(vars.GenerateHelpText(env))
         
-# Check if the specified build arguments are supported. Currently only Win7 and 
-# x86 are supported.
+# Check if the specified build arguments are supported. Currently only win7 + x86 and 
+# linux + x86/x86_64 are supported.
 if Utility.IsBuildSupported(alljoynEnv):
     # Invoke the SConscript for CloudCommEngine to build the executable.
     env.SConscript(['./Src/CloudCommEngine/SConscript'], variant_dir = '$OBJDIR/cpp/CloudCommEngine', 
         duplicate = 0, exports = ['env'])   
     
-    # Copy five dlls which are required for running the executable.
-    env.Command(target = "$DISTDIR/cpp/bin/libsofia_sip_ua.dll",
-        source = "$SOFIA_SIP_HOME/win32/libsofia-sip-ua/$VARIANT/libsofia_sip_ua.dll",
-        action = Copy("$TARGET", "$SOURCE"))
-    env.Command(target = "$DISTDIR/cpp/bin/pthreadVC2.dll",
-        source = "$SOFIA_SIP_HOME/win32/pthread/pthreadVC2.dll",
-        action = Copy("$TARGET", "$SOURCE"))
-    env.Command(target = "$DISTDIR/cpp/bin/libglib-2.0-0.dll",
-        source = "$GLIB_HOME/bin/libglib-2.0-0.dll",
-        action = Copy("$TARGET", "$SOURCE"))
-    env.Command(target = "$DISTDIR/cpp/bin/iconv.dll",
-        source = "$ICONV_HOME/bin/iconv.dll",
-        action = Copy("$TARGET", "$SOURCE"))
-    env.Command(target = "$DISTDIR/cpp/bin/intl.dll",
-        source = "$INTL_HOME/bin/intl.dll",
-        action = Copy("$TARGET", "$SOURCE"))
+    if isWindows:
+        # For Windows, copy the five dlls which are required for running the executable.
+        env.Command(target = "$DISTDIR/cpp/bin/libsofia_sip_ua.dll",
+            source = "$SOFIA_SIP_HOME/win32/libsofia-sip-ua/$VARIANT/libsofia_sip_ua.dll",
+            action = Copy("$TARGET", "$SOURCE"))
+        env.Command(target = "$DISTDIR/cpp/bin/pthreadVC2.dll",
+            source = "$SOFIA_SIP_HOME/win32/pthread/pthreadVC2.dll",
+            action = Copy("$TARGET", "$SOURCE"))
+        env.Command(target = "$DISTDIR/cpp/bin/libglib-2.0-0.dll",
+            source = "$GLIB_HOME/bin/libglib-2.0-0.dll",
+            action = Copy("$TARGET", "$SOURCE"))
+        env.Command(target = "$DISTDIR/cpp/bin/iconv.dll",
+            source = "$ICONV_HOME/bin/iconv.dll",
+            action = Copy("$TARGET", "$SOURCE"))
+        env.Command(target = "$DISTDIR/cpp/bin/intl.dll",
+            source = "$INTL_HOME/bin/intl.dll",
+            action = Copy("$TARGET", "$SOURCE"))
+    else:
+        # For Linux, install the two AllJoyn shared libraries which are required for  
+        # running the executable.
+        alljoynLibPath = alljoynCoreSrcPath + '/core/alljoyn/build/$OS/$CPU/$VARIANT/dist/cpp/lib/'
+        alljoynLibPath = alljoynLibPath.replace('/', os.sep)
+        env.Command(target = "$DISTDIR/cpp/bin/liballjoyn.so",
+            source = alljoynLibPath + 'liballjoyn.so',
+            action = Copy("$TARGET", "$SOURCE"))
+        env.Command(target = "$DISTDIR/cpp/bin/liballjoyn_about.so",
+            source = alljoynLibPath + 'liballjoyn_about.so',
+            action = Copy("$TARGET", "$SOURCE"))
 else:
     Utility.PrintOneLineLog(Utility.EventLevel.error, GatewayName, 
     'Only the combination of win7 and x86 is supported.')

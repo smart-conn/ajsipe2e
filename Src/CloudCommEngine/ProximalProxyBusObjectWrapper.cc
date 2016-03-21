@@ -75,7 +75,7 @@ QStatus ProximalProxyBusObjectWrapper::IntrospectProxyChildren()
         return ER_OK;
     }
 
-    _ProxyBusObject** proxyBusObjectChildren = new _ProxyBusObject *[numChildren];
+    _ProxyBusObject** proxyBusObjectChildren = new _ProxyBusObject*[numChildren];
     numChildren = proxy->GetManagedChildren(proxyBusObjectChildren, numChildren);
 
     for (size_t i = 0; i < numChildren; i++) {
@@ -100,7 +100,7 @@ String ProximalProxyBusObjectWrapper::GenerateProxyIntrospectionXml(ajn::Session
         return ER_OK;
     }
 #ifndef NDEBUG
-	QCC_DbgHLPrintf(("Entering ProximalProxyBusObjectWrapper::GenerateProxyIntrospectionXml(%i, %i)", wellKnownPort, topLevel));
+    QCC_DbgHLPrintf(("Entering ProximalProxyBusObjectWrapper::GenerateProxyIntrospectionXml(%i, %i)", wellKnownPort, topLevel));
 #endif
 
     String introXml("");
@@ -111,7 +111,7 @@ String ProximalProxyBusObjectWrapper::GenerateProxyIntrospectionXml(ajn::Session
     const String& objPath = proxy->GetPath();
     if (topLevel) {
         // if it's top level ProxyBusObject, name attribute is whole ObjPath
-        introXml += proxy->GetPath()/* + close*/;
+        introXml += proxy->GetPath() /* + close*/;
     } else {
         size_t slash = objPath.find_last_of('/');
         if (slash != String::npos) {
@@ -139,48 +139,48 @@ String ProximalProxyBusObjectWrapper::GenerateProxyIntrospectionXml(ajn::Session
                 const char* intfName = intf->GetName();
 
 #ifndef NDEBUG
-				QCC_DbgHLPrintf(("Iterate over the Interface '%s'", intfName));
+                QCC_DbgHLPrintf(("Iterate over the Interface '%s'", intfName));
 #endif
-                if (intf && intfName 
+                if (intf && intfName
                     && strcmp(intfName, org::freedesktop::DBus::InterfaceName)
                     && strcmp(intfName, org::freedesktop::DBus::Peer::InterfaceName)
                     && strcmp(intfName, org::freedesktop::DBus::Properties::InterfaceName)
                     && strcmp(intfName, org::freedesktop::DBus::Introspectable::InterfaceName)
                     && strcmp(intfName, org::allseen::Introspectable::InterfaceName)) {
 
-                        // if the interface is "org.alljoyn.ControlPanel.ControlPanel" the port will be set to CONTROLPANELSERVICE_PORT (1000)
-                        // if the interface is "org.alljoyn.Notification" the port will be set to AJ_NOTIFICATION_PRODUCER_SERVICE_PORT (1010)
-                        if (!strcmp(intfName, services::cpsConsts::AJ_CONTROLPANEL_INTERFACE.c_str())) {
-                            wellKnownPort = services::cpsConsts::CONTROLPANELSERVICE_PORT;
-                        } else if (!strcmp(intfName, services::nsConsts::AJ_NOTIFICATION_INTERFACE_NAME.c_str())) {
-                            wellKnownPort = services::nsConsts::AJ_NOTIFICATION_PRODUCER_SERVICE_PORT;
+                    // if the interface is "org.alljoyn.ControlPanel.ControlPanel" the port will be set to CONTROLPANELSERVICE_PORT (1000)
+                    // if the interface is "org.alljoyn.Notification" the port will be set to AJ_NOTIFICATION_PRODUCER_SERVICE_PORT (1010)
+                    if (!strcmp(intfName, services::cpsConsts::AJ_CONTROLPANEL_INTERFACE.c_str())) {
+                        wellKnownPort = services::cpsConsts::CONTROLPANELSERVICE_PORT;
+                    } else if (!strcmp(intfName, services::nsConsts::AJ_NOTIFICATION_INTERFACE_NAME.c_str())) {
+                        wellKnownPort = services::nsConsts::AJ_NOTIFICATION_PRODUCER_SERVICE_PORT;
+                    }
+
+                    size_t numMembers = intf->GetMembers();
+                    if (numMembers > 0) {
+                        const InterfaceDescription::Member** members = new const InterfaceDescription::Member*[numMembers];
+                        intf->GetMembers(members, numMembers);
+                        for (size_t i = 0; i < numMembers; i++) {
+                            const InterfaceDescription::Member* currMember = members[i];
+#ifndef NDEBUG
+                            QCC_DbgHLPrintf(("Iterate over the Member '%s' with memberType=%i", currMember->name.c_str(), currMember->memberType));
+#endif
+                            if (currMember && currMember->memberType == MESSAGE_SIGNAL) {
+                                QStatus status = proxyBus->RegisterSignalHandler(this,
+                                                                                 static_cast<MessageReceiver::SignalHandler>(&ProximalProxyBusObjectWrapper::CommonSignalHandler),
+                                                                                 currMember, 0);
+#ifndef NDEBUG
+                                QCC_DbgHLPrintf(("Register Signal Handler for signal '%s' of interface '%s'", currMember->name.c_str(), intf->GetName()));
+#endif
+                                if (ER_OK != status) {
+                                    QCC_LogError(status, ("Could not Register Signal Handler for ProximalServiceProxyBusObject"));
+                                }
+                            }
                         }
+                        delete[] members;
+                    }
 
-						size_t numMembers = intf->GetMembers();
-						if (numMembers > 0) {
-							const InterfaceDescription::Member** members = new const InterfaceDescription::Member*[numMembers];
-							intf->GetMembers(members, numMembers);
-							for (size_t i = 0; i < numMembers; i++) {
-								const InterfaceDescription::Member* currMember = members[i];
-#ifndef NDEBUG
-								QCC_DbgHLPrintf(("Iterate over the Member '%s' with memberType=%i", currMember->name.c_str(), currMember->memberType));
-#endif
-								if (currMember && currMember->memberType == MESSAGE_SIGNAL) {
-									QStatus status = proxyBus->RegisterSignalHandler(this,
-										static_cast<MessageReceiver::SignalHandler>(&ProximalProxyBusObjectWrapper::CommonSignalHandler),
-										currMember, 0);
-#ifndef NDEBUG
-									QCC_DbgHLPrintf(("Register Signal Handler for signal '%s' of interface '%s'", currMember->name.c_str(), intf->GetName()));
-#endif
-									if (ER_OK != status) {
-										QCC_LogError(status, ("Could not Register Signal Handler for ProximalServiceProxyBusObject"));
-									}
-								}
-							}
-							delete[] members;
-						}
-
-                        String intfXml = intf->Introspect();
+                    String intfXml = intf->Introspect();
 /*
                         StringSource source(intfXml);
                         XmlParseContext pc(source);
@@ -194,19 +194,19 @@ String ProximalProxyBusObjectWrapper::GenerateProxyIntrospectionXml(ajn::Session
                                         static_cast<MessageReceiver::SignalHandler>(&ProximalProxyBusObjectWrapper::CommonSignalHandler),
                                         intf->GetMember(signalEle->GetAttribute("name").c_str()),
                                         0);
-#ifndef NDEBUG
-									QCC_DbgHLPrintf(("Register Signal Handler for signal '%s' of interface '%s'", signalEle->GetAttribute("name").c_str(), intfEle->GetAttribute("name").c_str()));
-#endif
+   #ifndef NDEBUG
+                                    QCC_DbgHLPrintf(("Register Signal Handler for signal '%s' of interface '%s'", signalEle->GetAttribute("name").c_str(), intfEle->GetAttribute("name").c_str()));
+   #endif
                                     if (ER_OK != status) {
                                         QCC_LogError(status, ("Could not Register Signal Handler for ProximalServiceProxyBusObject"));
                                     }
                                 }
                             }
                         }
-*/
+ */
 
-                        intfsXml += intfXml;
-                        intfsXml += "\n";
+                    intfsXml += intfXml;
+                    intfsXml += "\n";
                 }
             }
         }
@@ -239,11 +239,11 @@ void ProximalProxyBusObjectWrapper::CommonSignalHandler(const InterfaceDescripti
         return;
     }
 #ifndef NDEBUG
-	QCC_DbgHLPrintf(("Incoming Signal from member '%s' with srcPath '%s'", member->name.c_str(), srcPath));
+    QCC_DbgHLPrintf(("Incoming Signal from member '%s' with srcPath '%s'", member->name.c_str(), srcPath));
 #endif
 
     /* Retrieve all arguments of the signal call */
-    size_t  numArgs = 0;
+    size_t numArgs = 0;
     const MsgArg* args = 0;
     msg->GetArgs(numArgs, args);
 
@@ -254,18 +254,18 @@ void ProximalProxyBusObjectWrapper::CommonSignalHandler(const InterfaceDescripti
 /*
     String busNameObjPath;
     IllegalStringToObjPathString(senderBusName, busNameObjPath);
-*/
+ */
     String busNameObjPath(senderBusName);
 //     busNameObjPath += srcPath; // The Signal Handler Info is store with key as BusName (without ObjPath?)
 
-    std::map<qcc::String, std::map<qcc::String, std::vector<CloudCommEngineBusObject::SignalHandlerInfo>>>::iterator itShiMap = ownerBusObject->signalHandlersInfo.find(busNameObjPath);
+    std::map<qcc::String, std::map<qcc::String, std::vector<CloudCommEngineBusObject::SignalHandlerInfo> > >::iterator itShiMap = ownerBusObject->signalHandlersInfo.find(busNameObjPath);
     if (itShiMap == ownerBusObject->signalHandlersInfo.end()) {
         // Could not find the Signal Handler Info for this signal, just ignore it
         QCC_LogError(ER_FAIL, ("No Signal Handler Info found"));
         return;
     }
-    std::map<qcc::String, std::vector<CloudCommEngineBusObject::SignalHandlerInfo>>& shiMap = itShiMap->second;
-    std::map<qcc::String, std::vector<CloudCommEngineBusObject::SignalHandlerInfo>>::iterator itShi = shiMap.begin();
+    std::map<qcc::String, std::vector<CloudCommEngineBusObject::SignalHandlerInfo> >& shiMap = itShiMap->second;
+    std::map<qcc::String, std::vector<CloudCommEngineBusObject::SignalHandlerInfo> >::iterator itShi = shiMap.begin();
     while (itShi != shiMap.end()) {
         const String& peerAddr = itShi->first;
         std::vector<CloudCommEngineBusObject::SignalHandlerInfo>& shiVec = itShi->second;
@@ -283,7 +283,7 @@ void ProximalProxyBusObjectWrapper::CommonSignalHandler(const InterfaceDescripti
             String receiverAddr(peerAddr);
             receiverAddr += "/";
             receiverAddr += shi.busName;
-*/
+ */
             String receiverAddr(shi.busName);
             receiverAddr += "/";
             receiverAddr += qcc::U32ToString(shi.sessionId);
@@ -296,7 +296,7 @@ void ProximalProxyBusObjectWrapper::CommonSignalHandler(const InterfaceDescripti
             if (ER_OK != status) {
                 QCC_LogError(status, ("Error sending signal to cloud"));
             }
-       }
+        }
         itShi++;
     }
 }

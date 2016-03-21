@@ -48,8 +48,8 @@ using std::shared_ptr;
 
 
 #if defined(_WIN32) && \
-	(defined(_MSC_VER) || defined(__BORLANDC__) ||  \
-	defined(__CYGWIN__) || defined(__MINGW32__))
+    (defined(_MSC_VER) || defined(__BORLANDC__) ||  \
+    defined(__CYGWIN__) || defined(__MINGW32__))
 
 #ifdef SOFIA_IMSTRANSPORT_EXPORTS
 #define SOFIA_IMS_EXPORT_FUN __declspec(dllexport)

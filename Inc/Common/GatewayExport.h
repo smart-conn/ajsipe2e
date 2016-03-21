@@ -22,27 +22,27 @@ extern "C"
 {
 #endif
 
-    /**
-      *   Exporting
-      */
+/**
+ *   Exporting
+ */
 #if defined(WIN32) && !defined(SIPE2E_GATEWAY_STATIC)
 #define SIPE2E_GATEWAY_EXPORT __declspec(dllexport)
 #else
 #define SIPE2E_GATEWAY_EXPORT
 #endif
 
-    /**
-      *   Importing
-      */
+/**
+ *   Importing
+ */
     #if defined(WIN32)
 #define SIPE2E_GATEWAY_IMPORT __declspec(dllimport)
 #else
 #define SIPE2E_GATEWAY_IMPORT
 #endif
 
-    /**
-      *   Calling Conventions
-      */
+/**
+ *   Calling Conventions
+ */
 #if defined(__GNUC__)
 #if defined(__i386)
 #define SIPE2E_GATEWAY_CALL __attribute__((cdecl))
